@@ -1,0 +1,6 @@
+{
+    "API_URL": "http://localhost:5008/Authentication/api",
+    "ApiUrlAdvAcc" : "http://localhost:5008/AdvertiserAccount/api" ,
+    "ApiUrlAdminAcc" :"http://localhost:5008/Admin/api",
+    "INITIAL_TIME": 60
+}

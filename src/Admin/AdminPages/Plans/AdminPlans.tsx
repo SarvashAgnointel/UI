@@ -1,0 +1,484 @@
+import React, { useEffect, useState } from "react";
+import { Table, TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow, } from "../../../Components/ui/table";
+import {
+    DotsHorizontalIcon,
+    CaretSortIcon,
+  } from "@radix-ui/react-icons";
+  
+import { Button } from "../../../Components/ui/button";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+
+import {
+    StopwatchIcon,
+    CheckIcon,
+  } from "@radix-ui/react-icons";
+  import { DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger, } from "@radix-ui/react-dropdown-menu";
+import { useDispatch } from "react-redux";
+import { setCreateBreadCrumb } from "../../../State/slices/AdvertiserAccountSlice";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import { Switch } from "../../../Components/ui/switch";
+
+interface Plans {
+    billingId: number;
+    name: string;
+    status: string;
+    price: string;
+    countrySymbol: string;
+    messages: string;
+    updatedAt: string;
+  }
+
+  
+const AdminPlans: React.FC = () => {
+
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAllSelected, setIsAllSelected] = useState(false);
+    const [openMenuRowId, setOpenMenuRowId] = useState<number | null>(null);
+    const [isAlertOpen, setIsAlertOpen] = useState(false); // Dialog visibility
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    const handleMenuToggle = (rowId: number) => {
+        setOpenMenuRowId((prev) => (prev === rowId ? null : rowId));
+      };
+
+    const [currentPlans, setCurrentPlans] = useState<Plans[]>([]);
+    const [checkboxSelectedRows, setCheckboxSelectedRows] = useState<number[]>([]);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [rowsPerPage, setRowsPerPage] = useState<number>(5);
+  
+    const totalPages = Math.ceil(currentPlans.length / rowsPerPage);
+  
+
+    useEffect(() => {
+      const fetchConfig = async () => {
+        try {
+          const response = await fetch("/config.json");
+          const config = await response.json();
+          setApiUrlAdvAcc(config.ApiUrlAdvAcc);
+        } catch (error) {
+          console.error("Error loading config:", error);
+        }
+      };
+  
+      fetchConfig();
+    }, []);
+  
+    useEffect(() => {
+      if (apiUrlAdvAcc) {
+        getPlanList();
+      }
+    }, [apiUrlAdvAcc]); 
+
+
+  const getPlanList = async () => {
+    setIsLoading(true); // Show the loader initially
+    try {
+      const response = await axios.get(`${apiUrlAdvAcc}/GetBillingFeatures`);
+      if (response.data && response.data.billingFeatureList) {
+          const plansList = response.data.billingFeatureList;
+          console.log("plansList ", plansList);
+          setCurrentPlans(plansList);
+          setIsLoading(false); // Hide loader once processing is done
+      } else {
+        console.error("Invalid response format:", response.data);
+        setIsLoading(false); // Hide loader once processing is done
+      }
+    } catch (error) {
+      console.error("Error fetching campaign list:", error);
+      setCurrentPlans([]); // Handle errors with an empty list
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+  
+  const displayedPlans = currentPlans.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+  
+  const handleCheckboxRowSelect = (id: number) => {
+    setCheckboxSelectedRows((prev) => {
+      const newSelectedRows = prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id];
+      setIsAllSelected(newSelectedRows.length === currentPlans.length);
+      return newSelectedRows;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setCheckboxSelectedRows([]);
+    } else {
+      const allIds = currentPlans.map((plans) => plans.billingId);
+      setCheckboxSelectedRows(allIds);
+    }
+    setIsAllSelected(!isAllSelected);
+  };
+
+  const handleEditPlan = (planId: number, name: string, messages: string, price: string, countrySymbol: string) => {
+
+    console.log(" Items - ", planId, name, messages, price, countrySymbol);
+    navigate("/adminNavbar/createplans", { state: { planId, name, messages, price, countrySymbol} });
+
+  }
+
+  const handleDeletePlan = (planId: any) => {
+    setSelectedPlan(planId); // Store Plan ID to delete
+    setIsAlertOpen(true); // Open the alert dialog
+  };
+
+  const handleClose = () => {
+    setIsAlertOpen(false);
+  };
+
+  const handleConfirmDelete = () => { 
+
+    console.log("plan deleted successfully");
+    setIsAlertOpen(false);
+  }
+
+
+
+  const handleStatusToggle = (billingId: number, currentStatus: string) => {
+    const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+  
+    // Update the status in the backend
+    axios
+      .post(`${apiUrlAdvAcc}/UpdatePlanStatus`, {
+        billingId,
+        status: newStatus,
+      })
+      .then((response) => {
+        if (response.status === 200) {
+          // Update the status locally in the state
+          setCurrentPlans((prevPlans) =>
+            prevPlans.map((plan) =>
+              plan.billingId === billingId ? { ...plan, status: newStatus } : plan
+            )
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error updating status:", error);
+      });
+  };
+  
+
+  const getMessageValue = (input: string) => {
+   
+    input = input.trim();  
+    if (input === "Unlimited messages") {
+      return "N/A";
+    }
+
+    const number = input.match(/\d+/);
+    if (number) {
+      return parseInt(number[0]).toLocaleString('en-US');
+    }
+    return input; 
+  };
+
+    const renderStatusIcon = (status: any) => {
+        switch (status) {
+        case "Syncing...":
+            return <StopwatchIcon className="text-gray-500" />;
+        case "Updated":
+            return (
+            <CheckIcon className="text-gray-500 rounded-full border border-gray-500" />
+            );
+        default:
+            return null; 
+        }
+    };
+
+
+    return (
+
+        <div>
+        <ToastContainer />
+        
+         <div className="fixed flex justify-end items-end right-0 top-[-15px] z-20 p-4">
+                    <Button
+                      onClick={() => {
+                        dispatch(setCreateBreadCrumb(true));
+                        navigate("/adminNavbar/createplans");
+                      } }
+                      className="w-17 text-sm text-[#F8FAFC] font-medium h-[35px] mt-[10px]"
+                    >
+                      New Plan
+                    </Button> 
+                  </div>
+
+        <div className="rounded-md border">
+            <Table
+              className="rounded-xl whitespace-nowrap border-gray-200  "
+              style={{ color: "#020202", fontSize: "15px" }}
+            >
+                <TableHeader className="text-center text-[14px] font-medium">
+                <TableRow>
+                  <TableHead className="">
+                    <div className="flex items-center gap-6 justify-start cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className={`text-muted-foreground ${
+                          isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
+                        }`}
+                        checked={isAllSelected}
+                        onChange={handleSelectAll}
+                      />
+                      Name{" "}
+                      <CaretSortIcon className="cursor-pointer"
+                            // onClick={() => sortCampaignList("ByCampaignName")}
+                      />
+                    </div>
+                  </TableHead>
+
+                  <TableHead className="text-left">
+                    <div className="flex items-center gap-2 justify-start">
+                      Status{" "}
+                      <CaretSortIcon
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </TableHead>
+
+                  <TableHead>             
+                    <div className="flex items-left gap-2 justify-end">
+                      Price{" "}
+                      <CaretSortIcon
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </TableHead>
+
+                  <TableHead>             
+                    <div className="flex items-center gap-2 justify-end">
+                      Messages{" "}
+                      <CaretSortIcon
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </TableHead>
+
+
+                  <TableHead>               
+                    <div className="flex items-center gap-2 justify-start ml-3">
+                      Updated at{" "}
+                      <CaretSortIcon
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </TableHead>
+              
+        
+                  <TableHead className="text-left"></TableHead>
+                </TableRow>
+              </TableHeader>
+              
+
+              <TableBody className="text-left text-[14px] font-normal text-[#020617] ">
+               {displayedPlans.map((plan) => {
+                const isSelected = checkboxSelectedRows.includes(plan.billingId);
+
+                return (
+                <TableRow
+                    key={plan.billingId}
+                    className={`${isSelected ? "bg-gray-200" : ""}`}
+                >
+                    <TableCell className="py-4 text-green-900">
+                    <div className="flex items-center gap-4">
+                        <input
+                        type="checkbox"
+                        className={`accent-gray-700 bg-grey-700 text-red-500 ${
+                            isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
+                        }`}
+                        checked={isSelected}
+                        onChange={() => handleCheckboxRowSelect(plan.billingId)}
+                        />
+                        <span style={{ color: "#020617", fontSize: "14px", fontWeight: "400" }}>
+                        {plan.name}
+                        </span>
+                    </div>
+                    </TableCell>
+
+                    <TableCell className="py-4">
+  <div className="flex items-center">
+    <Switch
+      checked={plan.status === "Active"}
+      onCheckedChange={(checked) => {
+        // Update the UI state locally
+        setCurrentPlans((prevPlans) =>
+          prevPlans.map((p) =>
+            p.billingId === plan.billingId
+              ? { ...p, status: checked ? "Active" : "Inactive" }
+              : p
+          )
+        );
+
+        // Optional: Call the API if needed
+        // handleStatusToggle(plan.billingId, checked ? "Active" : "Inactive");
+      }}
+      className="bg-gray-200"
+    />
+  </div>
+</TableCell>
+
+
+
+                    <TableCell  className="py-4">
+                    <span className="flex items-center justify-end" style={{ color: "#020617", fontSize: "14px", fontWeight: "400" }}>
+                        {plan.price} {plan.countrySymbol}
+                    </span>
+                    </TableCell>
+
+                    <TableCell className="py-4">
+                    <span className="flex items-center justify-end" style={{ color: "#020617", fontSize: "14px", fontWeight: "400" }}>
+                        {getMessageValue(plan.messages)}
+                    </span>
+                    </TableCell>
+
+                    <TableCell className="py-4">
+                    <div className="flex items-center gap-2 ml-2.5">
+                        <span style={{ color: "#020617", fontSize: "14px", fontWeight: "400" }}>
+                        {new Date(plan.updatedAt).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                        })}{" "}
+                        ∙{" "}
+                        {new Date(plan.updatedAt).toLocaleTimeString("en-GB", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        })}
+                        </span>
+                    </div>
+                    </TableCell>
+
+                    <TableCell className="flex justify-left py-4">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                        <DotsHorizontalIcon
+                            style={{ color: "#020617" }}
+                            onClick={() => handleMenuToggle(plan.billingId)}
+                            className="cursor-pointer w-6 h-6"
+                        />
+                        </DropdownMenuTrigger>
+                        {openMenuRowId === plan.billingId && (
+                       <DropdownMenuContent className="bg-white border border-gray-200 shadow-md rounded-md w-40">
+                       <DropdownMenuItem
+                         className="px-4 py-2 text-gray-900 hover:bg-gray-100 hover:text-black cursor-pointer"
+                         onClick={() =>
+                           handleEditPlan(
+                             plan.billingId,
+                             plan.name,
+                             plan.messages,
+                             plan.price,
+                             plan.countrySymbol
+                           )
+                         }
+                       >
+                        Edit
+                       </DropdownMenuItem>
+
+                     </DropdownMenuContent>
+                     
+                        )}
+                    </DropdownMenu>
+                    </TableCell>
+                </TableRow>
+                );
+            })}
+            </TableBody>
+            </Table>
+        </div>
+
+        <Dialog
+                open={isAlertOpen}
+                onClose={handleClose}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+                sx={{ "& .MuiPaper-root": { borderRadius: "10px" } }}
+              >
+                <DialogContent>
+                  <DialogContentText>
+                    Are you sure! you want to delete this plan ?
+                  </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                  <Button variant="outline" className="w-24" onClick={handleClose}>
+                    Cancel
+                  </Button>
+                  <Button className="w-24" onClick={handleConfirmDelete} autoFocus>
+                    OK
+                  </Button>
+                </DialogActions>
+              </Dialog>
+
+
+        <div className="flex justify-between items-center mt-4">
+        <div className="flex items-center space-x-2 text-gray-500 text-sm">
+          <span>{`${(currentPage - 1) * rowsPerPage + 1}-${Math.min(
+            currentPage * rowsPerPage,
+            currentPlans.length
+          )} of ${currentPlans.length} row(s) selected.`}</span>
+        </div>
+        <div className="flex items-center space-x-4 font-medium text-sm">
+          <span>Rows per page:</span>
+          <select
+            className="ml-2 border border-gray-300 rounded px-2 py-1"
+            value={rowsPerPage}
+            onChange={(e) => {
+              setRowsPerPage(Number(e.target.value));
+              setCurrentPage(1); 
+            }}
+          >
+            {[5, 10, 20].map((num) => (
+              <option key={num} value={num}>
+                {num}
+              </option>
+            ))}
+          </select>
+          <span>{`Page ${currentPage} of ${totalPages}`}</span>
+          <button className="border p-1 pr-2 pl-2 rounded text-gray-500 hover:bg-gray-200"
+            onClick={() => handlePageChange(1)} disabled={currentPage === 1}>
+            «
+          </button>
+          <button className="border p-1 pr-2 pl-2 rounded text-gray-500 hover:bg-gray-200"
+            onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+            ‹
+          </button>
+          <button className="border p-1 pr-2 pl-2 rounded text-gray-500 hover:bg-gray-200"
+            onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+            ›
+          </button>
+          <button className="border p-1 pr-2 pl-2 rounded text-gray-500 hover:bg-gray-200"
+            onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages}>
+            »
+          </button>
+        </div>
+      </div>
+
+      </div>
+    );
+}
+
+export default AdminPlans;
