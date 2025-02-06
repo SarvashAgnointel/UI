@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as a parent image
-FROM node:16-alpine 
+FROM node:18-alpine 
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN npm install
 COPY . .
 
 # Expose port 4173 for the app
-EXPOSE 4173
+EXPOSE 3000
 
 
 # Start the app (ensure it listens on the correct port)
