@@ -1,6 +1,7 @@
 import { Button } from "../../Components/ui/button";
 import { Card } from "../../Components/ui/card";
 import { Label } from "../../Components/ui/label";
+import Default_WhatsApp_background from "../../Assets/Default_WhatsApp_background.jpeg";
 import {
   Select,
   SelectItem,
@@ -133,6 +134,11 @@ interface Audience {
   total_people: number;
 }
 
+interface SmppServerList {
+  id: number;
+  channelName: string;
+}
+
 const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
   className,
 }) => {
@@ -184,6 +190,7 @@ export default function AdminCampaignReview() {
   const [channelList, setChannelList] = useState<Channel[]>([]); // State for the channel list
   const [templatefilterlist, setTemplatefilterlist] = useState<Template[]>([]);
   const [channel, setChannel] = useState("");
+  const [smsServer, setSmsServer] = useState("");
   const [templateList, setTemplateList] = useState<Template[]>([]);
   const [audienceList, setAudienceList] = useState<Audience[]>([]);
   const [template, setTemplate] = useState("");
@@ -220,6 +227,7 @@ export default function AdminCampaignReview() {
     null
   );
   const [channelError, setChannelError] = useState<string | null>(null);
+  const [smsServerError, setSmsServerError] = useState<string | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [FbudgetError, setFBudgetError] = useState<string | null>(null);
@@ -235,6 +243,7 @@ export default function AdminCampaignReview() {
   );
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
   const [adminapiUrlAdvAcc, setAdminApiUrlAdvAcc] = useState("");
+  const [apiUrlSms, setapiUrlSms] = useState("");
   const [isStartCalendarOpen, setStartCalendarOpen] = useState(false);
   const [isFStartCalendarOpen, setFStartCalendarOpen] = useState(false);
   const [isEndCalendarOpen, setEndCalendarOpen] = useState(false);
@@ -279,9 +288,10 @@ export default function AdminCampaignReview() {
   const [buttonText, setButtonText] = useState<string>("");
   const [templatePreview, setTemplatePreview] = useState<string>("");
   const [showRussiaAndKazakhstan, setShowRussiaAndKazakhstan] = useState(false);
+  const [smppServer, setSmppServer] = useState<SmppServerList[]>([]);
 
   const [campaignApprovalStatus, setCampaignApprovalStatus] =
-  useState<boolean>(true);
+    useState<boolean>(true);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -411,7 +421,8 @@ export default function AdminCampaignReview() {
         const config = await response.json();
         console.log("Config loaded:", config); // Debugging log
         setApiUrlAdvAcc(config.ApiUrlAdvAcc);
-        setAdminApiUrlAdvAcc(config.ApiUrlAdminAcc); // Set API URL from config
+        setAdminApiUrlAdvAcc(config.ApiUrlAdminAcc);
+        setapiUrlSms(config.SmsUrlAdminAcc); // Set API URL from config
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -448,7 +459,9 @@ export default function AdminCampaignReview() {
 
           if (campaignId) {
             await GetAdminApprovalStatus(campaignId);
-            await loadCampaignList(campaignId); // Load campaign details
+            await loadCampaignList(campaignId);
+            debugger;
+            await loadSmppServerList();
           }
           debugger;
           if (templateId) {
@@ -864,7 +877,14 @@ export default function AdminCampaignReview() {
       rows.length === 0;
 
     return (
-      <div className="flex flex-col justify-between w-full h-full">
+      <div className="flex flex-col justify-between w-full max-h-fit bottom-0"
+      style={{
+        backgroundImage: `url(${Default_WhatsApp_background})`,
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+      }}
+      >
         {noContentSelected ? (
           <div className="flex w-full justify-center">
             <div className="flex-col justify-center text-left mt-[250px] items-center">
@@ -904,7 +924,12 @@ export default function AdminCampaignReview() {
                   {selectedFile.type === "application/pdf" ? (
                     <iframe
                       src={URL.createObjectURL(selectedFile)}
-                      className="w-full h-full"
+                      className="w-full h-full no-scrollbar"
+                      style={{
+                        overflow: "hidden",
+                        overflowX: "hidden",
+                        overflowY: "hidden",
+                      }}
                       title="PDF Preview"
                     />
                   ) : (
@@ -925,7 +950,7 @@ export default function AdminCampaignReview() {
             </div>
 
             {/* Body Text */}
-            <div className="flex-1 bg-white text-black w-full text-left">
+            <div className="flex-1 text-black w-full text-left">
               {selectedOption === "text" && textInput && (
                 <p
                   className="w-full text-base font-sans p-2 font-bold"
@@ -971,14 +996,14 @@ export default function AdminCampaignReview() {
 
             {/* WebURL */}
             {/* <div className="border-t mt-2 pt-2 text-center">
-              {!isbuttonTextEmpty ? (
-                <p className="font-serif text-blue-400"><a href={websiteUrl} target="_blank" rel="noopener noreferrer">
-                {buttonText}
-              </a></p>
-              ) : (
-                <p className="text-sm text-gray-500"> </p>
-              )}
-            </div> */}
+            {!isbuttonTextEmpty ? (
+              <p className="font-serif text-blue-400"><a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+              {buttonText}
+            </a></p>
+            ) : (
+              <p className="text-sm text-gray-500"> </p>
+            )}
+          </div> */}
 
             {/* Buttons Preview */}
 
@@ -995,7 +1020,7 @@ export default function AdminCampaignReview() {
                     rel="noopener noreferrer"
                   >
                     {row.buttonText}
-                    <div className="border-t mt-2"></div>
+                    <div className=""></div>
                   </a>
                 </p>
               ))}
@@ -1009,17 +1034,24 @@ export default function AdminCampaignReview() {
 
   const UpdateCampaignStatusApprove = async (campaignId: number) => {
     setIsLoading(true);
+
+    if (validateSmsServer(smsServer) == false) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const data = {
         campaignId: campaignId,
         status: "Approved",
+        serverId: smsServer,
       };
 
       const response = await axios.put(
         `${adminapiUrlAdvAcc}/UpdateCampaignStatus`,
         data
       );
-      debugger
+      debugger;
 
       const Close = () => {
         setIsLoading(false);
@@ -1028,26 +1060,21 @@ export default function AdminCampaignReview() {
       };
 
       if (response.data.status === "Success") {
-        debugger
-        
-        
-       
+        debugger;
+
         toast.toast({
-          title:"Success",
+          title: "Success",
           description: "Campaign Appoved successfully",
-        })
-        setTimeout(()=>{ Close();},800);
-
-      
-
-      }
-      else{
+        });
+        setTimeout(() => {
+          Close();
+        }, 800);
+      } else {
         Close();
         toast.toast({
-          title:"Error",
+          title: "Error",
           description: "Error in approving campaign status",
-        })
-
+        });
       }
     } catch (e) {
       console.log("Error");
@@ -1062,8 +1089,6 @@ export default function AdminCampaignReview() {
         status: "Rejected",
       };
 
-
-
       const response = await axios.put(
         `${adminapiUrlAdvAcc}/UpdateCampaignStatus`,
         data
@@ -1076,23 +1101,19 @@ export default function AdminCampaignReview() {
       };
 
       if (response.data.status === "Success") {
-        
         Close();
 
         toast.toast({
-          title:"Success",
+          title: "Success",
           description: "Campaign Rejected successfully",
-        })
- 
-      }
-      else{
-       Close();
+        });
+      } else {
+        Close();
 
         toast.toast({
-          title:"Error",
+          title: "Error",
           description: "Error in rejecting campaign",
-        })
-
+        });
       }
     } catch (e) {
       console.log("Error");
@@ -1107,6 +1128,11 @@ export default function AdminCampaignReview() {
   const handleChannelChange = (value: string) => {
     setChannel(value);
     validateChannel(value); // Pass the updated value for validation
+  };
+
+  const handleSmsServerChange = (value: string) => {
+    setSmsServer(value);
+    validateSmsServer(value); // Pass the updated value for validation
   };
 
   const handleTemplateChange = (value: string) => {
@@ -1176,6 +1202,19 @@ export default function AdminCampaignReview() {
       return false;
     }
     setChannelError(null);
+    return true;
+  };
+
+  const validateSmsServer = (value: string): boolean => {
+    if (!value) {
+      setSmsServerError("Please select a Server");
+      toast.toast({
+        title: "Warning",
+        description: "Please select a server",
+      });
+      return false;
+    }
+    setSmsServerError(null);
     return true;
   };
 
@@ -1576,7 +1615,7 @@ export default function AdminCampaignReview() {
   };
 
   const GetAdminApprovalStatus = async (campaignId: number) => {
-    debugger
+    debugger;
     setLoading(true);
     try {
       const response = await axios.get(
@@ -1634,6 +1673,26 @@ export default function AdminCampaignReview() {
       setIsLoading(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSmppServerList = async () => {
+    debugger;
+    setIsLoading(true);
+
+    try {
+      const response = await axios.get(`${apiUrlSms}/getchannels`);
+      if (response.data.status == "Success") {
+        setIsLoading(false);
+        const smppServerList = response.data.channelList;
+        setSmppServer(smppServerList);
+      } else {
+        console.log("No smpp server list available in response.");
+        setIsLoading(false);
+      }
+    } catch (e) {
+      console.log("No smpp server list available in response.");
+      setIsLoading(false);
     }
   };
 
@@ -1695,7 +1754,7 @@ export default function AdminCampaignReview() {
 
   return (
     <>
-    <Toaster />
+      <Toaster />
       {isLoading && (
         <div className="loading-overlay">
           <CircularProgress color="primary" />
@@ -1704,28 +1763,42 @@ export default function AdminCampaignReview() {
       <div className="overflow-y-auto ml-[-7px]">
         <Toaster />
         <div className="fixed flex justify-end gap-4 mr-[40px] items-end right-[0px] top-[-15px] z-20 ">
-          {(campaignStatus !== "Live" && campaignStatus !== "Rejected" && campaignApprovalStatus==false)  && (
-            <Button
-              variant={"outline"}
-              className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-              onClick={() => {
-                UpdateCampaignStatusReject(campaignId); // Call handleSubmit if campaignId does not exist
+          {campaignStatus !== "Live" &&
+            campaignStatus !== "Rejected" &&
+            campaignApprovalStatus == false && (
+              <Button
+                variant={"outline"}
+                className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                onClick={() => {
+                  UpdateCampaignStatusReject(campaignId); // Call handleSubmit if campaignId does not exist
 
-                console.log("Clicked"); // Log the click event
-              }}
-            >
-              Reject
-            </Button>
-          )}
-          {(campaignStatus !== "Live" && campaignStatus !== "Rejected" && campaignApprovalStatus==false) && (
+                  console.log("Clicked"); // Log the click event
+                }}
+              >
+                Reject
+              </Button>
+            )}
+          {campaignStatus !== "Live" &&
+          campaignStatus !== "Rejected" &&
+          !campaignApprovalStatus ? (
             <Button
               className="w-[80px] text-[#F8FAFC]"
               onClick={() => {
-                UpdateCampaignStatusApprove(campaignId); // Call handleSubmit if campaignId does not exist
-                console.log("Clicked"); // Log the click event
+                UpdateCampaignStatusApprove(campaignId);
+                console.log("Clicked");
               }}
             >
               Approve
+            </Button>
+          ) : (
+            <Button
+              className="w-[80px] text-[#F8FAFC]"
+              onClick={() => {
+                navigate("/adminNavbar/campaigns");
+                console.log("Clicked");
+              }}
+            >
+              Back
             </Button>
           )}
         </div>
@@ -1806,6 +1879,49 @@ export default function AdminCampaignReview() {
                     <p className="text-red-500 text-sm">{channelError}</p>
                   )}
                 </div>
+
+                {channelName === "SMS" && (
+                  <div className="mt-4">
+                    <Label
+                      htmlFor="SmsServer"
+                      className="mt-2 font-medium text-[#020617]"
+                      style={{ fontSize: "14px" }}
+                    >
+                      SMPP Server
+                    </Label>
+                    <Select
+                      value={smsServer}
+                      onValueChange={(value) => {
+                        handleSmsServerChange(value);
+                        //channelFilter(value);
+                        console.log("Selected Server ID:", value);
+                      }}
+                    >
+                      <SelectTrigger className="text-gray-500 mt-2">
+                        <SelectValue
+                          className="text-[#64748B] text-sm font-normal"
+                          placeholder={"Select a SMS Server"}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {smppServer.map((server) => (
+                          <SelectItem
+                            className="text-[#64748B] text-sm font-normal"
+                            key={server.id}
+                            value={server.id as any}
+                          >
+                            {server.channelName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {smsServerError && (
+                      <p className="text-red-500 text-sm">{smsServerError}</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="mt-4">
                   <Label
                     htmlFor="reachPeopleFrom"
@@ -1988,10 +2104,12 @@ export default function AdminCampaignReview() {
             </Card>
           </div>
 
-          <div className="border justify-items-center pl-7 pr-7 h-[720px] rounded-lg">
+          <div
+            className={`border justify-items-center pl-7 pr-7 max-h-fit top-auto right-14 rounded-lg`}
+          >
             <h2 className="mb-2 mt-4 ml-[-200px] font-bold">Message preview</h2>
             <div
-              className="flex flex-col justify-between rounded-[50px] text-black p-4 w-[350px] min-h-[640px]"
+              className="flex flex-col justify-between rounded-[30px] text-black p-4 w-[350px] min-h-auto"
               style={{ backgroundColor: "#f9f9f9" }}
             >
               <div className="justify-center">

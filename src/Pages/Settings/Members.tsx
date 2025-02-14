@@ -57,6 +57,7 @@ interface Member {
   role: string;
   joined_at: string;
   wId: number;
+  image: string;
   // assuming date is a string in ISO format
 }
 
@@ -68,6 +69,7 @@ interface InviteMember {
   invited_at: string;
   expires_date: string;
   status: string;
+  image: string
 }
 
 interface ValidationError {
@@ -76,7 +78,7 @@ interface ValidationError {
 }
 
 interface Roles {
-  role_id: string;
+  role_id: number;
   role_name: string;
 }
 
@@ -121,7 +123,7 @@ const Members: React.FC = () => {
   const [inviteSearchTerm, setInviteSearchTerm] = useState("");
   const [currentMembers, setCurrentMembers] = useState<Member[]>([]);
   const [isPrimaryOwner, setIsPrimaryOwner] = useState(false);
-  const [isOwner, setIsOwner] = useState(false);
+  const [isPrimaryAdvertiser, setIsPrimaryAdvertiser] = useState(false);
 
   const [originalMembers, setOriginalMembers] = useState<Member[]>([]); // For resetting
   const [isSorted, setIsSorted] = useState(false);
@@ -247,12 +249,12 @@ const Members: React.FC = () => {
 
         if (loggedInUser && loggedInUser.role === "Primary Owner") {
           setIsPrimaryOwner(true);
-          // Update state if the user is a Primary Owner
-        } else if (loggedInUser && loggedInUser.role === "Owner") {
-          setIsOwner(true);
+          // Update state if the user is a Primary Advertiser
+        } else if (loggedInUser && loggedInUser.role === "Primary Advertiser") {
+          setIsPrimaryAdvertiser(true);
         } else {
           setIsPrimaryOwner(false);
-          setIsOwner(false); // Otherwise, set it to false
+          setIsPrimaryAdvertiser(false); // Otherwise, set it to false
         }
 
         console.log(
@@ -309,6 +311,7 @@ const Members: React.FC = () => {
         description: "Error Updating User Role.",
       });
     }
+    setIsLoading(false);
   };
 
   const getPendingMembersList = async () => {
@@ -352,7 +355,7 @@ const Members: React.FC = () => {
           {
             member_id: memberId,
             email: memberDetails.email,
-            role: matchedRole?.role_id || "", // Use the role_id or an empty string if not found
+            role: matchedRole?.role_id?.toString() || "", // Use the role_id or an empty string if not found
             first_name: "",
             last_name: "",
             wId: workspaceId,
@@ -417,25 +420,49 @@ const Members: React.FC = () => {
     }
   };
 
+  // const getRolesList = async () => {
+  //   try {
+  //     const response = await axios.get(`${apiUrlAdvAcc}/GetAdvRolesList`);
+
+  //     // Assuming the response data contains a 'CountryList' field as discussed earlier
+  //     if (response.data && response.data.rolesList) {
+        
+  //       setRoles(response.data.rolesList);
+  //       console.log("Country List : ", response.data.rolesList);
+  //     } else {
+  //       console.log("No roles list available in response.");
+  //     }
+  //   } catch (error) {
+  //     // Handle error if API call fails
+
+  //     console.error("Error fetching error list:", error);
+  //   } finally {
+  //   }
+  // };
+
   const getRolesList = async () => {
     try {
       const response = await axios.get(`${apiUrlAdvAcc}/GetAdvRolesList`);
-
-      // Assuming the response data contains a 'CountryList' field as discussed earlier
+  
       if (response.data && response.data.rolesList) {
-        setRoles(response.data.rolesList);
-        console.log("Country List : ", response.data.rolesList);
+        console.log("Roles List Response:", response.data.rolesList); 
+  
+        
+        const filteredRoles = response.data.rolesList.filter(
+          (role: { role_id: number; }) =>
+            role.role_id > 2 && role.role_id <= 10
+        );
+  
+        setRoles(filteredRoles);
+        console.log("Filtered Roles List:", filteredRoles);
       } else {
         console.log("No roles list available in response.");
       }
     } catch (error) {
-      // Handle error if API call fails
-
-      console.error("Error fetching error list:", error);
-    } finally {
+      console.error("Error fetching roles list:", error);
     }
   };
-
+  
   const fetchProfileImage = async () => {
     debugger;
     try {
@@ -502,12 +529,12 @@ const Members: React.FC = () => {
   };
 
   const handleSendInvites = async () => {
-    setIsLoading(true)
+    
     if (!validateRows()) {
       // If validation fails, do not proceed
       return;
     }
-
+    setIsLoading(true)
     try {
       const data = invitedMembers.map((member) => ({
         WorkspaceId: workspaceId,
@@ -772,10 +799,11 @@ const Members: React.FC = () => {
     const updatedErrors = [...errors];
     if (!roleValue) {
       updatedErrors[index].roleError = "Role is required";
+      setErrors(updatedErrors);
     } else {
       updatedErrors[index].roleError = "";
     }
-    setErrors(updatedErrors);
+    
   };
 
   /**
@@ -801,6 +829,8 @@ const Members: React.FC = () => {
         errorObj.roleError = "Role is required";
         isValid = false;
         setIsLoading(false);
+      }else{
+        errorObj.roleError = "";
       }
 
       return errorObj;
@@ -1027,13 +1057,13 @@ const Members: React.FC = () => {
                 Here you can manage the members of your team.
               </p>
             </div>
-            {isPrimaryOwner && ( // Check if the user is a Primary Owner
+            {(isPrimaryOwner || isPrimaryAdvertiser) && ( // Check if the user is a Primary Owner
               <Button className="w-48 text-white mt-0" onClick={handleOpen}>
                 + Invite members
               </Button>
             )}
 
-            <Dialog open={open} onOpenChange={handleClose}>
+<Dialog open={open} onOpenChange={handleClose}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>
@@ -1056,7 +1086,7 @@ const Members: React.FC = () => {
                   {invitedMembers.map((member, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-4 overflow-y-auto max-h-[300px]"
+                      className="flex items-center gap-4  overflow-y-auto max-h-[300px] "
                     >
                       {/* Email Container */}
                       <div className="flex flex-col w-72">
@@ -1073,26 +1103,29 @@ const Members: React.FC = () => {
                           disabled={isUpdating} // Disable editing of the email field when updating
                         />
                         {/* Error message for email */}
-                        {errors[index]?.emailError && (
+                        {/* {errors[index]?.emailError && (
                           <p className="text-red-500 text-sm mt-1 self-start">
                             {errors[index].emailError}
                           </p>
-                        )}
+                        )} */}
+                         <div className="min-h-[20px] mt-1">
                         {emailErrors && (
                           <p className="text-red-500 text-sm mt-1 self-start">
                             {emailErrors}
                           </p>
                         )}
+                        </div>
                       </div>
 
                       {/* Role Container */}
-                      <div className="flex flex-col">
+                      <div className="flex flex-col mb-[-4]">
                         <Label>Role</Label>
                         <Select
                           value={member.role}
                           onValueChange={(value) => {
                             handleMemberChange(index, "role", value);
                             setSelectedRoleId(value);
+                            handleRoleChange(index , value);
                           }}
                         >
                           <SelectTrigger className="w-32">
@@ -1105,7 +1138,7 @@ const Members: React.FC = () => {
                             {roles.map((role) => (
                               <SelectItem
                                 key={role.role_id}
-                                value={role.role_id}
+                                value={role.role_id.toString()}
                               >
                                 {role.role_name}
                               </SelectItem>
@@ -1113,11 +1146,14 @@ const Members: React.FC = () => {
                           </SelectContent>
                         </Select>
                         {/* Error message for role */}
+                        <div className="min-h-[20px] mt-1">
                         {errors[index]?.roleError && (
-                          <p className="text-red-500 text-sm mt-1 self-start">
+                          <p className="text-red-500 text-sm  self-start">
                             {errors[index].roleError}
                           </p>
+                   
                         )}
+                           </div>
                       </div>
 
                       {invitedMembers.length > 1 && (
@@ -1177,6 +1213,7 @@ const Members: React.FC = () => {
               </DialogContent>
             </Dialog>
           </div>
+
         </CardHeader>
         <div className="mt-2 pr-6 pl-6">
           <Input
@@ -1237,7 +1274,7 @@ const Members: React.FC = () => {
                     <TableRow key={member.member_id}>
                       <TableCell className="flex items-center space-x-2 py-4">
                         <Avatar>
-                          <AvatarImage src={imageSrc} />
+                          <AvatarImage src={member.image? `data:image/jpeg;base64,${member.image}` : undefined} />
                           <AvatarFallback className="mt-1">
                             {member.first_name?.[0].toUpperCase() || "N/A"}
                           </AvatarFallback>
@@ -1255,37 +1292,23 @@ const Members: React.FC = () => {
                         {member.email}
                       </TableCell>
                       <TableCell className="text-left">
-                        {member.role === "Primary Owner" ? (
-                          <>
-                            <Badge
-                              className="text-white"
-                              style={{ backgroundColor: "#DFA548" }}
-                            >
-                              Owner
-                            </Badge>
-                            <Badge
-                              className="text-white ml-2"
-                              style={{ backgroundColor: "#000000" }}
-                            >
-                              Primary Owner
-                            </Badge>
-                          </>
-                        ) : (
+                        { 
                           <Badge
                             className="text-white"
                             style={{ backgroundColor: "#DFA548" }}
                           >
                             {member.role}
                           </Badge>
-                        )}
+                        }
                       </TableCell>
                       <TableCell className="text-left">
                         {formatDate(member.joined_at)}
                       </TableCell>
-                      {isPrimaryOwner && (
+                      {(isPrimaryOwner || isPrimaryAdvertiser) && (
                         <TableCell>
                           <DropdownMenu>
-                            <DropdownMenuTrigger className="ml-2  cursor-pointer">
+                            <DropdownMenuTrigger className="ml-2  cursor-pointer"
+                           disabled={member.role === 'Primary Advertiser' || member.role === 'Primary Owner'}>
                               •••
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
@@ -1434,65 +1457,74 @@ const Members: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody className="text-left">
-                {inviteCurrentMembers.map((member) => (
-                  <TableRow>
-                    <TableCell className="flex items-center space-x-2 py-4">
-                      <Avatar>
-                        <AvatarImage src="https://github.com/shadcn.png" />
-                        <AvatarFallback>CN</AvatarFallback>
-                      </Avatar>
-                      <span>{member.email}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className="text-white"
-                        style={{ backgroundColor: "#DFA548" }}
-                      >
-                        {member.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(member.invited_at)}</TableCell>
-                    <TableCell>{formatDate(member.expires_date)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          className="text-white"
-                          style={{ backgroundColor: "#479E98" }}
-                        >
-                          {member.status}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    {(isPrimaryOwner || isOwner) && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="ml-2  cursor-pointer">
-                            •••
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedMemberId(member.member_id); // Set the member ID
-                                getPendingMemberById(member.member_id); // Fetch details for the member
-                              }} // Pass the member's ID
-                            >
-                              Update Invitation
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedMemberId(member.member_id);
-                                DeleteSendInvites(member.member_id);
-                              }}
-                            >
-                              Remove Invitation
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
+  {inviteCurrentMembers.length > 0 ? (
+    inviteCurrentMembers.map((member) => (
+      <TableRow>
+        <TableCell className="flex items-center space-x-2 py-4">
+          <Avatar>
+            <AvatarImage src={member.image? `data:image/jpeg;base64,${member.image}` : undefined} />
+            <AvatarFallback>CN</AvatarFallback>
+          </Avatar>
+          <span>{member.email}</span>
+        </TableCell>
+        <TableCell>
+          <Badge
+            className="text-white"
+            style={{ backgroundColor: "#DFA548" }}
+          >
+            {member.role}
+          </Badge>
+        </TableCell>
+        <TableCell>{formatDate(member.invited_at)}</TableCell>
+        <TableCell>{formatDate(member.expires_date)}</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Badge
+              className="text-white"
+              style={{ backgroundColor: "#479E98" }}
+            >
+              {member.status}
+            </Badge>
+          </div>
+        </TableCell>
+        {(isPrimaryOwner || isPrimaryAdvertiser) && (
+          <TableCell>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="ml-2 cursor-pointer">
+                •••
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedMemberId(member.member_id); // Set the member ID
+                    getPendingMemberById(member.member_id); // Fetch details for the member
+                  }} // Pass the member's ID
+                >
+                  Update Invitation
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedMemberId(member.member_id);
+                    DeleteSendInvites(member.member_id);
+                  }}
+                >
+                  Remove Invitation
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        )}
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell colSpan={6} className="text-center py-4">
+        No members found.
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
             </Table>
           </div>
         </CardContent>
@@ -1500,6 +1532,8 @@ const Members: React.FC = () => {
     </div>
   );
 };
+
+
 
 export default Members;
 function setError(arg0: string) {

@@ -5,152 +5,172 @@ import {
   Route,
   Navigate,
   Outlet,
+  useNavigate,
 } from "react-router-dom";
-import PersonalInfo from "../Pages/PersonalInfo";
+
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../State/store"; // Adjust based on your Redux store structure
+import { setmail } from "../State/slices/AuthenticationSlice";
+
 import SignInPage from "../Pages/SignInPage";
 import SignupPage from "../Pages/SignupPage";
 import EmailVerificationPage from "../Pages/EmailVerificationPage";
+import PersonalInfo from "../Pages/PersonalInfo";
+
 import Navbar from "../Components/Navbar/Navbar";
 import OperatorNavbar from "../Components/Navbar/OperatorNavbar";
+import AdminNavbar from "../Admin/AdminNavbar/AdminNavbar";
+import Layout from "../Components/Navbar/Layout";
+
 import Dashboard from "../Pages/Dashboard";
-
-import OperatorDashboard from "../Operator/OperatorDashboard";
-
 import CampaignList from "../Pages/Campaign/CampaignList";
 import CreateCampaign from "../Pages/Campaign/CreateCampaign";
-
-import OperatorCampaignList from "../Operator/OperatorCampaignList";
-import OperatorDataList from "../Operator/OperatorDataList";
-import OperatorMembers from "../Operator/OperatorMembers";
-
-import CreateTemplate from "../Pages/Templates/CreateTemplate";
 import TemplateList from "../Pages/Templates/TemplateList";
-
+import CreateTemplate from "../Pages/Templates/CreateTemplate";
 import ChannelList from "../Pages/Channel/ChannelList";
-import Audience from "../../src/Pages/Audiences/Audience";
-import Whatsapp from "../../src/Pages/Channel/Whatsapp";
+import Audience from "../Pages/Audiences/Audience";
+import Whatsapp from "../Pages/Channel/Whatsapp";
 
-import Layout from "../Components/Navbar/Layout";
 import Billing from "../Pages/Settings/Billing";
 import Members from "../Pages/Settings/Members";
 import Notification from "../Pages/Settings/Notification";
 import Profile from "../Pages/Settings/Profile";
-import Workspace_settings from "../Pages/Settings/Workspace_settings";
-import { useDispatch } from "react-redux";
-import { setmail } from "../State/slices/AuthenticationSlice";
+import WorkspaceSettings from "../Pages/Settings/Workspace_settings";
 
-//Admin
+// Admin Pages
 import AdminHome from "../Admin/AdminPages/AdminHome";
-import AdminNavbar from "../Admin/AdminNavbar/AdminNavbar";
 import Accounts from "../Admin/AdminPages/Accounts/AdminAccounts";
 import AdminCampaignList from "../Admin/AdminPages/AdminCampaignList";
+import AdminCampaignReview from "../Admin/AdminPages/AdminCampaignReview";
 import Audiences from "../Admin/AdminPages/Audiences";
 import AdminTeam from "../Admin/AdminPages/AdminTeam";
 import Advertiser from "../Admin/AdminPages/advertiser";
 import AdminPlans from "../Admin/AdminPages/Plans/AdminPlans";
-import AdminCampaignReview from "../Admin/AdminPages/AdminCampaignReview";
-import AdminChannelList from "../Admin/AdminPages/Channels/AdminChannelList";
 import CreatePlans from "../Admin/AdminPages/Plans/CreatePlans";
+import AdminChannelList from "../Admin/AdminPages/Channels/AdminChannelList";
 import AdminSMS from "../Admin/AdminPages/Channels/AdminSMS";
+
+// Operator Pages
+import OperatorDashboard from "../Operator/OperatorDashboard";
+import OperatorCampaignList from "../Operator/OperatorCampaignList";
 import OperatorCampaignReview from "../Operator/OperatorCampaignReview";
+import OperatorDataList from "../Operator/OperatorDataList";
+import OperatorMembers from "../Operator/OperatorMembers";
 
-
-const ProtectedRoute: FC<{ authenticated: boolean }> = ({
-  authenticated,
-}) => {
-  return authenticated ? <Outlet /> : <Navigate to="/" />;
-};
-
+// Import the new Protected Route Components
+import ProtectedRoute from "./ProtectedRoute";
+import ProtectedRouteWithPermissions from "./ProtectedRouteWithPermissions";
+import SMS from "../Pages/Channel/SMS";
 
 const RoutesComponent: FC = () => {
   const [userEmailId, setUserEmailId] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState(true);
   const dispatch = useDispatch();
-  useEffect(()=>{
-    console.log("user mail id: "+userEmailId);
+
+  // Get user permissions from Redux
+  const userPermissions = useSelector(
+    (state: RootState) => state.advertiserAccount.permissions);
+    console.log("Permissions :" , userPermissions);
+
+      // Get user permissions from Redux
+  const userRoleName = useSelector(
+    (state: RootState) => state.advertiserAccount.user_role_name);
+
+  console.log("ROLE_NAME :",userRoleName);
+
+
+  useEffect(() => {
     dispatch(setmail(userEmailId));
-  },[userEmailId])
+  }, [userEmailId]);
+
   return (
     <Router>
       <Routes>
         <Route path="*" element={<Navigate to="/" />} />
 
         {/* Public Routes */}
-        <Route path="/" element={
-            <SignInPage setAuthenticated={setAuthenticated} setUserEmailId={setUserEmailId}/>
-          }
+        <Route
+          path="/"
+          element={<SignInPage setAuthenticated={setAuthenticated} setUserEmailId={setUserEmailId} />}
         />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/otpverify" element={<EmailVerificationPage />} />
-        <Route path="/personalinfo" element={<PersonalInfo setAuthenticated={setAuthenticated} />}
-        />
+        <Route path="/personalinfo" element={<PersonalInfo setAuthenticated={setAuthenticated} />} />
 
         {/* Protected Routes */}
-        {/* {authenticated ? (
-          <> */}
-           <Route element={<ProtectedRoute authenticated={authenticated} />}>
-            <Route
-              path="/navbar"
-              element={<Navbar setAuthenticated={setAuthenticated} />}
-            >
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="campaignlist" element={<CampaignList />} />
-              <Route path="createcampaign" element={<CreateCampaign />} />
-              <Route path="templatelist" element={<TemplateList />} />
-              <Route path="createtemplate" element={<CreateTemplate />} />
-              <Route path="channels" element={<ChannelList />} />
-              <Route path="audiences" element={<Audience />} />
-              <Route path="whatsapp" element={<Whatsapp />} />
-            </Route>
+        <Route element={<ProtectedRoute authenticated={authenticated} />}>
+          {/* Navbar Routes */}
+          <Route path="/navbar" element={<Navbar setAuthenticated={setAuthenticated} />}>
+          <Route path="dashboard" element={
+              userRoleName === "Campaign Manager" ? <Navigate to="/navbar/campaignlist" /> :
+              userRoleName === "Audience Manager" ? <Navigate to="/navbar/audiences" /> :
+              userRoleName === "Channel Specialist" ? <Navigate to="/navbar/channels" /> :
+              <Dashboard />
+          } />
+            <Route path="campaignlist" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Campaigns_View"><CampaignList /></ProtectedRouteWithPermissions>} />
+            <Route path="createcampaign" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Campaigns_Create"><CreateCampaign /></ProtectedRouteWithPermissions>} />
+            <Route path="templatelist" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Template_View"><TemplateList /></ProtectedRouteWithPermissions>} />
+            <Route path="createtemplate" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Template_Create"><CreateTemplate /></ProtectedRouteWithPermissions>} />
+            <Route path="channels" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_View"><ChannelList /></ProtectedRouteWithPermissions>} />
+            <Route path="audiences" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Audience_View"><Audience /></ProtectedRouteWithPermissions>} />
+            <Route path="whatsapp" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_Edit"><Whatsapp /></ProtectedRouteWithPermissions>} />
+            <Route path="sms" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_Edit"><SMS /></ProtectedRouteWithPermissions>}/>
+          </Route>
 
-            {/*Admin  */}
-            <Route
-              path="/adminNavbar"
-              element={<AdminNavbar setAuthenticated={setAuthenticated} />}
-            >
-              <Route path="home" element={<AdminHome />} />
-              <Route path="accounts" element={<Accounts />} />
-              <Route path="campaigns" element={<AdminCampaignList />} />
-              <Route path="campaignreview" element={<AdminCampaignReview />} />
-              <Route path="channels" element={<AdminChannelList />} />
-              <Route path="audiences" element={<Audiences />} />
-              <Route path="team" element={<AdminTeam />} />
-              <Route path="plans" element={<AdminPlans />} />
-              <Route path="advertiser" element={<Advertiser />} />
-              <Route path="createplans" element={<CreatePlans />} />
-              <Route path="sms" element={<AdminSMS />} />
-            </Route>
+          {/* Admin Routes */}
+          <Route path="/adminNavbar" element={<AdminNavbar setAuthenticated={setAuthenticated} />}>
+            <Route path="home" element={<AdminHome />} />
+            <Route path="accounts" element={<Accounts />} />
+            <Route path="campaigns" element={<AdminCampaignList />} />
+            <Route path="campaignreview" element={<AdminCampaignReview />} />
+            <Route path="channels" element={<AdminChannelList />} />
+            <Route path="audiences" element={<Audiences />} />
+            <Route path="team" element={<AdminTeam />} />
+            <Route path="plans" element={<AdminPlans />} />
+            <Route path="advertiser" element={<Advertiser />} />
+            <Route path="createplans" element={<CreatePlans />} />
+            <Route path="sms" element={<AdminSMS />} />
+          </Route>
 
-            <Route
-              path="/operatorNavbar"
-              element={<OperatorNavbar setAuthenticated={setAuthenticated} />}
-            >
-              <Route path="dashboard" element={<OperatorDashboard />} />
-              <Route path="campaignlist" element={<OperatorCampaignList />} />
-              <Route path="campaignreview" element={<OperatorCampaignReview />} />
-              <Route path="datalist" element={<OperatorDataList />} />
-              <Route path="members" element={<OperatorMembers />} />
-            </Route>
+        {/* Operator Routes */}
+        <Route path="/operatorNavbar" element={<OperatorNavbar setAuthenticated={setAuthenticated} />}>
+          <Route path="dashboard" element={
+            userRoleName === "Operator Campaign Manager" ? <Navigate to="/operatorNavbar/campaignlist" /> : 
+            <OperatorDashboard />
+        } />
 
-            {/* Settings */}
-            <Route path="/settings" element={<Layout />}>
-              <Route path="billing" element={<Billing />} />
-              <Route path="members" element={<Members />} />
-              <Route
-                path="notification"
-                element={<Notification email={userEmailId} />}
-              />
-              <Route path="profile" element={<Profile />} />
-              <Route
-                path="workspace"
-                element={<Workspace_settings />}
-              />
-            </Route>
-            </Route>
-          {/* </>
-        ) : (
-          <Route path="*" element={<Navigate to="/" />} />
-        )} */}
+  <Route path="campaignlist" element={
+    <ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="TO_Campaigns_View">
+      <OperatorCampaignList />
+    </ProtectedRouteWithPermissions>
+  } />
+  <Route path="campaignreview" element={
+    <ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="TO_Campaigns_Edit">
+      <OperatorCampaignReview />
+    </ProtectedRouteWithPermissions>
+  } />
+  <Route path="datalist" element={
+    <ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="TO_Data_View">
+      <OperatorDataList />
+    </ProtectedRouteWithPermissions>
+  } />
+  <Route path="members" element={
+    <ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="TO_Members_View">
+      <OperatorMembers />
+    </ProtectedRouteWithPermissions>
+  } />
+</Route>
+
+
+          {/* Settings Routes */}
+          <Route path="/settings" element={<Layout />}>
+            <Route path="billing" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Billings_View"><Billing /></ProtectedRouteWithPermissions>} />
+            <Route path="members" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Member_View"><Members /></ProtectedRouteWithPermissions>} />
+            <Route path="notification" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Notification_View"><Notification email={userEmailId} /></ProtectedRouteWithPermissions>} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="workspace" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Workspace_View"><WorkspaceSettings /></ProtectedRouteWithPermissions>} />
+          </Route>
+        </Route>
       </Routes>
     </Router>
   );

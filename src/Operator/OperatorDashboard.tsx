@@ -44,7 +44,7 @@ import {
   ChartTooltipContent,
 } from "../Components/ui/chart";
 import { CalendarIcon, PaperPlaneIcon } from "@radix-ui/react-icons";
-import { addDays, format } from "date-fns";
+import { addDays, format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 
 import { cn } from "../lib/utils";
@@ -74,33 +74,21 @@ export function DatePickerWithRange({
   fetchData,
 }: DatePickerWithRangeProps) {
   const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(), // Current date
-    to: addDays(new Date(), 20), // Current date + 20 days
+    from: undefined, // Current date
+    to: undefined, // Current date + 20 days
   });
   const dispatch = useDispatch();
   const toast = useToast();
-  const Workspace_Id = useSelector(
-    (state: RootState) => state.authentication.workspace_id
-  );
+  const Workspace_Id = 277;
+  // useSelector(
+  //   (state: RootState) => state.authentication.workspace_id
+  // );
   const apiUrlAdvAcc = useSelector(
     (state: RootState) => state.authentication.apiURL
   );
-  // const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
 
-  // useEffect(() => {
-  //   const loadConfig = async () => {
-  //     try {
-  //       const response = await fetch("/config.json");
-  //       const config = await response.json();
-  //       setApiUrlAdvAcc(config.ApiUrlAdvAcc);
-  //       // setApiUrl(config.API_URL) // Set the API URL from config
-  //     } catch (error) {
-  //       console.error("Error loading config:", error);
-  //     }
-  //   };
+  const apiUrlOPAcc = useSelector((state: RootState) => state.authentication.operatorUrl);
 
-  //   loadConfig();
-  // }, []);
 
   useEffect(() => {
     console.log("The date is", date);
@@ -111,7 +99,7 @@ export function DatePickerWithRange({
       const ChartDateRange = async () => {
         try {
           const response = await axios.get(
-            `${apiUrlAdvAcc}/GetCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${date_from.toString()}&to_date=${date_to.toString()}`
+            `${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
           if (
             response.data.status === "Success" &&
@@ -120,7 +108,6 @@ export function DatePickerWithRange({
             setChartData(response.data);
           } else {
             // setChartData(response.data);
-            fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -132,7 +119,7 @@ export function DatePickerWithRange({
     } else {
       console.log("No date selected");
     }
-  }, [date]);
+  }, [date,]);
 
   return (
     <div className={cn("flex justify-end gap-2 pb-4 ", className)}>
@@ -178,100 +165,6 @@ export function DatePickerWithRange({
     </div>
   );
 }
-
-// const Data = [
-//   { date: "2024-04-01", email: 222, sms: 120, pushNotifications: 80, rcSmessages: 100, whatsapp: 50 },
-//   { date: "2024-04-02", email: 97, sms: 80, pushNotifications: 70, rcSmessages: 50, whatsapp: 60 },
-//   { date: "2024-04-03", email: 167, sms: 90, pushNotifications: 60, rcSmessages: 80, whatsapp: 40 },
-//   { date: "2024-04-04", email: 242, sms: 130, pushNotifications: 110, rcSmessages: 150, whatsapp: 90 },
-//   { date: "2024-04-05", email: 373, sms: 170, pushNotifications: 130, rcSmessages: 180, whatsapp: 90 },
-//   { date: "2024-04-06", email: 301, sms: 140, pushNotifications: 100, rcSmessages: 120, whatsapp: 80 },
-//   { date: "2024-04-07", email: 245, sms: 120, pushNotifications: 90, rcSmessages: 110, whatsapp: 70 },
-//   { date: "2024-04-08", email: 409, sms: 200, pushNotifications: 180, rcSmessages: 160, whatsapp: 120 },
-//   { date: "2024-04-09", email: 59, sms: 50, pushNotifications: 40, rcSmessages: 20, whatsapp: 30 },
-//   { date: "2024-04-10", email: 261, sms: 140, pushNotifications: 110, rcSmessages: 130, whatsapp: 80 },
-//   { date: "2024-04-11", email: 327, sms: 180, pushNotifications: 140, rcSmessages: 160, whatsapp: 90 },
-//   { date: "2024-04-12", email: 292, sms: 150, pushNotifications: 120, rcSmessages: 140, whatsapp: 100 },
-//   { date: "2024-04-13", email: 342, sms: 170, pushNotifications: 150, rcSmessages: 180, whatsapp: 110 },
-//   { date: "2024-04-14", email: 137, sms: 70, pushNotifications: 60, rcSmessages: 50, whatsapp: 30 },
-//   { date: "2024-04-15", email: 120, sms: 80, pushNotifications: 50, rcSmessages: 40, whatsapp: 30 },
-//   { date: "2024-04-16", email: 138, sms: 90, pushNotifications: 60, rcSmessages: 50, whatsapp: 40 },
-//   { date: "2024-04-17", email: 446, sms: 220, pushNotifications: 190, rcSmessages: 180, whatsapp: 150 },
-//   { date: "2024-04-18", email: 364, sms: 180, pushNotifications: 160, rcSmessages: 140, whatsapp: 120 },
-//   { date: "2024-04-19", email: 243, sms: 110, pushNotifications: 90, rcSmessages: 100, whatsapp: 50 },
-//   { date: "2024-04-20", email: 89, sms: 50, pushNotifications: 40, rcSmessages: 30, whatsapp: 20 },
-//   { date: "2024-04-21", email: 137, sms: 70, pushNotifications: 60, rcSmessages: 50, whatsapp: 30 },
-//   { date: "2024-04-22", email: 224, sms: 120, pushNotifications: 100, rcSmessages: 90, whatsapp: 70 },
-//   { date: "2024-04-23", email: 138, sms: 80, pushNotifications: 70, rcSmessages: 60, whatsapp: 40 },
-//   { date: "2024-04-24", email: 387, sms: 200, pushNotifications: 160, rcSmessages: 150, whatsapp: 130 },
-//   { date: "2024-04-25", email: 215, sms: 120, pushNotifications: 100, rcSmessages: 90, whatsapp: 70 },
-//   { date: "2024-04-26", email: 75, sms: 50, pushNotifications: 30, rcSmessages: 40, whatsapp: 20 },
-//   { date: "2024-04-27", email: 383, sms: 190, pushNotifications: 170, rcSmessages: 160, whatsapp: 120 },
-//   { date: "2024-04-28", email: 122, sms: 60, pushNotifications: 50, rcSmessages: 40, whatsapp: 30 },
-//   { date: "2024-04-29", email: 315, sms: 140, pushNotifications: 110, rcSmessages: 120, whatsapp: 90 },
-//   { date: "2024-04-30", email: 454, sms: 220, pushNotifications: 180, rcSmessages: 190, whatsapp: 150 },
-//   { date: "2024-05-01", email: 165, sms: 100, pushNotifications: 90, rcSmessages: 80, whatsapp: 60 },
-//   { date: "2024-05-02", email: 293, sms: 150, pushNotifications: 130, rcSmessages: 140, whatsapp: 100 },
-//   { date: "2024-05-03", email: 247, sms: 130, pushNotifications: 110, rcSmessages: 120, whatsapp: 80 },
-//   { date: "2024-05-04", email: 385, sms: 200, pushNotifications: 170, rcSmessages: 160, whatsapp: 120 },
-//   { date: "2024-05-05", email: 481, sms: 230, pushNotifications: 190, rcSmessages: 180, whatsapp: 150 },
-//   { date: "2024-05-06", email: 498, sms: 250, pushNotifications: 210, rcSmessages: 220, whatsapp: 180 },
-//   { date: "2024-05-07", email: 388, sms: 190, pushNotifications: 160, rcSmessages: 140, whatsapp: 120 },
-//   { date: "2024-05-08", email: 149, sms: 70, pushNotifications: 60, rcSmessages: 50, whatsapp: 40 },
-//   { date: "2024-05-09", email: 227, sms: 110, pushNotifications: 90, rcSmessages: 80, whatsapp: 60 },
-//   { date: "2024-05-10", email: 293, sms: 130, pushNotifications: 120, rcSmessages: 110, whatsapp: 90 },
-//   { date: "2024-05-11", email: 335, sms: 160, pushNotifications: 140, rcSmessages: 130, whatsapp: 100 },
-//   { date: "2024-05-12", email: 197, sms: 100, pushNotifications: 80, rcSmessages: 70, whatsapp: 50 },
-//   { date: "2024-05-13", email: 197, sms: 90, pushNotifications: 70, rcSmessages: 60, whatsapp: 40 },
-//   { date: "2024-05-14", email: 448, sms: 220, pushNotifications: 200, rcSmessages: 180, whatsapp: 150 },
-//   { date: "2024-05-15", email: 473, sms: 230, pushNotifications: 210, rcSmessages: 200, whatsapp: 160 },
-//   { date: "2024-05-16", email: 338, sms: 180, pushNotifications: 160, rcSmessages: 150, whatsapp: 120 },
-//   { date: "2024-05-17", email: 499, sms: 250, pushNotifications: 220, rcSmessages: 210, whatsapp: 180 },
-//   { date: "2024-05-18", email: 315, sms: 150, pushNotifications: 130, rcSmessages: 120, whatsapp: 100 },
-//   { date: "2024-05-19", email: 235, sms: 120, pushNotifications: 90, rcSmessages: 80, whatsapp: 60 },
-//   { date: "2024-05-20", email: 177, sms: 90, pushNotifications: 70, rcSmessages: 60, whatsapp: 50 },
-//   { date: "2024-05-21", email: 82, sms: 50, pushNotifications: 40, rcSmessages: 30, whatsapp: 20 },
-//   { date: "2024-05-22", email: 81, sms: 40, pushNotifications: 30, rcSmessages: 20, whatsapp: 20 },
-//   { date: "2024-05-23", email: 252, sms: 130, pushNotifications: 110, rcSmessages: 120, whatsapp: 90 },
-//   { date: "2024-05-24", email: 294, sms: 150, pushNotifications: 130, rcSmessages: 140, whatsapp: 110 },
-//   { date: "2024-05-25", email: 201, sms: 100, pushNotifications: 90, rcSmessages: 80, whatsapp: 60 },
-//   { date: "2024-05-26", email: 213, sms: 110, pushNotifications: 90, rcSmessages: 70, whatsapp: 50 },
-//   { date: "2024-05-27", email: 420, sms: 210, pushNotifications: 190, rcSmessages: 180, whatsapp: 150 },
-//   { date: "2024-05-28", email: 233, sms: 120, pushNotifications: 100, rcSmessages: 90, whatsapp: 70 },
-//   { date: "2024-05-29", email: 78, sms: 40, pushNotifications: 30, rcSmessages: 20, whatsapp: 20 },
-//   { date: "2024-05-30", email: 340, sms: 170, pushNotifications: 140, rcSmessages: 130, whatsapp: 110 },
-//   { date: "2024-05-31", email: 178, sms: 80, pushNotifications: 60, rcSmessages: 50, whatsapp: 40 },
-//   { date: "2024-06-01", email: 178, sms: 90, pushNotifications: 70, rcSmessages: 60, whatsapp: 50 },
-//   { date: "2024-06-02", email: 470, sms: 230, pushNotifications: 210, rcSmessages: 220, whatsapp: 180 },
-//   { date: "2024-06-03", email: 103, sms: 50, pushNotifications: 40, rcSmessages: 30, whatsapp: 20 },
-//   { date: "2024-06-04", email: 439, sms: 210, pushNotifications: 190, rcSmessages: 170, whatsapp: 140 },
-//   { date: "2024-06-05", email: 88, sms: 50, pushNotifications: 40, rcSmessages: 30, whatsapp: 20 },
-//   { date: "2024-06-06", email: 294, sms: 150, pushNotifications: 130, rcSmessages: 120, whatsapp: 90 },
-//   { date: "2024-06-07", email: 323, sms: 160, pushNotifications: 140, rcSmessages: 130, whatsapp: 100 },
-//   { date: "2024-06-08", email: 385, sms: 180, pushNotifications: 160, rcSmessages: 150, whatsapp: 120 },
-//   { date: "2024-06-09", email: 438, sms: 220, pushNotifications: 200, rcSmessages: 190, whatsapp: 160 },
-//   { date: "2024-06-10", email: 155, sms: 80, pushNotifications: 70, rcSmessages: 60, whatsapp: 50 },
-//   { date: "2024-06-11", email: 92, sms: 50, pushNotifications: 40, rcSmessages: 30, whatsapp: 20 },
-//   { date: "2024-06-12", email: 492, sms: 230, pushNotifications: 210, rcSmessages: 200, whatsapp: 170 },
-//   { date: "2024-06-13", email: 81, sms: 40, pushNotifications: 30, rcSmessages: 20, whatsapp: 20 },
-//   { date: "2024-06-14", email: 426, sms: 200, pushNotifications: 180, rcSmessages: 160, whatsapp: 130 },
-//   { date: "2024-06-15", email: 307, sms: 150, pushNotifications: 130, rcSmessages: 120, whatsapp: 90 },
-//   { date: "2024-06-16", email: 371, sms: 170, pushNotifications: 150, rcSmessages: 140, whatsapp: 110 },
-//   { date: "2024-06-17", email: 475, sms: 230, pushNotifications: 210, rcSmessages: 200, whatsapp: 160 },
-//   { date: "2024-06-18", email: 107, sms: 50, pushNotifications: 40, rcSmessages: 30, whatsapp: 20 },
-//   { date: "2024-06-19", email: 341, sms: 160, pushNotifications: 140, rcSmessages: 130, whatsapp: 110 },
-//   { date: "2024-06-20", email: 408, sms: 200, pushNotifications: 180, rcSmessages: 160, whatsapp: 130 },
-//   { date: "2024-06-21", email: 169, sms: 80, pushNotifications: 70, rcSmessages: 60, whatsapp: 50 },
-//   { date: "2024-06-22", email: 317, sms: 150, pushNotifications: 130, rcSmessages: 120, whatsapp: 90 },
-//   { date: "2024-06-23", email: 480, sms: 220, pushNotifications: 200, rcSmessages: 180, whatsapp: 150 },
-//   { date: "2024-06-24", email: 132, sms: 70, pushNotifications: 60, rcSmessages: 50, whatsapp: 40 },
-//   { date: "2024-06-25", email: 141, sms: 80, pushNotifications: 60, rcSmessages: 50, whatsapp: 40 },
-//   { date: "2024-06-26", email: 434, sms: 210, pushNotifications: 190, rcSmessages: 170, whatsapp: 140 },
-//   { date: "2024-06-27", email: 448, sms: 220, pushNotifications: 200, rcSmessages: 180, whatsapp: 150 },
-//   { date: "2024-06-28", email: 149, sms: 70, pushNotifications: 60, rcSmessages: 50, whatsapp: 40 },
-//   { date: "2024-06-29", email: 103, sms: 50, pushNotifications: 40, rcSmessages: 30, whatsapp: 20 },
-//   { date: "2024-06-30", email: 446, sms: 220, pushNotifications: 200, rcSmessages: 190, whatsapp: 160 },
-// ];
 
 interface ChartData {
   date: string;
@@ -620,9 +513,20 @@ const OperatorDashboard: FC = () => {
   const [isMonth, setIsMonth] = useState(false);
   const [timeRange, setTimeRange] = React.useState("90d");
 
-  const Workspace_Id = useSelector(
-    (state: RootState) => state.authentication.workspace_id
-  );
+  const [date_Week, setDate_Week] = React.useState<DateRange | undefined>({
+      from: subDays(new Date(), 7), // 7 days before the current date
+      to: new Date(), // Current date
+    });
+
+  const [date_Month, setDate_Month] = React.useState<DateRange | undefined>({
+      from: subDays(new Date(), 30), // 7 days before the current date
+      to: new Date(), // Current date
+    });
+
+  const Workspace_Id = 277
+  // useSelector(
+  //   (state: RootState) => state.authentication.workspace_id
+  // );
   const EmailId = useSelector(
     (state: RootState) => state.authentication.userEmail
   );
@@ -630,6 +534,9 @@ const OperatorDashboard: FC = () => {
     (state: RootState) => state.authentication.isInvited
   );
   console.log(Workspace_Id);
+  const apiUrlOPAcc = useSelector((state: RootState) => state.authentication.operatorUrl);
+
+
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -638,6 +545,7 @@ const OperatorDashboard: FC = () => {
         const config = await response.json();
         setApiUrlAdvAcc(config.ApiUrlAdvAcc);
         setApiUrl(config.API_URL); // Set the API URL from config
+
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -645,6 +553,10 @@ const OperatorDashboard: FC = () => {
 
     loadConfig();
   }, [Workspace_Id]);
+  
+  // useEffect(() => {
+  //   console.log("ChartData updated:", chartData);
+  // }, [chartData]);
 
   const fetchData = async () => {
     if (apiUrlAdvAcc) {
@@ -669,7 +581,7 @@ const OperatorDashboard: FC = () => {
           }
         }
         const response = await axios.get(
-          `${apiUrlAdvAcc}/GetCombinedStatistics?workspaceId=${Workspace_Id}`
+          `${apiUrlOPAcc}/GetCombinedStatisticsOperator?workspaceId=${Workspace_Id}`
         );
         console.log("API Response:", response.data); // Check the response
         setChartData(response.data);
@@ -679,96 +591,115 @@ const OperatorDashboard: FC = () => {
     }
   };
 
-  // const GetCampaingCount = async () => {
-  //   try {
-  //     const response = await axios.get(`${apiUrlAdvAcc}/GetCampaignListbyWorkspaceId/${Workspace_Id}`);
+  const ByWeekData = async () => {
+    if (date_Week && date_Week.from && date_Week.to) {
+      const date_from = format(date_Week.from, "yyyy-MM-dd"); // Split by space and take the first part
+      const date_to = format(date_Week.to, "yyyy-MM-dd");
 
-  //     // Assuming the response data contains a 'CountryList' field as discussed earlier
-  //     if (response.data && response.data.campaignList) {
-  //       setCampaignCount(response.data.campaignCount);
-  //       console.log("Campaign Count : ", response.data.campaignCount);
-  //     } else {
-  //       console.log("No campaign count available in response.");
-  //     }
-  //   } catch (error) {
-  //     // Handle error if API call fails
-  //     console.error("Error fetching campaign count:", error);
-  //   }
-  // };
+      const ChartDateRange = async () => {
+        try {
+          const response = await axios.get(
+            `${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${date_from.toString()}&to_date=${date_to.toString()}`
+          );
+          console.log("Updated chartData:", response.data);
+          if (
+            response.data.status === "Success" &&
+            response.data.chartDetails.length > 0
+          ) {
+            setChartData(response.data);
+            console.log("Updated chartData:", response.data);
+
+          } else {
+            // setChartData(response.data);
+            fetchData();
+            console.error("chart details not found");
+          }
+        } catch (error) {
+          console.error("error in fetching chart details: ", error);
+        }
+      };
+
+       ChartDateRange();
+    }
+  };
+
+  const ByMonthData = async () => {
+    if (date_Month && date_Month.from && date_Month.to) {
+      const date_from = format(date_Month.from, "yyyy-MM-dd"); // Split by space and take the first part
+      const date_to = format(date_Month.to, "yyyy-MM-dd");
+
+      const ChartDateRange = async () => {
+        try {
+          const response = await axios.get(
+            `${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${date_from.toString()}&to_date=${date_to.toString()}`
+          );
+          if (
+            response.data.status === "Success" &&
+            response.data.chartDetails.length > 0
+          ) {
+            setChartData(response.data);
+          } else {
+            // setChartData(response.data);
+            fetchData();
+            console.error("chart details not found");
+          }
+        } catch (error) {
+          console.error("error in fetching chart details: ", error);
+        }
+      };
+
+      ChartDateRange();
+    }
+  };
+
+
 
   useEffect(() => {
     if (apiUrlAdvAcc) {
-      // GetCampaingCount();
       fetchData();
     }
   }, [apiUrlAdvAcc, Workspace_Id]); // Depend on apiUrlAdvAcc
 
-  // useEffect(() => {
-  //   if(apiUrlAdvAcc){
-  //     GetCampaingCount();
-  //   }
-  // },[apiUrlAdvAcc, Workspace_Id]); // Depend on apiUrlAdvAcc
-
-  // const fetchData = async () => {
-  //   try {
-  //     console.log("apiUrlAdvAcc", apiUrlAdvAcc);
-  //     const response = await axios.get(`${apiUrlAdvAcc}/GetCombinedStatistics`);
-  //     console.log("apiUrlAdvAcc 2", `${apiUrlAdvAcc}/GetCombinedStatistics`);
-  //     setChartData(response.data);
-  //     console.log("chart data : ", chartData.campaignDetails[0].totalCampaigns);
-  //     console.log(typeof response.data);
-  //   } catch (error) {
-  //     console.error("Error fetching the statistics:", error);
-  //   }
-  // };
 
   return chartData ? (
     <div className="flex-col w-full">
-      <div className="flex mt-[-15px] justify-end">
+      <div className="flex mt-[-15px] justify-end gap-2">
         <div>
           <DatePickerWithRange
             setChartData={setChartData}
             fetchData={fetchData}
           />
         </div>
-        <div>
-          <Button
-            className={
-              isWeek
-                ? "ml-2 w-fit font-normal text-[#020617] bg-[#01012E14]"
-                : "ml-2 w-fit font-normal text-[#020617]"
+        <Select
+          defaultValue="year"
+          onValueChange={(value) => {
+            if (value === "week") {
+              setIsWeek(true);
+              setTimeRange("7d");
+              ByWeekData();
             }
-            variant={"outline"}
-            onClick={() => {
-              if (!isWeek) {
-                setIsWeek(true);
-                setTimeRange("7d");
-              } else {
-                setIsWeek(false);
-                setTimeRange("90d");
-              }
-            }}
-          >
-            By Week
-          </Button>
-        </div>
-        <div>
-          <Button
-            className="ml-2 w-fit font-normal text-[#020617]"
-            variant={"outline"}
-            onClick={() => {
-              if (!isMonth) {
-                setIsMonth(true);
-                setTimeRange("30d");
-              } else {
-                setIsMonth(false);
-                setTimeRange("90d");
-              }
-            }}
-          >
-            By Month
-          </Button>
-        </div>
+            else if (value === "month") {
+              setIsMonth(true);
+              setTimeRange("30d");
+              ByMonthData();
+            }
+            else {
+              setIsWeek(false);
+              setIsMonth(false);
+              setTimeRange("90d");
+              fetchData();
+            }
+          }}
+        >
+          <SelectTrigger className="w-[120px] h-9 text-[#020617] mt-6">
+            <SelectValue placeholder="Select view" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">By Week</SelectItem>
+            <SelectItem value="month">By Month</SelectItem>
+            <SelectItem value="year">By Year</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-wrap gap-4 w-full justify-between border-orange-600">
@@ -797,7 +728,7 @@ const OperatorDashboard: FC = () => {
             Math.round(
               (chartData?.messagesSentDetails[0]?.totalSent /
                 chartData?.recipientCount[0]?.recipients) *
-                100 || 0
+              100 || 0
             ) + "%"
           }
           change="+2.1 from last month"

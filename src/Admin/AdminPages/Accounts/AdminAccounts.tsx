@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "../../../Components/ui/dropdown-menu";
 
-import { Dialog ,DialogContent, DialogTitle, DialogHeader, DialogDescription} from "../../../Components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "../../../Components/ui/dialog";
 
 import {
   PlayIcon,
@@ -48,9 +48,9 @@ import { Skeleton } from "../../../Components/ui/skeleton";
 import DropdownMenuDemo from "../../../Components/Filter/AccountsDropdown";
 import { useDispatch, useSelector } from "react-redux";
 import { UseSelector } from "react-redux";
-import { setworkspace,setWorkspaceId,setmail } from "../../../State/slices/AuthenticationSlice";
+import { setworkspace, setWorkspaceId, setmail } from "../../../State/slices/AuthenticationSlice";
 import { SetImpersonator } from "../../../State/slices/AdminSlice";
-import { setCreateBreadCrumb } from "../../../State/slices/AdvertiserAccountSlice";
+import { setCreateBreadCrumb, setPermissions, setUser_Role_Name } from "../../../State/slices/AdvertiserAccountSlice";
 import PersonalInfoPopup from "./PersonalInfoPopUp"
 import { RootState } from "@/src/State/store";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -76,8 +76,8 @@ const Accounts: React.FC = () => {
   const [openMenuRowId, setOpenMenuRowId] = useState<number | null>(null);
 
   const [accountList, setAccountList] = useState<Account[]>([]);
-  const emailId = useSelector((state:RootState)=>state.authentication.userEmail);
-  const apiUrlAdvAcc = useSelector((state:RootState)=>state.authentication.apiURL);
+  const emailId = useSelector((state: RootState) => state.authentication.userEmail);
+  const apiUrlAdvAcc = useSelector((state: RootState) => state.authentication.apiURL);
   const workspaceId = useSelector((state: RootState) => state.authentication.workspace_id);
   const workspaceName = useSelector((state: RootState) => state.authentication.workspaceName);
   const navigate = useNavigate();
@@ -93,7 +93,8 @@ const Accounts: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState<number>(5); // Default 5 rows per page
   const [searchTerm, setSearchTerm] = useState("");
   const [apiUrlAdminAcc, setapiUrlAdminAcc] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [apiUrl,setApiUrl]=useState("")
+;  const [isLoading, setIsLoading] = useState(true);
 
   //For the Pop Up Operation
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -102,12 +103,13 @@ const Accounts: React.FC = () => {
 
   //Tamil
   const [isAlertOpen, setIsAlertOpen] = useState(false); // State to control dialog visibility
-  const [delete_wid , setdelete_wid] = useState<number>(0);
-  const [delete_personalemail , setdelete_personalemail] = useState<string>("");
+  const [delete_wid, setdelete_wid] = useState<number>(0);
+  const [delete_personalemail, setdelete_personalemail] = useState<string>("");
 
-  const [selected_type , setSelected_type] = useState<number>(0);
+  const [selected_type, setSelected_type] = useState<number>(0);
+  const roleId = useSelector((state: RootState) => state.authentication.role_id);
 
-  
+
 
   const toast = useToast();
 
@@ -117,16 +119,16 @@ const Accounts: React.FC = () => {
     value: 0,
   });
 
-  
+
   const [hasAccounts, setHasAccounts] = useState(false);
   const dispatch = useDispatch();
-
+  const impersonation = useSelector((state: RootState) => state.admin.Impersonator?.ImpersonationState);
 
 
   const handleCheckboxRowSelect = (id: number) => {
     setCheckboxSelectedRows((prev) => {
       const newSelectedRows = prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id];
-      setIsAllSelected(newSelectedRows.length === currentAccounts.length); 
+      setIsAllSelected(newSelectedRows.length === currentAccounts.length);
       return newSelectedRows;
     });
   };
@@ -148,8 +150,9 @@ const Accounts: React.FC = () => {
         const response = await fetch("/config.json");
         const config = await response.json();
         setapiUrlAdminAcc(config.ApiUrlAdminAcc);
+        setApiUrl(config.API_URL);
 
-        console.log("apiUrlAdminAcc:" , apiUrlAdminAcc);
+        console.log("apiUrlAdminAcc:", apiUrlAdminAcc);
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -165,29 +168,29 @@ const Accounts: React.FC = () => {
   }, [apiUrlAdminAcc]); // Runs when apiUrlAdminAcc is updated
 
 
-  const handleAccountDeletion = async (mailId:any) => {
-     
-    try {  
-    const isConfirmed = window.confirm(
-      "If you delete your account, you are the owner of the workspace, so the workspace will also be deleted. Do you want to proceed?"
-    );
-    if (!isConfirmed) {
-      // User canceled the action
-      return;
-    }
-    console.log("mail::" ,mailId );
-    const response = await axios.get(`
+  const handleAccountDeletion = async (mailId: any) => {
+
+    try {
+      const isConfirmed = window.confirm(
+        "If you delete your account, you are the owner of the workspace, so the workspace will also be deleted. Do you want to proceed?"
+      );
+      if (!isConfirmed) {
+        // User canceled the action
+        return;
+      }
+      console.log("mail::", mailId);
+      const response = await axios.get(`
       ${apiUrlAdvAcc}/DeleteAccountByEmail?email=${mailId}`);
       if (response.status === 200) {
         toast.toast({
-          title:"Success",
-          description:"Profile Deleted Successfully"
+          title: "Success",
+          description: "Profile Deleted Successfully"
         })
       }
     } catch (error) {
       toast.toast({
-        title:"Failed",
-        description:"Error in Deletion"
+        title: "Failed",
+        description: "Error in Deletion"
       })
       console.error("Error deleting account:", error);
     }
@@ -205,43 +208,43 @@ const Accounts: React.FC = () => {
       ? account.name.toLowerCase().includes(searchTerm.toLowerCase())
       : true;
   });
-  
+
   // Step 3: Calculate new total pages after filtering & searching
   const totalPages: number = Math.ceil(searchedAccounts.length / rowsPerPage);
 
-// Step 4: Ensure currentPage is within bounds after filtering or searching
+  // Step 4: Ensure currentPage is within bounds after filtering or searching
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages > 0 ? totalPages : 1); // Stay on the last valid page
     }
   }, [searchedAccounts, totalPages]);
 
-// Step 5: Apply pagination to get the final list
-const currentAccounts = searchedAccounts.slice(
-  (currentPage - 1) * rowsPerPage,
-  currentPage * rowsPerPage
-);
-// Handle page change
-const handlePageChange = (newPage: number) => {
-  if (newPage > 0 && newPage <= totalPages) {
-    setCurrentPage(newPage);
-  }
-};
+  // Step 5: Apply pagination to get the final list
+  const currentAccounts = searchedAccounts.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
 
 
 
 
- 
+
 
   // Function to handle the actual delete after confirmation
 
   useEffect(() => {
     console.log(
       "filter data: " +
-        filterData.filter +
-        " " +
-        filterData.value
+      filterData.filter +
+      " " +
+      filterData.value
     );
   }, [filterData]);
 
@@ -250,7 +253,7 @@ const handlePageChange = (newPage: number) => {
     try{
       const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceDetailsByAccountId?accountId=${accountId}`);
       if(response.data.status==="Success"){
-        return {wId:response.data.workspaceData[0].workspaceId, wName:response.data.workspaceData[0].workspaceName}
+        return {wId:response.data.workspaceData[0].workspaceId, wName:response.data.workspaceData[0].workspaceName,rId:response.data.workspaceData[0].roleId}
       }
       else{
         console.error("Error in getting user workspace details")
@@ -266,7 +269,7 @@ const handlePageChange = (newPage: number) => {
     try {
       console.log("AccountGet")
       const response = await axios.get(`${apiUrlAdminAcc}/GetAccountList`);
-      console.log( "Response : " , response.data.accountList);
+      console.log("Response : ", response.data.accountList);
       if (response.data && response.data.accountList) {
         setAccountList(response.data.accountList);
         setIsLoading(false);
@@ -284,7 +287,7 @@ const handlePageChange = (newPage: number) => {
     }
   };
 
- 
+
 
   const handleMenuToggle = (rowId: number) => {
     setOpenMenuRowId(openMenuRowId === rowId ? null : rowId);
@@ -344,29 +347,42 @@ const handlePageChange = (newPage: number) => {
   }, [accountList]);
   // const hasAccounts = accountList.length > 0;
 
-  const handleView = (accountId: number , accountEmail: string) => {
+  const handleView = (accountId: number, accountEmail: string) => {
     console.log(`View account with ID: ${accountId}`);
     setSelectedAccountId(accountId);
     setSelectedAccountEmail(accountEmail);
     setIsPopupOpen(true);
   };
-  
+
   const handleImpersonate = async(accountId: number, accountEmail: string) => {
-    console.log(`Impersonating account with ID: ${accountId}`);
+    //console.log(Impersonating account with ID: ${accountId});
       const response = await getWorkspaceDetailsByAccountId(accountId);
       const Impersonator = {
         ImpersonationState:true,
         ImpersonatorEmail:emailId,
         ImpersonatorWName:workspaceName,
-        ImpersonatorWID:workspaceId
+        ImpersonatorWID:workspaceId,
+        ImpersonatorRID:roleId
+
       }
       if(response?.wId!=null && response?.wName!=null){
         dispatch(SetImpersonator(Impersonator));
         dispatch(setmail(accountEmail));
         dispatch(setworkspace(response.wName));
         dispatch(setWorkspaceId(response.wId));
+   
+        const response2 = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${response.rId}`);
+        if (response2.data.status === "Success") {
+            const permissions = JSON.parse(response2.data.roleDetails.permissions);
+            const role_name = response2.data.roleDetails.roleName;
+            dispatch(setPermissions(permissions));
+            dispatch(setUser_Role_Name(role_name));
+             navigate("/navbar/dashboard",{state:{path:response.wName}});
+        } else {
+            console.log("GetPermissionsByRoleId API error");
+        }
         console.log("dispatched workspace details...redirecting...");
-        navigate("/navbar/dashboard",{state:{path:response.wName}});
+       
       }
       else{
         console.error("error dispatching workspace details");
@@ -374,9 +390,8 @@ const handlePageChange = (newPage: number) => {
   };
 
 
-
   //Personal Account Delete
-  const  handlePersonalDeleteClick = (accountEmail: string) => {
+  const handlePersonalDeleteClick = (accountEmail: string) => {
     console.log(`Deleting Personal Account : ${accountEmail}`);
     setdelete_personalemail(accountEmail);
     setSelected_type(1);
@@ -408,31 +423,44 @@ const handlePageChange = (newPage: number) => {
 
 
   const confirmDelete = async () => {
-    if(selected_type === 1){
+    if (selected_type === 1) {
       try {
         console.log(`Deleting Personal Account: ${delete_personalemail}`);
-    
+
         // Indicate loading state
         setIsLoading(true);
-    
+
         // Make the API call
         const response = await axios.get(
           `${apiUrlAdvAcc}/DeleteAccountByEmail?email=${delete_personalemail}`
-       );
-       const errorMessage = response.data[0]?.status_Description;
-        if (response.status === 200) {    
-        // Check if the response has the expected status and description
+        );
+        const statusDescription = response.data.status_Description;
+
+        if (response.status === 200) {
+          // Check if the response has the expected status and description
           setIsAlertOpen(false);
-          toast.toast({
-            title: 'Success',
-            description: 'Account Deleted Successfully',
-          });
-        } else if(errorMessage === "Validation failed: You have invited members within your workspace. So account deletion is not accepted") {
-          toast.toast({
-            title:"Access denied",
-            description:"Access denied. You have members in your workspaces."
-          })
+          if (statusDescription === "User is an invited member. Status updated to Inactive.")
+            toast.toast({
+              title: 'Success',
+              description: 'Account Deleted Successfully',
+            });
+          else if (statusDescription === "Your account has been marked as Inactive.")
+            toast.toast({
+              title: 'Success',
+              description: 'Account Deleted Successfully',
+            });
+          else if (statusDescription === "Validation failed: You have active invited members in your workspace(s). Account deletion is not accepted")
+            toast.toast({
+              title: 'Access Denied',
+              description: 'They have active invited members in their workspace(s). Account deletion is not accepted',
+            }); else {
+            toast.toast({
+              title: 'Error',
+              description: 'Something went wrong, please try again.',
+            });
+          }
         }
+
         else {
           toast.toast({
             title: 'Error',
@@ -451,32 +479,42 @@ const handlePageChange = (newPage: number) => {
         setSelected_type(0);
         getAccountList();
       }
+
     }
-    else if(selected_type === 2){
+    else if (selected_type === 2) {
       try {
         console.log(`Deleting Workspace Account: ${delete_wid}`);
-    
+
         // Indicate loading state
         setIsLoading(true);
-    
+
         // Make the API call
         const response = await axios.get(`${apiUrlAdvAcc}/deleteworkspce?workspaceid=${delete_wid}`);
-    
+
         // Check if the response has the expected status and description
-        if (response.data.status === "Success" && response.data.status_Description) {
+        if (response.data.status === "Success") {
           setIsAlertOpen(false);
           toast.toast({
             title: 'Success',
             description: 'Account Deleted Successfully',
           });
-        } else {
+        } else if (response.data.status === "Error") {
+          setIsAlertOpen(false);
+          toast.toast({
+            title: 'Failure',
+            description: 'There are other members in your workspace, so the workspace cannot be deleted.',
+          });
+        }
+        else {
+          setIsAlertOpen(false);
           toast.toast({
             title: 'Error',
-            description: 'Unexpected response from the server.',
+            description: 'Something went wrong, please try again.',
           });
         }
       } catch (error) {
         // Handle errors
+        setIsAlertOpen(false);
         toast.toast({
           title: 'Error',
           description: 'Something went wrong, please try again.',
@@ -487,23 +525,62 @@ const handlePageChange = (newPage: number) => {
         setSelected_type(0);
         getAccountList();
       }
-    }else if(selected_type === 3){
+    } else if (selected_type === 3) {
+      try {
+        console.log(`Deleting Operator Account: ${delete_personalemail}`);
 
+        // Indicate loading state
+        setIsLoading(true);
+
+        // Make the API call
+        const response = await axios.post(`${apiUrlAdvAcc}/DeleteOperatorAccount?email=${delete_personalemail}`);
+        // Check if the response has the expected status and description
+        if (response.data.status === "Success") {
+          setIsAlertOpen(false);
+          if (response.data.status_Description === 'Status updated to Inactive in all related tables')
+            toast.toast({
+              title: 'Success',
+              description: 'Account Deleted Successfully',
+            });
+          else if (response.data.status_Description === 'Validation failed: You have active invited members in your workspace(s). Account deletion is not accepted')
+            toast.toast({
+              title: 'Failure',
+              description: 'Access Denied ,  You have active invited members in your workspace(s). Account deletion is not accepted',
+            });
+        }
+        else {
+          toast.toast({
+            title: 'Error',
+            description: 'Something went wrong, please try again.',
+          });
+        }
+      } catch (error) {
+        // Handle errors
+        toast.toast({
+          title: 'Error',
+          description: 'Something went wrong, please try again.',
+        });
+        console.error('Error deleting operator:', error);
+      } finally {
+        // Reset loading state and refresh the account list
+        setSelected_type(0);
+        getAccountList();
+      }
     }
 
   };
-  
 
 
-  
+
+
   return (
     <div>
       <Toaster />
 
       {isLoading && (
-               <div className="flex flex-col items-center justify-center h-[500px]">
-                    <CircularProgress color="primary" />
-                </div>            
+        <div className="flex flex-col items-center justify-center h-[500px]">
+          <CircularProgress color="primary" />
+        </div>
       )}
 
       {!isLoading && hasAccounts ? (
@@ -519,14 +596,14 @@ const handlePageChange = (newPage: number) => {
               />
             </div>
             <div className=" ">
-            {/* Filter Button */}
-             <DropdownMenuDemo setFilterData={setFilterData} />
+              {/* Filter Button */}
+              <DropdownMenuDemo setFilterData={setFilterData} />
             </div>
           </div>
 
-        <div className="rounded-md border overflow-hidden">
-          <div className="max-h-[60vh] overflow-y-auto">
-              <Table 
+          <div className="rounded-md border overflow-hidden">
+            <div className="max-h-[60vh] overflow-y-auto">
+              <Table
                 className="rounded-xl whitespace-nowrap border-gray-200"
                 style={{ color: "#020202", fontSize: "15px" }}
               >
@@ -536,15 +613,14 @@ const handlePageChange = (newPage: number) => {
                       <div className="flex items-center gap-6 justify-start cursor-pointer">
                         <input
                           type="checkbox"
-                          className={`text-muted-foreground ${
-                            isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
-                          }`}
+                          className={`text-muted-foreground ${isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
+                            }`}
                           checked={isAllSelected}
                           onChange={handleSelectAll}
                         />
                         <span className="font-medium text-[14px] text-[#64748B]">
                           Name{" "}
-                        </span> 
+                        </span>
                         <CaretSortIcon
                           onClick={() => sortAccountList("ByAccountName")}
                           className="cursor-pointer"
@@ -554,9 +630,9 @@ const handlePageChange = (newPage: number) => {
 
                     <TableHead style={{ width: "20%" }}>
                       <div className="flex items-center gap-2 justify-start">
-                      <span className="font-medium text-[14px] text-[#64748B]">
-                        Email{" "}
-                      </span>
+                        <span className="font-medium text-[14px] text-[#64748B]">
+                          Email{" "}
+                        </span>
                         <CaretSortIcon
                           onClick={() => sortAccountList("ByAccountEmail")}
                           className="cursor-pointer"
@@ -566,9 +642,9 @@ const handlePageChange = (newPage: number) => {
 
                     <TableHead style={{ width: "20%" }}>
                       <div className="flex items-center gap-2 justify-start">
-                      <span className="font-medium text-[14px] text-[#64748B]">
-                        Type{" "}
-                      </span>
+                        <span className="font-medium text-[14px] text-[#64748B]">
+                          Type{" "}
+                        </span>
                         <CaretSortIcon
                           onClick={() => sortAccountList("ByAccountType")}
                           className="cursor-pointer"
@@ -578,9 +654,9 @@ const handlePageChange = (newPage: number) => {
 
                     <TableHead style={{ width: "20%" }}>
                       <div className="flex items-center gap-2 justify-start">
-                      <span className="font-medium text-[14px] text-[#64748B]">
-                        Created at{" "}
-                      </span>
+                        <span className="font-medium text-[14px] text-[#64748B]">
+                          Created at{" "}
+                        </span>
                         <CaretSortIcon
                           onClick={() => sortAccountList("ByAccountCreatedAt")}
                           className="cursor-pointer"
@@ -590,9 +666,9 @@ const handlePageChange = (newPage: number) => {
 
                     <TableHead style={{ width: "20%" }}>
                       <div className="flex items-center gap-2 justify-start">
-                      <span className="font-medium text-[14px] text-[#64748B]">
-                        Updated at{" "}
-                      </span>
+                        <span className="font-medium text-[14px] text-[#64748B]">
+                          Updated at{" "}
+                        </span>
                         <CaretSortIcon
                           onClick={() => sortAccountList("ByAccountUpdatedAt")}
                           className="cursor-pointer"
@@ -620,9 +696,8 @@ const handlePageChange = (newPage: number) => {
                           <div className="flex items-center gap-6">
                             <input
                               type="checkbox"
-                              className={`accent-gray-700 bg-grey-700 text-red-500 ${
-                                isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
-                              }`}
+                              className={`accent-gray-700 bg-grey-700 text-red-500 ${isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
+                                }`}
                               checked={checkboxSelectedRows.includes(account.accountId)}
                               onChange={() => handleCheckboxRowSelect(account.accountId)}
                             />
@@ -645,9 +720,9 @@ const handlePageChange = (newPage: number) => {
                         </TableCell>
 
                         <TableCell style={{ width: "20%" }} className="py-4">
-                        <span style={{ color: "#020617", fontSize: "14px", fontWeight: "400" }}>
+                          <span style={{ color: "#020617", fontSize: "14px", fontWeight: "400" }}>
                             {account.type}
-                        </span>
+                          </span>
                         </TableCell>
 
                         <TableCell style={{ width: "20%" }} className="py-4 text-left">
@@ -700,11 +775,23 @@ const handlePageChange = (newPage: number) => {
                         <TableCell className="py-4 pr-4 flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <DotsHorizontalIcon
+                              {/* <DotsHorizontalIcon
                                 style={{ color: "#020617" }}                               
                                 onClick={() => handleMenuToggle(account.accountId)}
                                 className="cursor-pointer w-5 h-5"
-                              />
+    
+                              /> */}
+
+{account.email !== emailId && (
+  <DotsHorizontalIcon
+    style={{ color: "#020617" }}
+    onClick={() => handleMenuToggle(account.accountId)} // Call the original function
+    className="cursor-pointer w-5 h-5"
+    aria-disabled={account.email === emailId} // Optional for accessibility
+  />
+)}
+
+
                             </DropdownMenuTrigger>
                             {openMenuRowId === account.accountId && (
                               <DropdownMenuContent
@@ -721,14 +808,14 @@ const handlePageChange = (newPage: number) => {
                                     >
                                       View
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
+                                    {!impersonation && <DropdownMenuItem
                                       className="cursor-pointer"
                                       onClick={() =>
                                         handleImpersonate(account.accountId, account.email)
                                       }
                                     >
                                       Impersonate
-                                    </DropdownMenuItem>
+                                    </DropdownMenuItem>}
                                     <DropdownMenuItem
                                       className="cursor-pointer"
                                       onClick={() => handlePersonalDeleteClick(account.email)}
@@ -778,10 +865,10 @@ const handlePageChange = (newPage: number) => {
                               </DropdownMenuContent>
                             )}
                             <PersonalInfoPopup
-                            isOpen={isPopupOpen}
-                            onOpenChange={setIsPopupOpen}
-                            accountId={selectedAccountId}
-                            accountEmail={selectedAccountEmail}
+                              isOpen={isPopupOpen}
+                              onOpenChange={setIsPopupOpen}
+                              accountId={selectedAccountId}
+                              accountEmail={selectedAccountEmail}
                             />
                           </DropdownMenu>
                         </TableCell>
@@ -794,135 +881,131 @@ const handlePageChange = (newPage: number) => {
           </div>
 
           <Dialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-              <DialogContent className="p-6 mx-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-18px font-semibold text-[#09090B]">
-                    Delete Account
-                  </DialogTitle>
-                  <DialogDescription className="text-14px font-medium text-[#71717A] mt-2">
-                    Are you sure you want to delete this account? This action cannot be undone.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex justify-end gap-4 flex-wrap">
-                  <Button className="px-4 py-2 w-auto" variant="outline"
+            <DialogContent className="p-6 mx-auto">
+              <DialogHeader>
+                <DialogTitle className="text-18px font-semibold text-[#09090B]">
+                  Delete Account
+                </DialogTitle>
+                <DialogDescription className="text-14px font-medium text-[#71717A] mt-2">
+                  Are you sure you want to delete this account? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-4 flex-wrap">
+                <Button className="px-4 py-2 w-auto" variant="outline"
                   onClick={handleClose}>
-                    Cancel
-                  </Button>
-                  <Button
-                    className="px-4 py-2 w-auto text-[#FAFAFA] bg-[#3A85F7]"
-                    onClick={confirmDelete}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </DialogContent>
+                  Cancel
+                </Button>
+                <Button
+                  className="px-4 py-2 w-auto text-[#FAFAFA] bg-[#3A85F7]"
+                  onClick={confirmDelete}
+                >
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
           </Dialog>
 
-        
+
 
           {/* Pagination controls */}
-<div className="flex justify-between items-center mt-4">
+          <div className="flex justify-between items-center mt-4">
 
-  {/* Row information */}
-  <div className="flex items-center space-x-2 text-gray-500 text-sm">
-    <span>{`${(currentPage - 1) * rowsPerPage + 1}-${Math.min(
-      currentPage * rowsPerPage,
-      accountList.length
-    )} of ${accountList.length} row(s) selected`}</span>
-  </div>
+            {/* Row information */}
+            <div className="flex items-center space-x-2 text-gray-500 text-sm">
+              <span>{`${(currentPage - 1) * rowsPerPage + 1}-${Math.min(
+                currentPage * rowsPerPage,
+                accountList.length
+              )} of ${accountList.length} row(s) selected`}</span>
+            </div>
 
-  {/* Pagination controls */}
-  <div className="flex items-center space-x-4 font-medium text-sm">
-    <span className="text-[#020617] font-medium text-[14px]">Rows per page</span>
+            {/* Pagination controls */}
+            <div className="flex items-center space-x-4 font-medium text-sm">
+              <span className="text-[#020617] font-medium text-[14px]">Rows per page</span>
 
-    {/* Rows per page dropdown */}
-    <div className="relative inline-block ml-2">
-      <select
-        className="cursor-pointer border border-gray-300 rounded-md px-2 py-1 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-        style={{
-          width: "60px",
-          height: "30px",
-          textAlign: "left",
-          fontSize: "12px",
-          fontWeight: "400",
-          borderColor: "#E5E7EB",
-          boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)", // Adds slight shadow
-        }}
-        value={rowsPerPage}
-        onChange={(e) => {
-          setRowsPerPage(Number(e.target.value));
-          setCurrentPage(1); // Reset to first page after changing rows per page
-        }}
-      >
-        {[5, 10, 20].map((num) => (
-          <option key={num} value={num}>
-            {num}
-          </option>
-        ))}
-      </select>
-      <CaretSortIcon
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500 w-4 h-4"
-      />
-    </div>
+              {/* Rows per page dropdown */}
+              <div className="relative inline-block ml-2">
+                <select
+                  className="cursor-pointer border border-gray-300 rounded-md px-2 py-1 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  style={{
+                    width: "60px",
+                    height: "30px",
+                    textAlign: "left",
+                    fontSize: "12px",
+                    fontWeight: "400",
+                    borderColor: "#E5E7EB",
+                    boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)", // Adds slight shadow
+                  }}
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(1); // Reset to first page after changing rows per page
+                  }}
+                >
+                  {[5, 10, 20].map((num) => (
+                    <option key={num} value={num}>
+                      {num}
+                    </option>
+                  ))}
+                </select>
+                <CaretSortIcon
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500 w-4 h-4"
+                />
+              </div>
 
-    {/* Page info */}
-    <div className="ml-4 mr-4">
-      <span className="text-[#020617] text-[14px] font-medium">{`Page ${currentPage} of ${totalPages}`}</span>
-    </div>
+              {/* Page info */}
+              <div className="ml-4 mr-4">
+                <span className="text-[#020617] text-[14px] font-medium">{`Page ${currentPage} of ${totalPages}`}</span>
+              </div>
 
-    {/* Navigation buttons */}
-    <div className="flex items-center gap-2">
-      <button
-        disabled={currentPage === 1}
-        className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-          currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
-        }`}
-        onClick={() => handlePageChange(1)}
-      >
-        «
-      </button>
-      <button
-        disabled={currentPage === 1}
-        className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-          currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
-        }`}
-        onClick={() => handlePageChange(currentPage - 1)}
-      >
-        ‹
-      </button>
-      <button
-        disabled={currentPage === totalPages}
-        className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-          currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
-        }`}
-        onClick={() => handlePageChange(currentPage + 1)}
-      >
-        ›
-      </button>
-      <button
-        disabled={currentPage === totalPages}
-        className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-          currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
-        }`}
-        onClick={() => handlePageChange(totalPages)}
-      >
-        »
-      </button>
-    </div>
-  </div>
-</div>
+              {/* Navigation buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
+                    }`}
+                  onClick={() => handlePageChange(1)}
+                >
+                  «
+                </button>
+                <button
+                  disabled={currentPage === 1}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
+                    }`}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  ‹
+                </button>
+                <button
+                  disabled={currentPage === totalPages}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
+                    }`}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  ›
+                </button>
+                <button
+                  disabled={currentPage === totalPages}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'
+                    }`}
+                  onClick={() => handlePageChange(totalPages)}
+                >
+                  »
+                </button>
+              </div>
+            </div>
+          </div>
 
         </div>
       ) : (
         <>
-              {isLoading && null}
-              {!isLoading && (
-              <div className="flex flex-col items-center justify-center h-[500px]">
-                <h2 className="text-[24px] font-semibold mb-1 text-[#000000]">
-                  Here you will see all accounts
-                </h2>
-              </div>
-              )}
+          {isLoading && null}
+          {!isLoading && (
+            <div className="flex flex-col items-center justify-center h-[500px]">
+              <h2 className="text-[24px] font-semibold mb-1 text-[#000000]">
+                Here you will see all accounts
+              </h2>
+            </div>
+          )}
         </>
       )}
     </div>

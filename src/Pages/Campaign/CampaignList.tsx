@@ -4,12 +4,14 @@ import { Input } from "../../Components/ui/input";
 import { cn } from "../../lib/utils";
 import { Badge } from "../../Components/ui/badge";
 import { Link } from "react-router-dom";
+import { Edit, Trash, Pause, Play } from "lucide-react";
 import {
   DotsHorizontalIcon,
   CalendarIcon,
   FileIcon,
   CaretSortIcon,
   ArrowRightIcon,
+  Cross2Icon,
 } from "@radix-ui/react-icons";
 import { FiFilter } from "react-icons/fi";
 import { addDays, format } from "date-fns";
@@ -59,7 +61,8 @@ import {
   StopwatchIcon,
   MagnifyingGlassIcon,
   CheckIcon,
-  Pencil1Icon, TrashIcon,
+  Pencil1Icon,
+  TrashIcon,
 } from "@radix-ui/react-icons";
 import { CircularProgress } from "@mui/material";
 import { Skeleton } from "../../Components/ui/skeleton";
@@ -72,6 +75,7 @@ import { UseSelector } from "react-redux";
 import { RootState } from "../../State/store";
 import * as XLSX from "xlsx";
 import { University } from "lucide-react";
+import CreateCampaign from "./CreateCampaign";
 
 interface Campaign {
   campaign_id: number;
@@ -84,11 +88,11 @@ interface Campaign {
   campaign_budget: number;
   sent: string;
   Delivered: string;
-  Read : string;
-  CTR : string;
-  Delivery_Rate : string;
-  Button_Click : string;
-  paused: boolean,
+  Read: string;
+  CTR: string;
+  Delivery_Rate: string;
+  Button_Click: string;
+  paused: boolean;
 }
 
 type CampaignCheck = {
@@ -103,23 +107,36 @@ interface DatePickerWithRangeProps {
   onChange?: (selectedRange: DateRange | undefined) => void;
   setCampaignList: React.Dispatch<React.SetStateAction<Campaign[]>>;
   getCampaignList: () => void;
+  setInitialCampaign: React.Dispatch<React.SetStateAction<boolean>>;
+  initialcampaign: boolean; 
 }
 
 interface StatusCellProps {
   status: "Live" | "Pending" | "Paused" | "In review" | "Completed"; // Limit status to specific strings
 }
 
-
-
 const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
-  className,setCampaignList,getCampaignList
+  className,
+  setCampaignList,
+  getCampaignList,
+  setInitialCampaign , 
+  initialcampaign 
 }) => {
-  const [currentData, setCurrentData] = useState<Campaign[]>([]);
   const [fromDate, setfromDate] = useState<string | null>(null);
-  const workspaceId = useSelector((state: RootState) => state.authentication.workspace_id);
-  const apiUrlAdvAcc = useSelector((state: RootState) => state.authentication.apiURL);
-  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const CurrentDate = new Date();
+
+  const formatDate = (date: Date): string => {
+    return date.toISOString().split("T")[0];
+  };
+
+  const [toDate, setToDate] = useState<string>(formatDate(CurrentDate));
+
+  const workspaceId = useSelector(
+    (state: RootState) => state.authentication.workspace_id
+  );
+  const apiUrlAdvAcc = useSelector(
+    (state: RootState) => state.authentication.apiURL
+  );
 
   const GetWorkspaceDetailsByID = async () => {
     axios
@@ -128,16 +145,14 @@ const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
       })
       .then((response) => {
         console.log("response:", response);
-  
+
         if (response.data.length > 0 && response.data[0].Status === "Success") {
-    
           const createdDate = response.data[0].created_date; // Get the created date
 
           const formattedDate = createdDate.split(" ")[0];
           console.log("Formatted Date1:", formattedDate); // Logs the formatted date
-          
+
           setfromDate(formattedDate);
-  
         } else {
           console.error(
             "Failed to get user details:",
@@ -149,34 +164,35 @@ const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
         console.error("Error in submitting form:", error);
       });
   };
-  
-  useEffect(() => {
-    if (fromDate) {
-      setDate({ from: new Date(fromDate), to: new Date() }); // Ensure it's a Date object
-    }
-  }, [fromDate]);
 
-  useEffect(() => {    
+  useEffect(() => {
+    console.log("ToDate1:", toDate);
+
     GetWorkspaceDetailsByID(); // Verify the formatted date
-  },);
+    console.log("FromDate1:", fromDate);
+  }, [toDate]);
 
- 
   useEffect(() => {
+    console.log("FromDate2:", fromDate);
   }, [fromDate]);
 
-
-console.log("FromDate:", fromDate);
+  const [date, setDate] = React.useState<DateRange | undefined>({
+    // from: new Date(), // Current date
+    // to: addDays(new Date(), 20), // Current date + 20 days
+    from: fromDate ? new Date(fromDate) : undefined,
+    to: new Date(), // Current date
+  });
 
   useEffect(() => {
-
     if (date && date.from && date.to) {
-
+      //const date_from = format(date.from, "yyyy-MM-dd"); // Split by space and take the first part
       const date_to = format(date.to, "yyyy-MM-dd");
 
-      const date_from = format(date.from, "yyyy-MM-dd"); 
+      const date_from = format(date.from, "yyyy-MM-dd");
 
       const ChartDateRange = async () => {
         try {
+          //debugger;
           const response = await axios.get(
             `${apiUrlAdvAcc}/GetCampaignListbyDateRange/${workspaceId}?from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
@@ -185,14 +201,11 @@ console.log("FromDate:", fromDate);
             response.data.campaignList.length > 0
           ) {
             setCampaignList(response.data.campaignList);
-
           } else {
             // setChartData(response.data);
-           // getCampaignList();
-          //setCampaignList([]); 
-          setCurrentData([]);
+            setInitialCampaign(false);
+            setCampaignList([]);
 
-          
             console.error("chart details not found");
           }
         } catch (error) {
@@ -204,7 +217,13 @@ console.log("FromDate:", fromDate);
     } else {
       console.log("No date selected");
     }
-  },[date])
+  }, [date]);
+
+  useEffect(() => {
+    if (initialcampaign === false) {
+      setCampaignList([]);  // This will run after initialcampaign is set to false
+    }
+  }, [initialcampaign]);
 
   return (
     <div className={className}>
@@ -243,7 +262,6 @@ console.log("FromDate:", fromDate);
           />
         </PopoverContent>
       </Popover>
-      
     </div>
   );
 };
@@ -258,6 +276,8 @@ const renderStatusIcon = (status: any) => {
       return <PauseIcon className="text-[#64748B]" />; // Pause icon for 'Paused'
     case "In review":
       return <MagnifyingGlassIcon className="text-[#64748B]" />; // Magnifying glass icon for 'In review'
+    case "Rejected":
+      return <Cross2Icon className="text-gray-500" />;
     case "Completed":
       return (
         <CheckIcon className="text-[#64748B] rounded-full border border-gray-500" />
@@ -269,18 +289,20 @@ const renderStatusIcon = (status: any) => {
 
 const CampaignList: React.FC = () => {
   const [openMenuRowId, setOpenMenuRowId] = useState<number | null>(null);
-  const [pausedCampaigns, setPausedCampaigns] = useState<{ [key: number]: boolean }>({});
+  const [pausedCampaigns, setPausedCampaigns] = useState<{
+    [key: number]: boolean;
+  }>({});
   const [campaignList, setCampaignList] = useState<Campaign[]>([]);
   const FromDateOne = new Date("2024-12-01"); // Replace with your dynamic logic
   const [fromDate, setfromDate] = useState<Date | null>(null);
-  const CurrentDate = new Date(); 
+  const CurrentDate = new Date();
 
   const formatDate = (date: Date): string => {
     return date.toISOString().slice(0, 19); // Extract the "YYYY-MM-DDTHH:mm:ss" portion
   };
-  
+
   const [toDate, setToDate] = useState<string | null>(formatDate(CurrentDate));
-  
+
   useEffect(() => {
     console.log("Formatted ToDate:", toDate); // Verify the formatted date
   }, [toDate]);
@@ -288,10 +310,9 @@ const CampaignList: React.FC = () => {
   const navigate = useNavigate();
   const [isAlertOpen, setIsAlertOpen] = useState(false); // State to control dialog visibility
   const [campaignToDelete, setCampaignToDelete] = useState(null);
-  const [currentCampaigns, setCurrentCampaigns] = useState<Campaign[]>([]);
 
   const [isSorted, setIsSorted] = useState(false);
-  const [originalCampaigns, setOriginalCampaigns] = useState(currentCampaigns);
+  const [originalCampaigns, setOriginalCampaigns] = useState(campaignList);
 
   const [checkboxSelectedRows, setCheckboxSelectedRows] = useState<number[]>(
     []
@@ -304,8 +325,8 @@ const CampaignList: React.FC = () => {
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [campaignLoading, setCampaignLoading] = useState(true); // For GetCampaignListbyWorkspaceId
-  const [columnsLoading, setColumnsLoading] = useState(true); 
-
+  const [columnsLoading, setColumnsLoading] = useState(true);
+ const [initialcampaign , setInitialCampaign] = useState(true);
   const [filterData, setFilterData] = useState({
     filter: "",
     subFilter: "",
@@ -318,6 +339,10 @@ const CampaignList: React.FC = () => {
     (state: RootState) => state.authentication.workspace_id
   );
 
+const userPermissions = useSelector(
+  (state: RootState) => state.advertiserAccount.permissions);
+
+  const [campaignNames, setCampaignNames] = useState([]);
   const [visibleColumns, setVisibleColumns] = useState([
     "campaign_name",
     "channel_type",
@@ -329,9 +354,8 @@ const CampaignList: React.FC = () => {
     "read",
     "ctr",
     "delivery_rate",
-    "button_click"
+    "button_click",
   ]);
-
 
   const defaultColumns = [
     "campaign_name",
@@ -341,13 +365,12 @@ const CampaignList: React.FC = () => {
     "campaign_budget",
     "sent",
   ];
-  
+
   // Merge default and visible columns
   const displayedColumns = [
     ...defaultColumns,
     ...visibleColumns.filter((col) => !defaultColumns.includes(col)),
   ];
-
 
   const [dateList, setDateList] = useState<string[]>([]);
 
@@ -385,19 +408,9 @@ const CampaignList: React.FC = () => {
     fetchConfig();
   }, []);
 
-
-  useEffect(() => {
-    console.log("Fetched campaignList length:", campaignList.length);
-    console.log("Fetched campaignList:", campaignList);
-  }, [campaignList]);
-  
-
   useEffect(() => {
     if (apiUrlAdvAcc) {
-     
-     // GetWorkspaceDetailsByID();
       getCampaignList();
-      
     }
   }, [apiUrlAdvAcc]); // Runs when apiUrlAdvAcc is updated
 
@@ -407,64 +420,37 @@ const CampaignList: React.FC = () => {
     }
   }, [campaignList]); // Dependency on campaignList
 
- 
-  
-  const filteredCampaigns = campaignList.filter((campaign) => {
-    console.log("filteredCampaigns" , campaign);
-    console.log("searchterm" , searchTerm);
-    console.log(campaign.campaign_name.toLowerCase().includes(searchTerm.toLowerCase()));
+// Step 1: Apply search directly to the campaign list
+const searchedCampaigns = campaignList.filter((campaign) => {
+  return searchTerm
+    ? campaign.campaign_name.toLowerCase().includes(searchTerm.toLowerCase()) // Ensure correct search field
+    : true;
+});
+
+// Step 2: Calculate new total pages based on searched results
+const totalPages: number = Math.ceil(searchedCampaigns.length / rowsPerPage);
+
+// Step 3: Adjust currentPage only if it’s out of bounds
+useEffect(() => {
+  if (currentPage > totalPages) {
+    setCurrentPage(totalPages > 0 ? totalPages : 1); // Stay on the last valid page
+  }
+}, [searchedCampaigns, totalPages]);
+
+// Step 4: Apply pagination
+const currentCampaigns = searchedCampaigns.slice(
+  (currentPage - 1) * rowsPerPage,
+  currentPage * rowsPerPage
+);
+
+// Handle page change
+const handlePageChange = (newPage: number) => {
+  if (newPage > 0 && newPage <= totalPages) {
+    setCurrentPage(newPage);
+  }
+};
 
 
-    const matchesSearchTerm = searchTerm
-      ? campaign.campaign_name.toLowerCase().includes(searchTerm.toLowerCase())
-      : true;
-  
-      const resetTime = (date: Date) => {
-        const newDate = new Date(date);
-        newDate.setHours(0, 0, 0, 0); // Reset time to midnight
-        return newDate;
-      };
-
-    // const campaignStartDate = new Date(campaign.start_date_time);
-    // const campaignEndDate = new Date(campaign.end_date_time);
-  
-    // const parsedFromDate = fromDate ? new Date(fromDate) : null;
-    // const parsedToDate = toDate ? new Date(toDate) : null;
-
-    const campaignStartDate = resetTime(new Date(campaign.start_date_time));
-  const campaignEndDate = resetTime(new Date(campaign.end_date_time));
-  const parsedFromDate = fromDate ? resetTime(new Date(fromDate)) : null;
-  const parsedToDate = toDate ? resetTime(new Date(toDate)) : null;
-  
-    const isWithinSelectedRange =
-      (!parsedFromDate || campaignStartDate >= parsedFromDate) &&
-      (!parsedToDate || campaignEndDate <= parsedToDate);
-  
-console.log("matchesSearchTerm;;;" , matchesSearchTerm);
-    return matchesSearchTerm && isWithinSelectedRange;
-  });
-  
-
-  // Calculate total pages for filtered campaigns
-  const totalPages: number = Math.ceil(filteredCampaigns.length / rowsPerPage);
-
-  useEffect(() => {
-    const newCurrentCampaigns = filteredCampaigns.slice(
-      (currentPage - 1) * rowsPerPage,
-      currentPage * rowsPerPage
-    );
-    console.log("newCurrentCampaigns::" ,newCurrentCampaigns);
-
-    setCurrentCampaigns(newCurrentCampaigns);
-  }, [filterData, campaignList, currentPage, rowsPerPage, searchTerm]);
-  // Only re-run if dependencies change
-
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
 
   const handleEdit = (campaignId: any, channelType: any) => {
     //console.log("CampaignId : " + campaignId)
@@ -480,8 +466,6 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
   const handleClose = () => {
     setIsAlertOpen(false);
   };
-
-  // Function to handle the actual delete after confirmation
 
   useEffect(() => {
     console.log(
@@ -501,8 +485,6 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
     }
   }, [filterData.filter]);
 
-
-
   const getCampaignList = async () => {
     setIsLoading(true); // Show the loader initially
     setCampaignLoading(true);
@@ -511,13 +493,17 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
         `${apiUrlAdvAcc}/GetCampaignListbyWorkspaceId/${workspaceId}`
       );
       if (response.data && response.data.campaignList) {
+       // debugger
         const campaigns = response.data.campaignList;
         setCampaignList(campaigns);
-        console.log("setCampaignList---:",campaigns.length)
-        setCurrentCampaigns(campaigns);
-         // Hide loader once processing is done
-        setHasCampaigns(campaigns.length > 0);
-        setIsLoading(false); // Check if campaigns exist
+        const names = campaigns.map((campaign: { campaign_name: string }) => campaign.campaign_name);
+        setCampaignNames(names);
+  
+        console.log("Extracted Campaign Names:", names); 
+
+       // setCurrentCampaigns(campaigns);
+        setIsLoading(false); // Hide loader once processing is done
+        setHasCampaigns(campaigns.length > 0); // Check if campaigns exist
       } else {
         setIsLoading(false); // Hide loader once processing is done
       }
@@ -529,37 +515,6 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
       setCampaignLoading(false);
     }
   };
-  
-  
-  // const GetWorkspaceDetailsByID = async () => {
-  //   axios
-  //     .post(`${apiUrlAdvAcc}/GetWorkspaceDetailsByWorkspaceID`, {
-  //       workspaceId: workspaceId, // Email ID for the user
-  //     })
-  //     .then((response) => {
-  //       console.log("response:", response);
-  
-  //       if (response.data.length > 0 && response.data[0].Status === "Success") {
-    
-  //         const createdDate = response.data[0].created_date; // Get the created date
-
-  //     const formattedDate = createdDate.replace(" ", "T");
-  //     console.log("Formatted Date:", formattedDate); // Logs the converted date
-  //     console.log("ToDate", toDate);
-  //     setfromDate(new Date(formattedDate)); 
-
-  
-  //       } else {
-  //         console.error(
-  //           "Failed to get user details:",
-  //           response.data[0]?.Status_Description
-  //         );
-  //       }
-  //     })
-  //     .catch((error) => {
-  //       console.error("Error in submitting form:", error);
-  //     });
-  // };
 
   const setDateListFunction = () => {
     const uniqueDates = campaignList.reduce(
@@ -616,7 +571,6 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
     setOpenMenuRowId(openMenuRowId === rowId ? null : rowId);
   };
 
- 
   const handlePauseResumeClick = async (campaignId: number) => {
     // Toggle the local state for immediate UI feedback
     setCampaignList((prevList) =>
@@ -626,25 +580,29 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
           : campaign
       )
     );
-  
+
     // Determine the new status
     const campaign = campaignList.find((c) => c.campaign_id === campaignId);
     const newStatus = campaign?.paused ? "Resume" : "Pause";
-  
+
     // Prepare the payload
     const payload = {
       CampaignId: campaignId,
       Status: newStatus,
     };
-  
+
     try {
       // API call to update the campaign status
-      const response = await axios.post(`${apiUrlAdvAcc}/UpdateCampaignStatus`, payload, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-  
+      const response = await axios.post(
+        `${apiUrlAdvAcc}/UpdateCampaignStatus`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       // Handle the API response
       if (response.data && response.data.status === "Success") {
         console.log(`Campaign status updated successfully: ${newStatus}`);
@@ -657,7 +615,6 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
       console.error("Error while updating campaign status:", error);
     }
   };
-  
 
   const sortCampaignList = (tableHeader: string) => {
     const sortByField = (
@@ -701,19 +658,19 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
         case "ByCampaignSent":
           sortByField("sent", "number"); // Sorting by sent count as a number
           break;
-          case "ByCampaignDelivered":
+        case "ByCampaignDelivered":
           sortByField("Delivered", "string"); // Sorting by sent count as a number
           break;
-         case "ByRead":
+        case "ByRead":
           sortByField("Read", "string"); // Sorting by sent count as a number
           break;
-         case "ByCTR":
+        case "ByCTR":
           sortByField("CTR", "string"); // Sorting by sent count as a number
           break;
-         case "ByDeliveryRate":
+        case "ByDeliveryRate":
           sortByField("Delivery_Rate", "string"); // Sorting by sent count as a number
           break;
-         case "ByButtonClick":
+        case "ByButtonClick":
           sortByField("Button_Click", "string"); // Sorting by sent count as a number
           break;
         default:
@@ -723,16 +680,6 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
 
     setIsSorted(!isSorted);
   };
-
-  // Function to handle checkbox selection
-  // const handleRowSelect = (campaignId: CampaignId): void => {
-  //   setSelectedRows((prevSelected) =>
-  //     prevSelected.includes(campaignId)
-  //       ? prevSelected.filter((id) => id !== campaignId)
-  //       : [...prevSelected, campaignId]
-  //   );
-  // };
-
   useEffect(() => {
     setHasCampaigns(campaignList.length > 0);
   }, [campaignList]);
@@ -740,7 +687,7 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
 
   const handleExportButtonClick = () => {
     // Filter columns to include only the desired fields
-    const filteredData = filteredCampaigns.map(
+    const filteredData = currentCampaigns.map(
       ({
         campaign_id,
         campaign_name,
@@ -748,15 +695,7 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
         status,
         start_date_time,
         end_date_time,
-        
         campaign_budget,
-        sent,
-        // Delivered,
-        // Read,
-        // CTR,
-        // Delivery_Rate,
-        // Button_Click,
-
       }) => ({
         campaign_id,
         campaign_name,
@@ -765,13 +704,6 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
         start_date_time,
         end_date_time,
         campaign_budget,
-        sent,
-        // Delivered,
-        // Read,
-        // CTR,
-        // Delivery_Rate,
-        // Button_Click,
-
       })
     );
 
@@ -789,86 +721,77 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
   return (
     <div>
       <Toaster />
-      {(isLoading &&  (campaignLoading || columnsLoading )) && (
-          <div className="flex flex-col items-center justify-center h-[500px]">
-               <CircularProgress color="primary" />
-               </div>
-         )} 
-         <div className="fixed flex justify-end items-end right-0 top-[-15px] z-20 p-4">
+      {isLoading && (campaignLoading || columnsLoading) && (
+        <div className="flex flex-col items-center justify-center h-[500px]">
+          <CircularProgress color="primary" />
+        </div>
+      )}
+      <div className="fixed flex justify-end items-center right-0 top-[-15px] z-20 p-4">
+            {userPermissions.includes("ADV_Campaigns_Create") && 
             <Button
-              onClick={() => {
-                dispatch(setCreateBreadCrumb(true));
-                navigate("/navbar/createcampaign");
-              } }
-              className="w-36 text-sm text-[#F8FAFC] font-medium h-[35px] mt-[10px]"
-            >
-              Create Campaign
-            </Button>
-          </div>
-      
-        {hasCampaigns ? (
-      <><div>
-              {/* Existing table code here */}
-             
-              <div className="flex flex-wrap items-center justify-between gap-4 -mt-6">
-                {/* Search Input */}
-                <div className="flex-shrink-0 w-full md:w-auto">
-                  <Input
-                    placeholder="Search campaign by name..."
-                    className="w-full md:w-[350px] text-[14px] font-normal text-[#171717]  !mt-0"
-                    //className="w-[350px] text-[14px] mt-2 font-normal text-[#171717]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)} />
+            onClick={() => {
+              dispatch(setCreateBreadCrumb(true));
+              navigate("/navbar/createcampaign");
+            }}
+            className="w-36 text-sm font-thin h-[35px] mt-[10px]"
+            >Create Campaign</Button>}
+      </div>
+
+      {hasCampaigns || !initialcampaign ? (
+        <>
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-4 -mt-6">
+              {/* Search Input */}
+              <div className="flex-shrink-0 w-full md:w-auto">
+                <Input
+                  placeholder="Search campaign by name..."
+                  className="w-full md:w-[350px] text-[14px] font-normal text-[#171717]  !mt-0"
+                  //className="w-[350px] text-[14px] mt-2 font-normal text-[#171717]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-4 w-full md:w-auto ">
+                {/* Date Picker */}
+                <div className="flex-shrink-0 -mr-5">
+                  <DatePickerWithRange
+                    className="!mt-0"
+                    getCampaignList={getCampaignList}
+                    setCampaignList={setCampaignList}
+                    initialcampaign={initialcampaign} 
+                    setInitialCampaign={setInitialCampaign} 
+                  />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-end gap-4 w-full md:w-auto ">
-              {/* Date Picker */}
-              <div className="flex-shrink-0 -mr-5">
-                <DatePickerWithRange
-                  className="!mt-0"
-                  // fromDate={fromDate || undefined} // Pass undefined if fromDate is null
-                  // toDate={toDate || undefined} // Pass undefined if toDate is null
-                  // onChange={(selectedRange) => {
-                  //   setfromDate(selectedRange?.from || null);
-                  //   setToDate(selectedRange?.to || null);
-                  // }}
-                  // fromDate={fromDate ? new Date(fromDate) : undefined}
-                  // toDate={toDate ? new Date(toDate) : undefined}
-                  // onChange={(selectedRange) => {
-                  //   //setfromDate(selectedRange?.from ? formatDate(selectedRange.from) : null);
-                  //   setfromDate(selectedRange?.from || null);
-                  //   setToDate(selectedRange?.to ? formatDate(selectedRange.to) : null);
-                  // }}
-                  getCampaignList={getCampaignList}
-                  setCampaignList={setCampaignList}
-                />
-             </div>
-
-
-                 {/*} <DropdownMenuDemo
+                {/*} <DropdownMenuDemo
                     setFilterData={setFilterData}
                     dateList={dateList} /> */}
-                      <div className="flex-shrink-0 -mr-1">
-                    <DropdownMenuDemo
-                  visibleColumns={visibleColumns}
-                  setVisibleColumns={setVisibleColumns} 
-                  workspaceId={workspaceId}       
-                  setColumnsLoading={setColumnsLoading}
-
-                    /></div>
-                    <div className="flex-shrink-0">
+                <div className="flex-shrink-0 -mr-1">
+                  <DropdownMenuDemo
+                    visibleColumns={visibleColumns}
+                    setVisibleColumns={setVisibleColumns}
+                    workspaceId={workspaceId}
+                    setColumnsLoading={setColumnsLoading}
+                  />
+                </div>
+                <div className="flex-shrink-0">
                   <Button
-                    variant="outline" 
+                    variant="outline"
                     className="w-24 text-[#020617] !mt-0"
                     onClick={handleExportButtonClick}
                   >
-                    <FileIcon style={{width:'14px' , height:'14px'}} className="mr-1 text-[#020617]" /> Export
+                    <FileIcon
+                      style={{ width: "14px", height: "14px" }}
+                      className="mr-1 text-[#020617]"
+                    />{" "}
+                    Export
                   </Button>
-                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="rounded-md border">
+            <div className="rounded-md border">
               <div className="max-h-[60vh] overflow-y-auto">
                 <Table
                   className="rounded-xl whitespace-nowrap border-gray-200  "
@@ -879,135 +802,166 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
                     style={{ color: "#64748B" }}
                   >
                     <TableRow>
-                   {/* {visibleColumns.includes("campaign_name") && */}
-                   {displayedColumns.includes("campaign_name") && (
-                      <TableHead className="">
-                        <div className="flex items-center gap-6 justify-start cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className={`text-muted-foreground ${isAllSelected
-                                ? "accent-gray-700 bg-grey-700 text-red-500"
-                                : ""}`}
-                            checked={isAllSelected}
-                            onChange={handleSelectAll} />
-                          Campaign name{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByCampaignName")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead> )}
+                      {/* {visibleColumns.includes("campaign_name") && */}
+                      {displayedColumns.includes("campaign_name") && (
+                        <TableHead className="">
+                          <div className="flex items-center gap-6 justify-start cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className={`text-muted-foreground ${
+                                isAllSelected
+                                  ? "accent-gray-700 bg-grey-700 text-red-500"
+                                  : ""
+                              }`}
+                              checked={isAllSelected}
+                              onChange={handleSelectAll}
+                            />
+                            Campaign name{" "}
+                            <CaretSortIcon
+                              onClick={() => sortCampaignList("ByCampaignName")}
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
 
-                       {/*{visibleColumns.includes("channel_type") &&*/}
-                       {displayedColumns.includes("channel_type") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Channel{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByCampaignChannel")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead> )}
-                     {/*} {visibleColumns.includes("status") && */}
-                     {displayedColumns.includes("status") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Status{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByCampaignStatus")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead> )}
+                      {/*{visibleColumns.includes("channel_type") &&*/}
+                      {displayedColumns.includes("channel_type") && (
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Channel{" "}
+                            <CaretSortIcon
+                              onClick={() =>
+                                sortCampaignList("ByCampaignChannel")
+                              }
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
+                      {/*} {visibleColumns.includes("status") && */}
+                      {displayedColumns.includes("status") && (
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Status{" "}
+                            <CaretSortIcon
+                              onClick={() =>
+                                sortCampaignList("ByCampaignStatus")
+                              }
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
                       {displayedColumns.includes("start_date_time") && (
-                   
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Schedule{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByCampaignDate")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead> )}
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Schedule{" "}
+                            <CaretSortIcon
+                              onClick={() => sortCampaignList("ByCampaignDate")}
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
 
-                    {displayedColumns.includes("campaign_budget") && (
-                   
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Amount{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByCampaignAmount")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead> )}
+                      {displayedColumns.includes("campaign_budget") && (
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Amount{" "}
+                            <CaretSortIcon
+                              onClick={() =>
+                                sortCampaignList("ByCampaignAmount")
+                              }
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
 
                       {displayedColumns.includes("sent") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Sent{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByCampaignSent")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead> )}
-                      
-                     {/*} {visibleColumns.includes("delivered") &&  */}
-                     {displayedColumns.includes("delivered") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Delivered{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("BYCampaignDelivered")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead>)}
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Sent{" "}
+                            <CaretSortIcon
+                              onClick={() => sortCampaignList("ByCampaignSent")}
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
 
+                      {/*} {visibleColumns.includes("delivered") &&  */}
+                      {displayedColumns.includes("delivered") && (
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Delivered{" "}
+                            <CaretSortIcon
+                              onClick={() =>
+                                sortCampaignList("BYCampaignDelivered")
+                              }
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
 
-                     {/* {visibleColumns.includes("read") && */}
-                     {displayedColumns.includes("read") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Read{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByRead")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead>)}
-                     {/* {visibleColumns.includes("ctr") && */}
-                     {displayedColumns.includes("ctr") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          CTR{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByCTR")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead>)}
+                      {/* {visibleColumns.includes("read") && */}
+                      {displayedColumns.includes("read") && (
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Read{" "}
+                            <CaretSortIcon
+                              onClick={() => sortCampaignList("ByRead")}
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
+                      {/* {visibleColumns.includes("ctr") && */}
+                      {displayedColumns.includes("ctr") && (
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            CTR{" "}
+                            <CaretSortIcon
+                              onClick={() => sortCampaignList("ByCTR")}
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
 
                       {/*{visibleColumns.includes("delivery_rate") && */}
                       {displayedColumns.includes("delivery_rate") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Delivery rate{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByDeliveryRate")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead>)}
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Delivery rate{" "}
+                            <CaretSortIcon
+                              onClick={() => sortCampaignList("ByDeliveryRate")}
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
 
-                     {/* {visibleColumns.includes("button_click") && */}
-                     {displayedColumns.includes("button_click") && (
-                      <TableHead className="text-left">
-                        <div className="flex items-center gap-2 justify-start">
-                          Button click{" "}
-                          <CaretSortIcon
-                            onClick={() => sortCampaignList("ByButtonClick")}
-                            className="cursor-pointer" />
-                        </div>
-                      </TableHead>)}
+                      {/* {visibleColumns.includes("button_click") && */}
+                      {displayedColumns.includes("button_click") && (
+                        <TableHead className="text-left">
+                          <div className="flex items-center gap-2 justify-start">
+                            Button click{" "}
+                            <CaretSortIcon
+                              onClick={() => sortCampaignList("ByButtonClick")}
+                              className="cursor-pointer"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
                       <TableHead className="text-left"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="text-left text-[14px] font-normal text-[#020617] ">
-                    {campaignList.map((campaign) => {
+                    {currentCampaigns.map((campaign) => {
+                      console.log("Campaign Count :"+currentCampaigns.length)
                       let isSelected;
                       campaignList.map((campaings) => {
                         isSelected = checkboxSelectedRows.includes(
@@ -1015,119 +969,141 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
                         );
                       });
                       const startDate = new Date(campaign.start_date_time);
-      const endDate = new Date(campaign.end_date_time);
-
-      // Log the raw and parsed dates
-      // console.log("Raw Start Date:", campaign.start_date_time);
-      // console.log("Parsed Start Date:", startDate);
-      // console.log("Raw End Date:", campaign.end_date_time);
-      // console.log("Parsed End Date:", endDate);
-      
+                      const endDate = new Date(campaign.end_date_time);
 
                       return (
                         <TableRow
                           key={campaign.campaign_id}
                           className={`${isSelected ? "bg-[#F1F5F9CC]" : ""}`}
                         >
-                           {displayedColumns.includes("campaign_name") &&
-                          <TableCell className="flex justify-start py-4 text-green-900">
-                            <div className="flex items-center gap-6">
-                              <input
-                                type="checkbox"
-                                className={`accent-gray-700 bg-grey-700 text-red-500 ${isAllSelected
-                                    ? "accent-gray-700 bg-grey-700 text-red-500"
-                                    : ""}`}
-                                checked={checkboxSelectedRows.includes(
-                                  campaign.campaign_id
-                                )}
-                                onChange={() => handleCheckboxRowSelect(campaign.campaign_id)} />
-                              <span className="text-[#020617]">{campaign.campaign_name}</span>
-                            </div>
-                          </TableCell>}
-                          {displayedColumns.includes("channel_type") &&
-                          <TableCell className="py-4 text-[#FFFFFF]">
-                            <Badge
-                              className={campaign.channel_type === "WhatsApp"
-                                ? ""
-                                : campaign.channel_type === "SMS"
-                                  ? ""
-                                  : campaign.channel_type === "Push Notification"
+                          {displayedColumns.includes("campaign_name") && (
+                            <TableCell className="flex justify-start py-4 text-green-900">
+                              <div className="flex items-center gap-6">
+                                <input
+                                  type="checkbox"
+                                  className={`accent-gray-700 bg-grey-700 text-red-500 ${
+                                    isAllSelected
+                                      ? "accent-gray-700 bg-grey-700 text-red-500"
+                                      : ""
+                                  }`}
+                                  checked={checkboxSelectedRows.includes(
+                                    campaign.campaign_id
+                                  )}
+                                  onChange={() =>
+                                    handleCheckboxRowSelect(
+                                      campaign.campaign_id
+                                    )
+                                  }
+                                />
+                                <span className="text-[#020617]">
+                                  {campaign.campaign_name}
+                                </span>
+                              </div>
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("channel_type") && (
+                            <TableCell className="py-4 text-[#FFFFFF]">
+                              <Badge
+                                className={
+                                  campaign.channel_type === "WhatsApp"
+                                    ? ""
+                                    : campaign.channel_type === "SMS"
+                                    ? ""
+                                    : campaign.channel_type ===
+                                      "Push Notification"
                                     ? ""
                                     : campaign.channel_type === "Email"
-                                      ? "bg-blue-400"
-                                      : "bg-gray-400"}
-                              style={campaign.channel_type === "WhatsApp"
-                                ? { backgroundColor: "#479E98" }
-                                : campaign.channel_type === "SMS"
-                                  ? { backgroundColor: "#DFA548" }
-                                  : campaign.channel_type === "Push Notification" ||
-                                    campaign.channel_type === "Push"
+                                    ? "bg-blue-400"
+                                    : "bg-gray-400"
+                                }
+                                style={
+                                  campaign.channel_type === "WhatsApp"
+                                    ? { backgroundColor: "#479E98" }
+                                    : campaign.channel_type === "SMS"
+                                    ? { backgroundColor: "#DFA548" }
+                                    : campaign.channel_type ===
+                                        "Push Notification" ||
+                                      campaign.channel_type === "Push"
                                     ? { backgroundColor: "#B87867" }
                                     : campaign.channel_type === "RCS" ||
                                       campaign.channel_type === "RCS messages"
-                                      ? { backgroundColor: "#61177E" }
-                                      : {}}
-                            >
-                              {campaign.channel_type}
-                            </Badge>
-                          </TableCell>}
-                          {displayedColumns.includes("status") && 
-                          <TableCell className="py-4 flex items-center gap-2">
-                            {renderStatusIcon(campaign.status)}{" "}
-                            {/* Display the appropriate icon */}
-                            {campaign.status} {/* Display the status text */}
-                          </TableCell>}
-                          {displayedColumns.includes("start_date_time") && 
-                          <TableCell className="py-4">
-                            <div className="flex items-center gap-2">
-                               {new Date(
-                                campaign.start_date_time
-                              ).toLocaleDateString("en-GB", {
-                                day: "numeric",
-                                month: "short",
-                              })}
-                              , {new Date(campaign.start_date_time).getFullYear()}
-                              <ArrowRightIcon />
-                              {new Date(campaign.end_date_time).toLocaleDateString(
-                                "en-GB",
-                                {
+                                    ? { backgroundColor: "#61177E" }
+                                    : {}
+                                }
+                              >
+                                {campaign.channel_type}
+                              </Badge>
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("status") && (
+                            <TableCell className="py-4 flex items-center gap-2">
+                              {renderStatusIcon(campaign.status)}{" "}
+                              {/* Display the appropriate icon */}
+                              {campaign.status} {/* Display the status text */}
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("start_date_time") && (
+                            <TableCell className="py-4">
+                              <div className="flex items-center gap-2">
+                                {new Date(
+                                  campaign.start_date_time
+                                ).toLocaleDateString("en-GB", {
                                   day: "numeric",
                                   month: "short",
-                                }
-                              )}
-                              , {new Date(campaign.end_date_time).getFullYear()}
-                            </div>
-                          </TableCell>}
-                          {displayedColumns.includes("campaign_budget") && 
-                          <TableCell className="py-4 px-4 py-4 px-4 text-center">
-                            ${campaign.campaign_budget}
-                          </TableCell>}
-                          {displayedColumns.includes("sent") &&
-                          <TableCell className="py-4 px-4 py-4 px-4 text-center">
-                            {campaign.sent}
-                          </TableCell>}
-                          {displayedColumns.includes("delivered") && 
-                          <TableCell className="py-4 px-4 py-4 px-4 text-center">
-                            {campaign.Delivered}
-                          </TableCell>}
-                          {displayedColumns.includes("read") && 
-                          <TableCell className="py-4 px-4 py-4 px-4 text-center">
-                            {campaign.Read}
-                          </TableCell>}
-                          {displayedColumns.includes("ctr") && 
-                          <TableCell className="py-4 px-4 py-4 px-4 text-center">
-                            {campaign.CTR}
-                          </TableCell>}
-                          {displayedColumns.includes("delivery_rate") && 
-                          <TableCell className="py-4 px-4 py-4 px-4 text-center">
-                            {campaign.Delivery_Rate}
-                          </TableCell>}
-                          {displayedColumns.includes("button_click") && 
-                          <TableCell className="py-4 px-4 py-4 px-4 text-center">
-                            {campaign.Button_Click}
-                          </TableCell>}
+                                })}
+                                ,{" "}
+                                {new Date(
+                                  campaign.start_date_time
+                                ).getFullYear()}
+                                <ArrowRightIcon />
+                                {new Date(
+                                  campaign.end_date_time
+                                ).toLocaleDateString("en-GB", {
+                                  day: "numeric",
+                                  month: "short",
+                                })}
+                                ,{" "}
+                                {new Date(campaign.end_date_time).getFullYear()}
+                              </div>
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("campaign_budget") && (
+                            <TableCell className="py-4 px-4 py-4 px-4 text-center">
+                              ${campaign.campaign_budget}
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("sent") && (
+                            <TableCell className="py-4 px-4 py-4 px-4 text-center">
+                              {campaign.sent}
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("delivered") && (
+                            <TableCell className="py-4 px-4 py-4 px-4 text-center">
+                              {campaign.Delivered}
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("read") && (
+                            <TableCell className="py-4 px-4 py-4 px-4 text-center">
+                              {campaign.Read}
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("ctr") && (
+                            <TableCell className="py-4 px-4 py-4 px-4 text-center">
+                              {campaign.CTR}
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("delivery_rate") && (
+                            <TableCell className="py-4 px-4 py-4 px-4 text-center">
+                              {campaign.Delivery_Rate}
+                            </TableCell>
+                          )}
+                          {displayedColumns.includes("button_click") && (
+                            <TableCell className="py-4 px-4 py-4 px-4 text-center">
+                              {campaign.Button_Click}
+                            </TableCell>
+                          )}
                           <TableCell className="flex justify-left py-4">
-                            <DropdownMenu>
+                            {userPermissions.includes("ADV_Campaigns_Edit") &&  <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <DotsHorizontalIcon
                                   onClick={() => handleMenuToggle(campaign.campaign_id)}
@@ -1174,51 +1150,55 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               )}
-                            </DropdownMenu>
-                          </TableCell>
+                            </DropdownMenu>}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
                   </TableBody>
                 </Table>
-                </div>
               </div>
+            </div>
 
-              <Dialog
-                open={isAlertOpen}
-                onClose={handleClose}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-                sx={{ "& .MuiPaper-root": { borderRadius: "10px" } }}
-              >
-                <DialogContent>
-                  <DialogContentText>
-                    Are you sure you want to delete this campaign ?
-                  </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                  <Button variant="outline" className="w-24" onClick={handleClose}>
-                    Cancel
-                  </Button>
-                  <Button className="w-24" onClick={confirmDelete} autoFocus>
-                    OK
-                  </Button>
-                </DialogActions>
-              </Dialog>
+            <Dialog
+              open={isAlertOpen}
+              onClose={handleClose}
+              aria-labelledby="alert-dialog-title"
+              aria-describedby="alert-dialog-description"
+              sx={{ "& .MuiPaper-root": { borderRadius: "10px" } }}
+            >
+              <DialogContent>
+                <DialogContentText>
+                  Are you sure you want to delete this campaign ?
+                </DialogContentText>
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  variant="outline"
+                  className="w-24"
+                  onClick={handleClose}
+                >
+                  Cancel
+                </Button>
+                <Button className="w-24" onClick={confirmDelete} autoFocus>
+                  OK
+                </Button>
+              </DialogActions>
+            </Dialog>
 
-              {/* Pagination controls */}
+            {/* Pagination controls */}
             <div className="flex justify-between items-center mt-4">
-
               <div className="flex items-center space-x-2 text-gray-500 text-sm ">
                 <span>{`${(currentPage - 1) * rowsPerPage + 1}-${Math.min(
                   currentPage * rowsPerPage,
-                  filteredCampaigns.length
-                )} of ${filteredCampaigns.length} row(s) selected`}</span>
+                  currentCampaigns.length
+                )} of ${campaignList.length} row(s) selected`}</span>
               </div>
 
-
               <div className="flex items-center space-x-4 font-medium text-sm">
-                <span className="text-[#020617] font-medium text-[14px]">Rows per page</span>
+                <span className="text-[#020617] font-medium text-[14px]">
+                  Rows per page
+                </span>
 
                 <div className="relative inline-block ml-2">
                   <select
@@ -1234,7 +1214,8 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
                     }}
                     value={rowsPerPage}
                     onChange={(e) => {
-                      setRowsPerPage(Number(e.target.value));
+                      const newRowsPerPage = Number(e.target.value);
+                      setRowsPerPage(newRowsPerPage);
                       setCurrentPage(1); // Reset to first page after changing rows per page
                     }}
                   >
@@ -1244,63 +1225,77 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
                       </option>
                     ))}
                   </select>
-                  <CaretSortIcon
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500 w-4 h-4"
-                  />
+                  <CaretSortIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500 w-4 h-4" />
                 </div>
-
-
 
                 <div className="ml-4 mr-4">
                   <span className="text-[#020617] text-[14px] font-medium">{`Page ${currentPage} of ${totalPages}`}</span>
                 </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={currentPage === 1}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
-                  onClick={() => handlePageChange(1)}
-                >
-                  «
-                </button>
-                <button
-                  disabled={currentPage === 1}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
-                  ‹
-                </button>
-                <button
-                  disabled={currentPage === totalPages}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
-                  ›
-                </button>
-                <button
-                  disabled={currentPage === totalPages}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
-                  onClick={() => handlePageChange(totalPages)}
-                >
-                  »
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={currentPage === 1}
+                    className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                      currentPage === 1
+                        ? "cursor-not-allowed bg-gray-100"
+                        : "hover:bg-gray-200"
+                    }`}
+                    onClick={() => handlePageChange(1)}
+                  >
+                    «
+                  </button>
+                  <button
+                    disabled={currentPage === 1}
+                    className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                      currentPage === 1
+                        ? "cursor-not-allowed bg-gray-100"
+                        : "hover:bg-gray-200"
+                    }`}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    disabled={currentPage === totalPages}
+                    className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                      currentPage === totalPages
+                        ? "cursor-not-allowed bg-gray-100"
+                        : "hover:bg-gray-200"
+                    }`}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  >
+                    ›
+                  </button>
+                  <button
+                    disabled={currentPage === totalPages}
+                    className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                      currentPage === totalPages
+                        ? "cursor-not-allowed bg-gray-100"
+                        : "hover:bg-gray-200"
+                    }`}
+                    onClick={() => handlePageChange(totalPages)}
+                  >
+                    »
+                  </button>
+                </div>
               </div>
-
             </div>
-            </div>
-            </div></>
+          </div>
+        </>
       ) : (
         <>
-        {isLoading && null}
-        {!isLoading && (
-        <div className="flex flex-col items-center justify-center h-[500px]">
-          <h2 className="text-[24px] font-semibold mb-1 text-[#000000]">
-            Here you will see all your campaigns
-          </h2>
-          <p className="text-[#64748B] font-normal mb-1 text-[14px]">
-          Click the button below to create your first campaign.
+          {isLoading && null}
+          {!isLoading && (
+            <div className="flex flex-col items-center justify-center h-[500px]">
+              <h2 className="text-[24px] font-semibold mb-1 text-[#000000]">
+                Here you will see all your campaigns
+              </h2>
+              {userPermissions.includes("ADV_Campaigns_Create") && <div> 
+            <p 
+            className="text-[#64748B] font-normal mb-1 text-[14px]">
+            Click the button below to create your first campaign.
           </p>
-          <Button
+           <Button
           onClick={() => {
             dispatch(setCreateBreadCrumb(true));
             navigate("/navbar/createcampaign");
@@ -1309,8 +1304,9 @@ console.log("matchesSearchTerm;;;" , matchesSearchTerm);
           style={{ width: "auto", minWidth: "unset" }}>        
           Create campaign
         </Button>
-        </div>
-        )}
+        </div> }
+            </div>
+          )}
         </>
       )}
     </div>

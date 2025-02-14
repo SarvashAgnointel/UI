@@ -28,6 +28,8 @@ import {
   CommandList,
   CommandSeparator,
 } from "./command";
+import { RootState } from "@/src/State/store";
+import { useDispatch, useSelector } from "react-redux";
 
 /**
  * Variants for the multi-select component to handle different styles.
@@ -123,9 +125,10 @@ interface MultiSelectProps
 
 }
 
-export const MultiSelect = React.forwardRef<
+export const MultiSelect_TargetCountry = React.forwardRef<
   HTMLButtonElement,
-  MultiSelectProps
+  MultiSelectProps  
+  //& { countryIds?: string[] }
 >(
   (
     {
@@ -140,12 +143,35 @@ export const MultiSelect = React.forwardRef<
       modalPopover = false,
       asChild = false,
       className,
+      //countryIds= [],
       ...props
     },
     ref
   ) => {
-    const [selectedValues, setSelectedValues] =
-      React.useState<string[]>(defaultValue);
+   
+    const TragetCountryID = useSelector(
+      (state: RootState) => state.advertiserAccount.targetCountry
+    );
+
+    // ✅ Ensure `selectedValues` initializes with `TragetCountryID` or `defaultValue`
+    const [selectedValues, setSelectedValues] = React.useState<string[]>(
+      Array.isArray(TragetCountryID) ? TragetCountryID : []
+    );
+
+  //  const [selectedValues, setSelectedValues] = React.useState<string[]>(defaultValue);
+
+    // ✅ Step 3: Update selectedValues when countryIds change
+    // React.useEffect(() => {
+    //   if (countryIds.length > 0) {
+    //     console.log("Updating selected values from countryIds:", countryIds);
+    //     setSelectedValues([...countryIds]); // ✅ Ensure a fresh reference
+    //   } else {
+    //     setSelectedValues(defaultValue); // ✅ Use defaultValue when no countryIds are available
+    //   }
+    // }, [countryIds, defaultValue]);
+
+
+    
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
     const [isAnimating, setIsAnimating] = React.useState(false);
 
@@ -371,7 +397,7 @@ export const MultiSelect = React.forwardRef<
                     }}
                     className="flex-1 justify-center cursor-pointer max-w-full"
                   >
-                    Save
+                    Close
                   </CommandItem>
 
                 </div>
@@ -393,4 +419,4 @@ export const MultiSelect = React.forwardRef<
   }
 );
 
-MultiSelect.displayName = "MultiSelect";
+MultiSelect_TargetCountry.displayName = "MultiSelect_TargetCountry";

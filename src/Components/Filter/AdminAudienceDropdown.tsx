@@ -1,4 +1,4 @@
-import React, { FC, useState } from "react";
+import React, { FC, useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -18,64 +18,65 @@ import {
 } from "../ui/select";
 
 type MainFilterOption = "None" | "Status" | "UpdatedAt";
-type SubFilterOption = "Updated" | "Syncing" | "";
+type SubFilterOption = string;
 
 const DropdownMenuDemo: FC<{
-  setFilterData: React.Dispatch<
-    React.SetStateAction<{ filter: string; value: string }>
-  >;
+  setFilterData: React.Dispatch<React.SetStateAction<{ filter: string; value: string }>>;
+  filterData: { filter: string; value: string };
   dateList: string[];
-}> = ({ setFilterData, dateList }) => {
-  const [selectedMainFilter, setSelectedMainFilter] =
-    useState<MainFilterOption>("None");
-  const [selectedSubFilter, setSelectedSubFilter] =
-    useState<SubFilterOption>("");
+}> = ({ setFilterData, filterData, dateList }) => {
+  const [selectedMainFilter, setSelectedMainFilter] = useState<MainFilterOption>("None");
+  const [selectedSubFilter, setSelectedSubFilter] = useState<SubFilterOption>("");
+  const [isOpen, setIsOpen] = useState(false); // Manage dropdown open state
+
+  useEffect(() => {
+    setSelectedMainFilter(filterData.filter as MainFilterOption);
+    setSelectedSubFilter(filterData.value);
+  }, [filterData]);
 
   // Handle Main Filter Selection
   const handleMainFilterChange = (filter: MainFilterOption) => {
     setSelectedMainFilter(filter);
+    setSelectedSubFilter(""); // Reset subfilter
 
-    // Reset Subfilter based on Main Filter
     if (filter === "Status") {
-      setSelectedSubFilter("Updated"); // Default to "Updated"
       setFilterData({ filter, value: "Updated" });
     } else if (filter === "UpdatedAt") {
-      setSelectedSubFilter(""); // Empty for UpdatedAt
-      setFilterData({ filter, value: "" });
+      setFilterData({ filter, value: dateList[0] || "" });
     } else {
-      // None (No filter)
-      setSelectedSubFilter("");
       setFilterData({ filter: "None", value: "" });
     }
+
+    setIsOpen(true); // Keep dropdown open
   };
 
   // Handle Subfilter Selection
   const handleSubFilterChange = (value: SubFilterOption) => {
     setSelectedSubFilter(value);
     setFilterData({ filter: selectedMainFilter, value });
+    setIsOpen(true); // Keep dropdown open
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" 
-        className="w-full mb-6 ml-4 mt-[-6] text-[#020617] font-medium text-[14px] py-2 px-3">
-          <FiFilter style={{width:'14px' , height:'14px' }} className="mr-1 text-[#020617]" /> Filter
+        <Button variant="outline" className="w-full mb-6 ml-4 mt-[-6] text-[#020617] font-medium text-[14px] py-2 px-3">
+          <FiFilter style={{ width: "14px", height: "14px" }} className="mr-1 text-[#020617]" /> Filter
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64 transform -translate-x-32 mt-[-60px] ml-[-160px]">
         <DropdownMenuGroup>
           {/* Main Filter Dropdown */}
-          <DropdownMenuItem>
-            <Label className="mr-6">Criteria</Label>
-            <Select onValueChange={(value) => handleMainFilterChange(value as MainFilterOption)}>
-              <SelectTrigger className="text-gray-500 w-32 h-8">
+          <DropdownMenuItem onClick={(e) => e.stopPropagation()} className="flex items-center space-x-4">
+            <Label className="w-20">Criteria</Label>
+            <Select value={selectedMainFilter} onValueChange={(value) => handleMainFilterChange(value as MainFilterOption)}>
+              <SelectTrigger className="text-gray-500 w-full h-8">
                 <SelectValue className="text-gray-500" placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Status">Status</SelectItem>
-                <SelectItem value="UpdatedAt">UpdatedAt</SelectItem>
-                <SelectItem value="None">None</SelectItem>
+                <SelectItem value="Status" className="cursor-pointer">Status</SelectItem>
+                <SelectItem value="UpdatedAt" className="cursor-pointer">UpdatedAt</SelectItem>
+                <SelectItem value="None" className="cursor-pointer">None</SelectItem>
               </SelectContent>
             </Select>
           </DropdownMenuItem>
@@ -84,31 +85,27 @@ const DropdownMenuDemo: FC<{
         {/* Subfilter Dropdown */}
         {selectedMainFilter !== "None" && (
           <DropdownMenuGroup>
-            <DropdownMenuItem className="items-start">
-              <Label className="mr-6 pt-2">Subfilter</Label>
+            <DropdownMenuItem onClick={(e) => e.stopPropagation()} className="flex items-center space-x-4">
+              <Label className="w-20">Subfilter</Label>
               {selectedMainFilter === "Status" && (
-                <Select onValueChange={(value) => handleSubFilterChange(value as SubFilterOption)}>
-                  <SelectTrigger className="text-gray-500 w-2/3 h-8">
-                    <SelectValue
-                      className="text-gray-500"
-                      placeholder="Select status"
-                    />
+                <Select value={selectedSubFilter} onValueChange={(value) => handleSubFilterChange(value as SubFilterOption)}>
+                  <SelectTrigger className="text-gray-500 w-full h-8">
+                    <SelectValue className="text-gray-500" placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Updated">Updated</SelectItem>
-                    <SelectItem value="Syncing...">Syncing</SelectItem>
+                    <SelectItem value="Updated" className="cursor-pointer">Updated</SelectItem>
+                    <SelectItem value="Syncing..." className="cursor-pointer">Syncing</SelectItem>
                   </SelectContent>
                 </Select>
               )}
-
               {selectedMainFilter === "UpdatedAt" && (
-                <Select onValueChange={(value) => handleSubFilterChange(value as SubFilterOption)}>
-                  <SelectTrigger className="text-gray-500 w-2/3 h-8">
+                <Select value={selectedSubFilter} onValueChange={(value) => handleSubFilterChange(value as SubFilterOption)}>
+                  <SelectTrigger className="text-gray-500 w-full h-8">
                     <SelectValue placeholder="Select date" />
                   </SelectTrigger>
-                 <SelectContent>
+                  <SelectContent>
                     {dateList.map((date) => (
-                      <SelectItem key={date} value={date}>
+                      <SelectItem className="cursor-pointer" key={date} value={date}>
                         {date}
                       </SelectItem>
                     ))}

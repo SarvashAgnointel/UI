@@ -29,6 +29,7 @@ import { RootState } from "../State/store";
 import { useSelector } from 'react-redux';
 
 import { Eye, EyeOff } from 'lucide-react';
+import { error } from "console";
 
 
 
@@ -155,8 +156,6 @@ const toast = useToast();
       };
   
       dispatch(setSignupData(signupData));
-      //
-      // dispatch(setAdvUrl(apiUrl));
   
       const response = await axios.post(`${apiUrl}/CheckEmailExists`, {
         email,
@@ -172,6 +171,7 @@ const toast = useToast();
         });
       } else {
         const errorMessage = response.data[0]?.Status_Description || "Unknown error";
+        console.log(errorMessage);
         if (
           errorMessage.includes("A network-related or instance-specific error occurred") || 
           errorMessage.includes("Could not open a connection to SQL Server")
@@ -182,7 +182,7 @@ const toast = useToast();
             description: "We’re experiencing technical difficulties. Please try again later.",
           });
         }
-        else if(errorMessage === "Email already exists"){
+        else if(errorMessage === "Email already exists. Please use a different email."){
           console.log("error: ", errorMessage); // For debugging or monitoring tools
                 toast.toast({
                 title: "Error",

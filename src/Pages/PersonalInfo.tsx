@@ -29,6 +29,7 @@ import { useSelector } from "react-redux";
 import jwt_decode, { jwtDecode, JwtPayload } from "jwt-decode"; // Replacing jsonwebtoken with jwt-decode
 import { Switch } from "../Components/ui/switch";
 import { Roofing } from "@mui/icons-material";
+import { setPermissions, setUser_Role_Name } from "../State/slices/AdvertiserAccountSlice";
 
 
 
@@ -295,22 +296,34 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
               UserWorkspaceRoleResponse.status === 200 &&
               UserWorkspaceRoleResponse.data.status === "Success"
             ) {
+              const response = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${decoded.RoleId}`);
+              if (response.data.status === "Success") {
+                  console.log("PERMISSIONS : ",response.data.roleDetails.permissions);
+                  const permissions = JSON.parse(response.data.roleDetails.permissions);
+                  const role_name = response.data.roleDetails.roleName;
+                  dispatch(setPermissions(permissions));
+                  dispatch(setUser_Role_Name(role_name));
+                  toast.toast({
+                    title: "SignUp Successful",
+                    description:
+                      "You have successfully signed up for our platform.",
+                  });
+    
+                  // Navigation logic only for isInvited === true
+                  setTimeout(() => {
+                    navigate("/navbar/dashboard", {
+                      state: { path, email },
+                    });
+                    setIsLoading(false);
+                  }, 2000);
+              } else {
+                toast.toast({
+                  title: "Error",
+                  description: "Failed to create role for user. Please try again.",
+                });              }
               setIsResponseSuccess(true);
               setAuthenticated(true);
 
-              toast.toast({
-                title: "SignUp Successful",
-                description:
-                  "You have successfully signed up for our platform.",
-              });
-
-              // Navigation logic only for isInvited === true
-              setTimeout(() => {
-                navigate("/navbar/dashboard", {
-                  state: { path, email },
-                });
-                setIsLoading(false);
-              }, 2000);
             } else {
               toast.toast({
                 title: "Error",

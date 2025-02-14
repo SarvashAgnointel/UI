@@ -52,12 +52,13 @@ import axios from "axios";
 import { UseSelector } from "react-redux";
 // Define the menu items with routes as content
 const menuItems = [
-  { label: "Dashboard", icon: HomeIcon, path: "dashboard" },
-  { label: "Campaigns", icon: PaperPlaneIcon, path: "campaignlist" },
-  { label: "Templates", icon: ChatBubbleIcon, path: "TemplateList" },
-  { label: "Audiences", icon: Users, path: "audiences" },
-  { label: "Channels", icon: LightningBoltIcon, path: "channels" },
+  { label: "Dashboard", icon: HomeIcon, path: "dashboard", permission: "ADV_Dashboard" },
+  { label: "Campaigns", icon: PaperPlaneIcon, path: "campaignlist", permission: "ADV_Campaigns_View" },
+  { label: "Templates", icon: ChatBubbleIcon, path: "TemplateList", permission: "ADV_Template_View" },
+  { label: "Audiences", icon: Users, path: "audiences", permission: "ADV_Audience_View" },
+  { label: "Channels", icon: LightningBoltIcon, path: "channels", permission: "ADV_Channels_View" },
 ];
+
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -111,6 +112,8 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
+  
   return (
     <div className="bg-[#FBFBFB] h-full">
       <nav
@@ -118,7 +121,9 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
         style={{ backgroundColor: "#FBFBFB" }}
       >
         <div className="flex-1 overflow-y-auto py-4">
-          {menuItems.map((item, index) => (
+        {menuItems
+          .filter(item => userPermissions.includes(item.permission)) 
+          .map((item, index) => (
             <NavItem
               key={index}
               icon={item.icon}
@@ -130,17 +135,22 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
               }}
               select={selected}
             />
-          ))}
+        ))}
+
         </div>
+
         <div className="sticky bottom-0 p-4 w-full">
           <div className="flex flex-col space-y-2">
             <div className="py-4 flex flex-col gap-[10px]">
-            <Button className="w-[96px] h-[27px] text-[14px] font-normal" onClick={()=>navigate("/settings/Billing",{state: { route:"Billing" }})}>
+            { userPermissions.includes("ADV_Billings_View") && 
+            <>
+              <Button 
+            className="w-[96px] h-[27px] text-[14px] font-normal" onClick={()=>navigate("/settings/Billing",{state: { route:"Billing" }})}>
               <div className="flex pr-16 pl-16 pt-8 pb-8 gap-[10px]">
                 <span><Wallet size={16}/></span>
                 <span className='flex justify-center items-center w-[48px] h-[16px]'>Top Up</span>
               </div>
-            </Button>
+            </Button> 
               <span className="text-sm text-[#020617] text-left font-[400px] flex gap-1">
                 <span>7,328</span>
                 <span className="text-[#64748B]">/</span>
@@ -148,7 +158,7 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
                 <span>Messages</span>
               </span>
               <Progress value={73} className="w-[218px] h-[6px]" color="#3A85F7" />
-            </div>
+            </> }
             <div
               style={{
                 position: "sticky",
@@ -166,6 +176,7 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
               />
             </div>
           </div>
+        </div>
         </div>
       </nav>
     </div>
@@ -185,14 +196,33 @@ const Navbar: FC<{
   const AdvAccUrl = useSelector(
     (state: RootState) => state.authentication.apiURL
   );
+        // Get user permissions from Redux
+  const userRoleName = useSelector(
+    (state: RootState) => state.advertiserAccount.user_role_name);
 
   // const workspace = location.state?.path || "Admin";
   const workspace = useSelector(
     (state: RootState) => state.authentication.workspaceName
   );
+
+  const workspaceId = useSelector((state: RootState) => state.authentication.workspace_id)
   const breadCrumbStatus = useSelector(
     (state: RootState) => state.advertiserAccount.createBreadCrumb
   );
+
+  useEffect(() => {
+    if (userRoleName === "Campaign Manager") {
+      setSelectedLabel("Campaigns");
+    }else if(userRoleName === "Audience Manager"){
+      setSelectedLabel("Audiences");
+    }else if(userRoleName === "Analytics Viewer"){
+      setSelectedLabel("Dashboard");
+    }else if(userRoleName === "Channel Specialist"){
+      setSelectedLabel("Channels");
+    }else{
+      setSelectedLabel("Dashboard");
+    }
+  }, [userRoleName]); // Runs whenever userRoleName changes
 
   useEffect(() => {
     if (workspace != "") {
@@ -210,7 +240,9 @@ const Navbar: FC<{
         const response = await axios.get(
           `${AdvAccUrl}/GetProfileImage`,
           {
-            params: { EmailId: emailId },
+            params: { EmailId: emailId ,
+                      WorkspaceId: workspaceId
+            },
           }
         );
 
@@ -226,14 +258,12 @@ const Navbar: FC<{
         console.error("Error fetching image:", error);
       }
     };
-
+    
     fetchProfileImage();
-  }, []);
+  }, [emailId, workspaceId]);
 
 
-  // useEffect(()=>{
 
-  // },[breadCrumbStatus])
   return (
     <div className="h-screen">
       <TooltipProvider delayDuration={0}>
@@ -275,7 +305,6 @@ const Navbar: FC<{
               )}
              >
               <DropdownMenuDemo
-                // profileImage="https://github.com/shadcn.png"
                 profileImage={imageSrc}
                 profileName={workspaceName}
                 setAuthenticated={setAuthenticated}

@@ -5,6 +5,7 @@ interface Impersonator{
     ImpersonatorEmail:string;
     ImpersonatorWName:string;
     ImpersonatorWID:number;
+    ImpersonatorRID:number;
 }
 
 interface AdminState{

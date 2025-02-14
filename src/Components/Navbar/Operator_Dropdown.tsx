@@ -15,28 +15,19 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import {
-  Avatar_custom,
-  AvatarFallback_custom,
-  AvatarImage_custom,
-} from "../ui/avatar_custom";
+import { Avatar_custom, AvatarFallback_custom, AvatarImage_custom } from "../ui/avatar_custom";
 import { CircleCheck, Plus, User, Settings, LogOut } from "lucide-react";
 import { CaretSortIcon } from "@radix-ui/react-icons";
 import { useNavigate } from "react-router-dom";
 import { CustomWorkspaceControl } from "../../Pages/Workspace";
 import { useDispatch } from "react-redux";
-import {
-  setAddWorkspaceFromDropdown,
-  setCloseAddWorkspaceDialog,
-  setPermissions,
-  setUser_Role_Name,
-} from "../../State/slices/AdvertiserAccountSlice";
+import { setAddWorkspaceFromDropdown,setCloseAddWorkspaceDialog } from "../../State/slices/AdvertiserAccountSlice";
 import {
   setworkspace,
   setIsAdmin,
   setWorkspaceId,
   setmail,
-  setRoleId,
+  setRoleId
 } from "../../State/slices/AuthenticationSlice";
 import { SetImpersonator } from "../../State/slices/AdminSlice";
 import config from "../../config.json";
@@ -48,7 +39,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../../Components/ui/tooltip";
+} from "../ui/tooltip";
 // Define props interfaces
 interface DropdownMenuDemoProps {
   profileImage: any;
@@ -59,7 +50,6 @@ interface DropdownMenuDemoProps {
 interface Workspace {
   workspace_id: number;
   workspace_name: string;
-  workspace_image: string;
   // Add other properties as needed
 }
 
@@ -87,9 +77,7 @@ export const AddWorkspace: FC<WorkspaceDialogProps> = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="m-2">
         <DialogHeader>
-          <DialogTitle className="font-semibold text-[#09090B] text-[18px]">
-            Create a new workspace
-          </DialogTitle>
+          <DialogTitle className="font-semibold text-[#09090B] text-[18px]">Create a new workspace</DialogTitle>
           <DialogDescription className="font-medium text-[#71717A] text-[14px]">
             Create a new workspace to manage your campaigns and members.
           </DialogDescription>
@@ -116,7 +104,7 @@ export function DropdownMenuDemo({
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const dispatch = useDispatch();
-  const [apiAutUrl, setApiAutUrl] = useState('');
+  // const [apiUrl, setApiUrl] = useState('');
   const email = useSelector(
     (state: RootState) => state.authentication.userEmail
   );
@@ -129,38 +117,11 @@ export function DropdownMenuDemo({
     (state: RootState) => state.advertiserAccount.closeAddWorkspaceDialog
   );
 
-  const workspaceId = useSelector(
-    (state: RootState) => state.authentication.workspace_id
-  );
+  const workspaceId = useSelector((state:RootState)=>state.authentication.workspace_id);
 
-  const ImpersonatorData = useSelector(
-    (state: RootState) => state.admin.Impersonator
-  );
-  const userPermissions = useSelector(
-    (state: RootState) => state.advertiserAccount.permissions
-  );
-  const userRoleName = useSelector(
-    (state: RootState) => state.advertiserAccount.user_role_name
-  );
-
-  const showAdminDropdown =
-  isAdmin && (!ImpersonatorData?.ImpersonationState);
-
-
-    useEffect(() => {
-      const fetchConfig = async () => {
-        try {
-          const response = await fetch("/config.json");
-          const config = await response.json();
-          setApiAutUrl(config.API_URL);
-        } catch (error) {
-          console.error("Error loading config:", error);
-        }
-      };
-  
-      fetchConfig();
-    }, []);
-
+  const ImpersonatorData = useSelector((state: RootState) => state.admin.Impersonator);  
+  const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
+  const userRoleName = useSelector((state: RootState) => state.advertiserAccount.user_role_name);
 
   // const seturl=async()=>{
   //   await setApiUrlAdvAcc(config.ApiUrlAdvAcc);
@@ -200,9 +161,7 @@ export function DropdownMenuDemo({
                 alt="Profile"
                 className="h-[25px] w-[25px] rounded-full mt-2"
               />
-              <AvatarFallback className="mt-1">
-                {email ? email[0].toUpperCase() : "TA"}
-              </AvatarFallback>
+              <AvatarFallback className="mt-1">{email?email[0].toUpperCase():"TA"}</AvatarFallback>
             </Avatar>
             <span
               className={"text-black bg-transparent sticky ml-[-2px] " + mdSize}
@@ -218,41 +177,36 @@ export function DropdownMenuDemo({
         <DropdownMenuContent className="w-56 cursor-pointer">
           <DropdownMenuGroup>
             {workspaceList &&
-              workspaceList.map((workspace) => (
-                <TooltipProvider key={workspace.workspace_id}>
+              workspaceList.map((data) => (
+                <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <DropdownMenuItem
-                        className="cursor-pointer"
+                      className="cursor-pointer"
                         onClick={() => {
-                          dispatch(setworkspace(workspace.workspace_name));
-                          dispatch(setWorkspaceId(workspace.workspace_id));
-                          navigate("/navbar/dashboard", {
-                            state: { path: workspace.workspace_name },
+                          dispatch(setworkspace(data.workspace_name));
+                          dispatch(setWorkspaceId(data.workspace_id));
+                          navigate("/operatorNavbar/dashboard", {
+                            state: { path: data.workspace_name },
                           });
                         }}
                       >
                         <Avatar_custom className="mr-2 h-4 w-4">
                           <AvatarImage_custom
-                            src={`data:image/jpeg;base64,${workspace.workspace_image}`}
+                            src={profileImage}
                             alt="Profile"
                             className="h-5 w-5 rounded-full"
                           />
-                          <AvatarFallback_custom className="">
-                            {workspace.workspace_name
-                              ? workspace.workspace_name[0].toUpperCase()
-                              : "W"}
-                          </AvatarFallback_custom>
+                          <AvatarFallback_custom className="">{data.workspace_name?data.workspace_name[0].toUpperCase():"W"}</AvatarFallback_custom>
                         </Avatar_custom>
-                        <span
+                        <span 
                           className="font-normal text-[#020617] text-[14px]"
-                          key={workspace.workspace_id}
-                        >
-                          {workspace.workspace_name.length >= 17
-                            ? `${workspace.workspace_name.slice(0, 17)}...`
-                            : workspace.workspace_name}
+                          key={data.workspace_id}>
+                          {data.workspace_name.length >= 17
+                            ? `${data.workspace_name.slice(0, 17)}...`
+                            : data.workspace_name}
                         </span>
-                        {workspace.workspace_id === workspaceId ? (
+                        {data.workspace_id === workspaceId ? (
                           <>
                             <div className=" flex flex-grow justify-end">
                               <CircleCheck
@@ -268,37 +222,17 @@ export function DropdownMenuDemo({
                       </DropdownMenuItem>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="font-normal text-[#020617] text-[14px]">
-                        {workspace.workspace_name}
-                      </p>
+                      <p className="font-normal text-[#020617] text-[14px]">{data.workspace_name}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               ))}
-            {["Primary Owner", "Primary Advertiser"].includes(userRoleName) && (
-              <DropdownMenuItem
-                onClick={() => {
-                  if (closeAddWorkspaceDialog) {
-                    dispatch(setCloseAddWorkspaceDialog(false));
-                  }
-                  dispatch(setAddWorkspaceFromDropdown(true));
-                  handleOpen();
-                }}
-                className="cursor-pointer"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                <span className="font-normal text-[#020617] text-[14px]">
-                  Add New Workspace
-                </span>
-              </DropdownMenuItem>
-            )}
           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator /> 
           <DropdownMenuGroup>
-            {ImpersonatorData?.ImpersonationState && (
-              <DropdownMenuItem
-                onClick={async () => {
-                  dispatch(
+            {ImpersonatorData?.ImpersonationState && <DropdownMenuItem
+                onClick={() => {
+                dispatch(
                     SetImpersonator({
                       ImpersonationState: false,
                       ImpersonatorEmail: "",
@@ -311,22 +245,7 @@ export function DropdownMenuDemo({
                   dispatch(setworkspace(ImpersonatorData?.ImpersonatorWName));
                   dispatch(setWorkspaceId(ImpersonatorData?.ImpersonatorWID));
                   dispatch(setRoleId(ImpersonatorData?.ImpersonatorRID));
-                  const response2 = await axios.get(
-                    `${apiAutUrl}/GetPermissionsByRoleId?RoleID=${ImpersonatorData?.ImpersonatorRID}`
-                  );
-                  if (response2.data.status === "Success") {
-                    const permissions = JSON.parse(
-                      response2.data.roleDetails.permissions
-                    );
-                    const role_name = response2.data.roleDetails.roleName;
-                    dispatch(setPermissions(permissions));
-                    dispatch(setUser_Role_Name(role_name));
-                    navigate("/adminNavbar/accounts", {
-                      state: { route: "Accounts" },
-                    });
-                  } else {
-                    console.log("GetPermissionsByRoleId API error");
-                  }
+                  navigate("/adminNavbar/accounts",{state:{route:"Accounts"}});
                 }}
                 className="flex items-center cursor-pointer"
               >
@@ -334,63 +253,30 @@ export function DropdownMenuDemo({
                 <span className="font-normal text-[#020617] text-[14px]">
                   Stop Impersonation
                 </span>
-              </DropdownMenuItem>
-            )}
-            {showAdminDropdown &&   (  
-              <DropdownMenuItem
-                onClick={() =>
-                  navigate("/adminNavbar/home", { state: { route: "Home" } })
-                }
+              </DropdownMenuItem> }
+          {isAdmin && <DropdownMenuItem
+                onClick={() => navigate("/adminNavbar/home",{state:{route:"Home"}})}
                 className="flex items-center cursor-pointer"
               >
                 <User className="mr-2 h-4 w-4" />
                 <span className="font-normal text-[#020617] text-[14px]">
                   Admin
                 </span>
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              onClick={() =>
-                navigate("/settings/Profile", {
-                  state: { path: profileName, route: "Profile" },
-                })
-              }
-              className="flex items-center cursor-pointer"
-            >
-              <User className="mr-2 h-4 w-4" />
-              <span className="font-normal text-[#020617] text-[14px]">
-                Profile settings
-              </span>
-            </DropdownMenuItem>
-            {["Primary Owner", "Primary Advertiser"].includes(userRoleName) && (
-              <DropdownMenuItem
-                onClick={() =>
-                  navigate("/settings/Workspace", {
-                    state: { path: profileName, route: "Workspace" },
-                  })
-                }
-                className="flex items-center cursor-pointer"
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                <span className="font-normal text-[#020617] text-[14px]">
-                  Workspace Settings
-                </span>
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuGroup>
+              </DropdownMenuItem>}
+        </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="mb-2 flex items-center cursor-pointer"
-            onClick={() => {
-              setAuthenticated(false);
-              navigate("/");
-            }}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            <span className="font-normal text-[#020617] text-[14px]">
-              Log out
-            </span>
-          </DropdownMenuItem>
+          className="mb-2 flex items-center cursor-pointer"
+          onClick={() => {
+            setAuthenticated(false);
+            navigate("/");
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span className="font-normal text-[#020617] text-[14px]">
+            Log out
+          </span>
+        </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

@@ -63,6 +63,7 @@ interface LoginState {
     isAdmin: boolean;
     count: number;
     workspace_id: number;
+    role_id:number;
     workspaceType: string; // New field added for workspace type
     userData?: PersonalInfo;
     workspaceData?: WorkspaceInfo;
@@ -74,6 +75,7 @@ interface LoginState {
     //Invite Members
     isInvited: boolean;
     inviteToken: InviteTokenData; // No longer optional
+    account_id: number;
 
     authprofileback: boolean;
 
@@ -94,6 +96,7 @@ const initialState: LoginState = {
     isAdmin:false,
     count: 0,
     workspace_id: 0,
+    role_id:0,
     workspaceType: "", // Initialize with an empty string
     userData: undefined,
     workspaceData: undefined,
@@ -107,6 +110,7 @@ const initialState: LoginState = {
     isInvited: false,
     inviteToken: { token: "" }, // Ensure it's always defined
     authprofileback: false,
+    account_id: 0,
     
     //sarvash
     adminUrl:"", 
@@ -121,6 +125,9 @@ const AuthenticationSlice = createSlice({
     name: "Authentication",
     initialState: initialState,
     reducers: {
+        setAccountId: (state, action: PayloadAction<number>) => {
+            state.account_id = action.payload;
+        },
 
         setAuthProfileBack: (state, action: PayloadAction<boolean>) => {
             state.authprofileback = action.payload;
@@ -135,6 +142,11 @@ const AuthenticationSlice = createSlice({
         setWorkspaceId: (state, action: PayloadAction<number>) => {
             state.workspace_id = action.payload;
         },
+
+        setRoleId: (state, action: PayloadAction<number>) => {
+            state.role_id = action.payload;
+        },
+
 
         // Action to set the workspace name
         setworkspace: (state, action: PayloadAction<string>) => {
@@ -214,6 +226,7 @@ export const {
     setIsAdmin,
     setWorkspaceData,
     setWorkspaceId,
+    setRoleId,
     setAdvUrl,
     setForgotPassword,
     setForgotEmail,
@@ -223,7 +236,8 @@ export const {
     setAdminUrl,
     setAuthProfileBack,
     setSmsUrl,
-    setOperatorUrl
+    setOperatorUrl,
+    setAccountId
 } = AuthenticationSlice.actions;
 
 

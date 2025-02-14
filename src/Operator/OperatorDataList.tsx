@@ -40,8 +40,9 @@ import {
   CheckIcon,
 } from "@radix-ui/react-icons";
 import  DropdownMenuDemo  from "../Components/Filter/OperatorDataDropdown"
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import CircularProgress from "@mui/material/CircularProgress";
+import { RootState } from "../State/store";
 
 
 interface Data {
@@ -51,6 +52,16 @@ interface Data {
   status: string;
   updatedAt: string;
   recipients: number;
+}
+
+interface ContactList{
+  list_id:number;
+  file_name:string;
+  status:string;
+  update_at:Date;
+  recipient:number;
+  type:string;
+
 }
 
 const OperatorDataList: React.FC = () => {
@@ -70,8 +81,10 @@ const [originalData, setOriginalData] = useState(currentData);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(5); // Default 5 rows per page
   const [searchTerm, setSearchTerm] = useState("");
-  const [apiUrlAdminAcc, setapiUrlAdminAcc] = useState("");
+  const [apiUrlOpAcc, setapiUrlAOpAcc] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const workspaceId = useSelector((state: RootState) => state.authentication.workspace_id);
+  const [contactList,setContactList]=useState<ContactList[]>([]);
 
 
   const [filterData, setFilterData] = useState({
@@ -132,6 +145,47 @@ const [originalData, setOriginalData] = useState(currentData);
     setDataList(dummyData);
     setCurrentPage(1);
   }, []);
+
+    useEffect(() => {
+      const fetchConfig = async () => {
+        setIsLoading(true);
+        try {
+          
+          const response = await fetch("/config.json");
+          const config = await response.json();
+          setapiUrlAOpAcc(config.OperatorUrl);
+        } catch (error) {
+          console.error("Error loading config:", error);
+        }
+      };
+  
+      fetchConfig();
+    }, []);
+  
+    useEffect(() => {
+      if (apiUrlOpAcc) {
+        GetOperatorContactsListByWorkspaceId()
+      }
+    }, [apiUrlOpAcc]);
+
+  const GetOperatorContactsListByWorkspaceId = async () => {
+    try {
+      const response = await axios.get(`${apiUrlOpAcc}/GetOperatorContactsListByWorkspaceId?WorkspaceId=${workspaceId}`)
+      if(response.data.status="Success"){
+        console.log(response.data.contactList);
+        setContactList(response.data.contactList);
+      }
+      else{
+        console.log("response :"+response.data.Status_Description);
+      }
+    }
+    catch(e)
+    {
+      console.log("response :"+ e);
+    }
+  }
+
+
 
   // const handleCheckboxRowSelect = (id: number) => {
   //   setCheckboxSelectedRows((prev) => {
@@ -197,8 +251,8 @@ const [originalData, setOriginalData] = useState(currentData);
       try {
         const response = await fetch("/config.json");
         const config = await response.json();
-        setapiUrlAdminAcc(config.ApiUrlAdminAcc);
-        console.log("apiUrlAdminAcc:" , apiUrlAdminAcc);
+        setapiUrlAOpAcc(config.ApiUrlAdminAcc);
+        console.log("apiUrlAdminAcc:" , apiUrlOpAcc);
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -485,8 +539,8 @@ const [originalData, setOriginalData] = useState(currentData);
               </TableHeader>
 
               <TableBody className="text-left text-[14px] font-normal text-[#020617]">
-  {currentData.map((data) => (
-    <TableRow key={data.connectionId}>
+  {contactList.map((data) => (
+    <TableRow key={data.list_id}>
       <TableCell className="flex justify-start py-4 text-green-900">
         <div className="flex items-center gap-6">
           <input
@@ -494,8 +548,8 @@ const [originalData, setOriginalData] = useState(currentData);
             className={`accent-gray-700 bg-grey-700 text-red-500 ${
               isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
             }`}
-            checked={checkboxSelectedRows.includes(data.connectionId)}
-            onChange={() => handleCheckboxRowSelect(data.connectionId)}
+            checked={checkboxSelectedRows.includes(data.list_id)}
+            onChange={() => handleCheckboxRowSelect(data.list_id)}
           />
           <span
             style={{
@@ -504,7 +558,7 @@ const [originalData, setOriginalData] = useState(currentData);
               fontWeight: "400",
             }}
           >
-            {data.connectionName}
+            {data.file_name}
           </span>
         </div>
       </TableCell>
@@ -547,13 +601,13 @@ const [originalData, setOriginalData] = useState(currentData);
               fontWeight: "400",
             }}
           >
-            {new Date(data.updatedAt).toLocaleDateString("en-GB", {
+            {new Date(data.update_at).toLocaleDateString("en-GB", {
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
             })}{" "}
             ∙{" "}
-            {new Date(data.updatedAt).toLocaleTimeString("en-GB", {
+            {new Date(data.update_at).toLocaleTimeString("en-GB", {
               hour: "2-digit",
               minute: "2-digit",
             })}
@@ -569,7 +623,7 @@ const [originalData, setOriginalData] = useState(currentData);
             fontWeight: "400",
           }}
         >
-          {data.recipients.toLocaleString()}
+          {data.recipient.toLocaleString()}
         </span>
       </TableCell>
 
@@ -578,13 +632,13 @@ const [originalData, setOriginalData] = useState(currentData);
           <DropdownMenuTrigger asChild>
             <DotsHorizontalIcon
               style={{ color: "#020617" }}
-              onClick={() => handleMenuToggle(data.connectionId)}
+              onClick={() => handleMenuToggle(data.list_id)}
               className="cursor-pointer w-5 h-5"
             />
           </DropdownMenuTrigger>
-          {openMenuRowId === data.connectionId && (
+          {openMenuRowId === data.list_id && (
             <DropdownMenuContent className="w-48 h-auto">
-              <DropdownMenuItem onClick={() => handleView(data.connectionId)}>
+              <DropdownMenuItem onClick={() => handleView(data.list_id)}>
                
               </DropdownMenuItem>
             </DropdownMenuContent>

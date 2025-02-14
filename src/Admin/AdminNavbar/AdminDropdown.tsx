@@ -142,15 +142,6 @@ export function DropdownMenuDemo({
           </DropdownMenuGroup>
 
           <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={() => navigate("/settings/Profile", { state: { path: profileName } })}
-            className="cursor-pointer"
-          >
-            <User className="mr-2 h-4 w-4" />
-            <span className="text-[14px] text-[#020617] font-normal">
-              Profile settings
-            </span>
-          </DropdownMenuItem>
                       
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

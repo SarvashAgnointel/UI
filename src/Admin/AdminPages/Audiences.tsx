@@ -5,7 +5,7 @@ import { Badge } from "../../Components/ui/badge";
 import {
   DotsHorizontalIcon,
   CaretSortIcon,
-  FileIcon
+  FileIcon,
 } from "@radix-ui/react-icons";
 
 import { FiFilter } from "react-icons/fi";
@@ -40,41 +40,38 @@ import {
   CheckIcon,
 } from "@radix-ui/react-icons";
 import { Skeleton } from "../../Components/ui/skeleton";
-import  DropdownMenuDemo  from "../../Components/Filter/AdminAudienceDropdown"
+import DropdownMenuDemo from "../../Components/Filter/AdminAudienceDropdown";
 import { useDispatch } from "react-redux";
 import { setCreateBreadCrumb } from "../../State/slices/AdvertiserAccountSlice";
-import * as XLSX from "xlsx"
+import * as XLSX from "xlsx";
 import CircularProgress from "@mui/material/CircularProgress";
 
 interface Audience {
-  telco_id: number;
-  telco_name: string;
+  workspaceId: number;
+  workspaceName: string;
   status: string;
   updatedAt: string;
-  recipients : number;
+  recipientCount: number;
 }
 
 type AudienceCheck = {
-  telco_id: number;
-  telco_name: string;
+  workspaceId: number;
+  workspaceName: string;
 };
-
-
 
 const Audiences: React.FC = () => {
   const [openMenuRowId, setOpenMenuRowId] = useState<number | null>(null);
 
   const [audienceList, setaudienceList] = useState<Audience[]>([]);
-  const [currentAudiences, setCurrentAudiences] = useState<Audience[]>([]);
-
 
   const navigate = useNavigate();
 
-
   const [isSorted, setIsSorted] = useState(false);
-  const [originalAudiences, setOriginalAudiences] = useState(currentAudiences);
+  const [originalAudiences, setOriginalAudiences] = useState(audienceList);
 
-  const [checkboxSelectedRows, setCheckboxSelectedRows] = useState<number[]>([]);
+  const [checkboxSelectedRows, setCheckboxSelectedRows] = useState<number[]>(
+    []
+  );
   const [isAllSelected, setIsAllSelected] = useState(false);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -83,22 +80,21 @@ const Audiences: React.FC = () => {
   const [apiUrlAdminAcc, setapiUrlAdminAcc] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-
   const [filterData, setFilterData] = useState({
-    filter: "All Audiences",
+    filter: "None",
     value: "",
   });
 
   const [dateList, setDateList] = useState<string[]>([]);
-  
+
   const [hasAudiences, setHasAudiences] = useState(false);
   const dispatch = useDispatch();
 
-  
-
   const handleCheckboxRowSelect = (id: number) => {
     setCheckboxSelectedRows((prev) => {
-      const newSelectedRows = prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id];
+      const newSelectedRows = prev.includes(id)
+        ? prev.filter((rowId) => rowId !== id)
+        : [...prev, id];
       setIsAllSelected(newSelectedRows.length === currentAudiences.length); // Update `isAllSelected` if all rows are selected
       return newSelectedRows;
     });
@@ -108,7 +104,7 @@ const Audiences: React.FC = () => {
     if (isAllSelected) {
       setCheckboxSelectedRows([]);
     } else {
-      const allIds = currentAudiences.map((audience) => audience.telco_id);
+      const allIds = currentAudiences.map((audience) => audience.workspaceId);
       setCheckboxSelectedRows(allIds);
     }
     setIsAllSelected(!isAllSelected);
@@ -120,7 +116,7 @@ const Audiences: React.FC = () => {
         const response = await fetch("/config.json");
         const config = await response.json();
         setapiUrlAdminAcc(config.ApiUrlAdminAcc);
-        console.log("apiUrlAdminAcc:" , apiUrlAdminAcc);
+        console.log("apiUrlAdminAcc:", apiUrlAdminAcc);
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -136,49 +132,46 @@ const Audiences: React.FC = () => {
   }, [apiUrlAdminAcc]); // Runs when apiUrlAdminAcc is updated
 
   useEffect(() => {
-          if (audienceList.length > 0) {
-            setDateListFunction();
-          }
-      }, [audienceList]); // Dependency on campaignList
-  
-  
+    if (audienceList.length > 0) {
+      setDateListFunction();
+    }
+  }, [audienceList]); // Dependency on campaignList
 
-      const filteredAudiences = audienceList.filter((audience) => {
-        const matchesSearchTerm = searchTerm
-          ? audience.telco_name.toLowerCase().includes(searchTerm.toLowerCase())
-          : true;
-      
-        let matchesMainFilter = true;
-      
-        if (filterData.filter === "Status") {
-          matchesMainFilter =
-            filterData.value === "All" || audience.status === filterData.value;
-        } else if (filterData.filter === "UpdatedAt") {
-          const filterDate = new Date(filterData.value); // The value from the filter
-          const audienceDate = new Date(audience.updatedAt.split("T")[0]); // Extracting date part
-      
-          // Check if the date matches
-          matchesMainFilter = audienceDate.toDateString() === filterDate.toDateString();
-        }
-      
-        return matchesSearchTerm && matchesMainFilter;
-      });
-  
-  
-  
+  // Step 1: Apply filters first
+  const filteredAudiences = audienceList.filter((audience) => {
+    if (filterData.filter === "Status") {
+      return filterData.value === "All" || audience.status === filterData.value;
+    } else if (filterData.filter === "UpdatedAt") {
+      const filterDate = new Date(filterData.value);
+      const audienceDate = new Date(audience.updatedAt.split("T")[0]); // Ensure correct date field
 
-  // Calculate total pages for filtered Audiences
-  const totalPages: number = Math.ceil(filteredAudiences.length / rowsPerPage);
+      return audienceDate.toDateString() === filterDate.toDateString();
+    }
+    return true;
+  });
 
+  // Step 2: Apply search within the filtered list
+  const searchedAudiences = filteredAudiences.filter((audience) => {
+    return searchTerm
+      ? audience.workspaceName.toLowerCase().includes(searchTerm.toLowerCase()) // Ensure correct search field
+      : true;
+  });
+
+  // Step 3: Calculate new total pages after filtering & searching
+  const totalPages: number = Math.ceil(searchedAudiences.length / rowsPerPage);
+
+  // Step 4: Adjust currentPage only if it’s out of bounds
   useEffect(() => {
-    const newCurrentAudiences = filteredAudiences.slice(
-      (currentPage - 1) * rowsPerPage,
-      currentPage * rowsPerPage
-    );
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages > 0 ? totalPages : 1); // Stay on the last valid page
+    }
+  }, [searchedAudiences, totalPages]);
 
-    setCurrentAudiences(newCurrentAudiences);
-  }, [filterData, audienceList, currentPage, rowsPerPage, searchTerm]);
-  // Only re-run if dependencies change
+  // Step 5: Apply pagination
+  const currentAudiences = searchedAudiences.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
   // Handle page change
   const handlePageChange = (newPage: number) => {
@@ -187,38 +180,30 @@ const Audiences: React.FC = () => {
     }
   };
 
- 
-
   // Function to handle the actual delete after confirmation
 
   useEffect(() => {
-    console.log(
-      "filter data: " +
-        filterData.filter +
-        " " +
-        filterData.value
-    );
+    console.log("filter data: " + filterData.filter + " " + filterData.value);
   }, [filterData]);
-
-
 
   const getaudienceList = async () => {
     setIsLoading(true);
     try {
-      console.log( " Entered" );
-      const response = await axios.get(`${apiUrlAdminAcc}/GetAudienceList`);
-      console.log( "Response : " , response.data.audienceList);
-      if (response.data && response.data.audienceList) {
+      console.log(" Entered");
+      const response = await axios.get(
+        `${apiUrlAdminAcc}/GetOperatorContactsSummary`
+      );
+      console.log("Response : ", response);
+      if (response.data.status === "Success" && response.data.audienceList) {
         setaudienceList(response.data.audienceList);
         setIsLoading(false);
+        setHasAudiences(true);
         console.log("audience List : ", response.data.audienceList);
       } else {
         console.log("No audience list available in response.");
         setIsLoading(false);
       }
     } catch (error) {
-      // Handle error if API call fails
-
       console.error("Error fetching audience list:", error);
     } finally {
       // Ensure the menu is closed after fetching data
@@ -241,8 +226,6 @@ const Audiences: React.FC = () => {
     console.log("Unique Dates", datekeys); // Logs grouped unique dates
     setDateList(datekeys);
   };
-
- 
 
   const handleMenuToggle = (rowId: number) => {
     setOpenMenuRowId(openMenuRowId === rowId ? null : rowId);
@@ -273,7 +256,7 @@ const Audiences: React.FC = () => {
     } else {
       switch (tableHeader) {
         case "ByAudienceName":
-          sortByField("telco_name", "string");
+          sortByField("workspaceName", "string");
           break;
         case "ByAudienceStatus":
           sortByField("status", "string");
@@ -282,7 +265,7 @@ const Audiences: React.FC = () => {
           sortByField("updatedAt", "date"); // Sorting by start date
           break;
         case "ByAudiencerecipients":
-          sortByField("recipients", "number");
+          sortByField("recipientCount", "number");
           break;
 
         default:
@@ -306,52 +289,47 @@ const Audiences: React.FC = () => {
     }
   };
 
-
   useEffect(() => {
     setHasAudiences(audienceList.length > 0);
   }, [audienceList]);
-  // const hasAudiences = audienceList.length > 0;
 
   const handleView = (audienceId: number) => {
     console.log(`View audience with ID: ${audienceId}`);
   };
 
-
   const handleExportButtonClick = () => {
-      
-        // Filter columns to include only the desired fields
-        const filteredData = filteredAudiences.map(({ telco_id, telco_name, status, recipients, updatedAt }) => ({
-          telco_id,
-          telco_name,
-          status,
-          recipients,
-          updatedAt ,
-        }));
-      
-        // Create a worksheet
-        const worksheet = XLSX.utils.json_to_sheet(filteredData);
-      
-        // Create a workbook
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Admin_Audience_List");
-      
-        // Export to an xlsx file
-        XLSX.writeFile(workbook, "AdminAudienceList.xlsx");
-      };
+    // Filter columns to include only the desired fields
+    const filteredData = filteredAudiences.map(
+      ({ workspaceId, workspaceName, status, recipientCount, updatedAt }) => ({
+        workspaceId,
+        workspaceName,
+        status,
+        recipientCount,
+        updatedAt,
+      })
+    );
 
-  
-  
+    // Create a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+
+    // Create a workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Admin_Audience_List");
+
+    // Export to an xlsx file
+    XLSX.writeFile(workbook, "AdminAudienceList.xlsx");
+  };
 
   return (
     <div>
       <ToastContainer />
-        {isLoading && (
+      {isLoading && (
         <div className="flex flex-col items-center justify-center h-[500px]">
-       <CircularProgress color="primary" />
-        </div> 
+          <CircularProgress color="primary" />
+        </div>
       )}
 
-    {hasAudiences ? ( 
+      {hasAudiences ? (
         <div>
           {/* Existing table code here */}
           <div className="flex  mt-2">
@@ -364,194 +342,228 @@ const Audiences: React.FC = () => {
               />
             </div>
             <div className="flex items-end ml-auto ">
-             <DropdownMenuDemo 
-             setFilterData={setFilterData} 
-             dateList={dateList}/>  
-             <Button variant="outline" 
-             className="w-24 mb-6 ml-4 mt-[-6] text-[#020617]"
-             onClick={handleExportButtonClick}>
-                <FileIcon className="mr-2 text-[#020617]" /> Export
+              <DropdownMenuDemo
+                setFilterData={setFilterData}
+                filterData={filterData} //  Now passing filterData
+                dateList={dateList}
+              />
+              <Button
+                variant="outline"
+                className="w-full mb-6 ml-4 mt-[-6] text-[#020617] font-medium text-[14px] py-2 px-3"
+                onClick={handleExportButtonClick}
+              >
+                <FileIcon
+                  style={{ width: "14px", height: "14px" }}
+                  className="mr-1 text-[#020617]"
+                />{" "}
+                Export
               </Button>
             </div>
-
-            
           </div>
-
 
           <div className="rounded-md border">
             <div className="max-h-[60vh] overflow-y-auto">
-            <Table
-              className="rounded-xl whitespace-nowrap border-gray-200"
-              style={{ color: "#020202", fontSize: "15px" }}
-            >
-              <TableHeader className="text-center text-[14px] font-medium">
-                <TableRow className="sticky top-0 bg-white z-10">
-                  {/* Sticky header */}
-                  <TableHead>
-                    <div className="flex items-center gap-6 justify-start cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className={`text-muted-foreground ${
-                          isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
-                        }`}
-                        checked={isAllSelected}
-                        onChange={handleSelectAll}
-                      />
-                      Telco{" "}
-                      <CaretSortIcon
-                        onClick={() => sortaudienceList("ByAudienceName")}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  </TableHead>
+              <Table
+                className="rounded-xl whitespace-nowrap border-gray-200"
+                style={{ color: "#020202", fontSize: "15px" }}
+              >
+                <TableHeader className="text-center text-[14px] font-medium">
+                  <TableRow className="sticky top-0 bg-white z-10">
+                    {/* Sticky header */}
+                    <TableHead>
+                      <div className="flex items-center gap-6 justify-start cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className={`text-muted-foreground ${
+                            isAllSelected
+                              ? "accent-gray-700 bg-grey-700 text-red-500"
+                              : ""
+                          }`}
+                          checked={isAllSelected}
+                          onChange={handleSelectAll}
+                        />
+                        Telco{" "}
+                        <CaretSortIcon
+                          onClick={() => sortaudienceList("ByAudienceName")}
+                          className="cursor-pointer"
+                        />
+                      </div>
+                    </TableHead>
 
-                  <TableHead style={{ width: "15%" }} className="text-left">
-                    <div className="flex items-center gap-2 justify-start">
-                      Status{" "}
-                      <CaretSortIcon
-                        onClick={() => sortaudienceList("ByAudienceStatus")}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  </TableHead>
+                    <TableHead style={{ width: "15%" }} className="text-left">
+                      <div className="flex items-center gap-2 justify-start">
+                        Status{" "}
+                        <CaretSortIcon
+                          onClick={() => sortaudienceList("ByAudienceStatus")}
+                          className="cursor-pointer"
+                        />
+                      </div>
+                    </TableHead>
 
-                  <TableHead style={{ width: "20%" }}>
-                    <div className="flex items-center gap-2 justify-start">
-                      Updated at{" "}
-                      <CaretSortIcon
-                        onClick={() => sortaudienceList("ByAudienceUpdatedAt")}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  </TableHead>
+                    <TableHead style={{ width: "20%" }}>
+                      <div className="flex items-center gap-2 justify-start">
+                        Updated at{" "}
+                        <CaretSortIcon
+                          onClick={() =>
+                            sortaudienceList("ByAudienceUpdatedAt")
+                          }
+                          className="cursor-pointer"
+                        />
+                      </div>
+                    </TableHead>
 
-                  <TableHead style={{ width: "10%" }}>
-                    <div className="flex items-center gap-2 justify-center">
-                      Recipients{" "}
-                      <CaretSortIcon
-                        onClick={() => sortaudienceList("ByAudiencerecipients")}
-                        className="cursor-pointer"
-                      />
-                    </div>
-                  </TableHead>
+                    <TableHead style={{ width: "10%" }}>
+                      <div className="flex items-center gap-2 justify-center">
+                        Recipients{" "}
+                        <CaretSortIcon
+                          onClick={() =>
+                            sortaudienceList("ByAudiencerecipients")
+                          }
+                          className="cursor-pointer"
+                        />
+                      </div>
+                    </TableHead>
 
-                  <TableHead className="text-left"></TableHead>
-                </TableRow>
-              </TableHeader>
+                    <TableHead className="text-left"></TableHead>
+                  </TableRow>
+                </TableHeader>
 
-              <TableBody className="text-left text-[14px] font-normal text-[#020617]">
-                {currentAudiences.map((audience) => {
-                  let isSelected;
-                  audienceList.map((Audiences) => {
-                    isSelected = checkboxSelectedRows.includes(Audiences.telco_id);
-                  });
+                <TableBody className="text-left text-[14px] font-normal text-[#020617]">
+                  {currentAudiences.map((audience) => {
+                    let isSelected;
+                    audienceList.map((Audiences) => {
+                      isSelected = checkboxSelectedRows.includes(
+                        Audiences.workspaceId
+                      );
+                    });
 
-                  return (
-                    <TableRow
-                      key={audience.telco_id}
-                      className={`${isSelected ? "bg-gray-200" : ""}`}
-                    >
-                      <TableCell className="flex justify-start py-4 text-green-900">
-                        <div className="flex items-center gap-6">
-                          <input
-                            type="checkbox"
-                            className={`accent-gray-700 bg-grey-700 text-red-500 ${
-                              isAllSelected ? "accent-gray-700 bg-grey-700 text-red-500" : ""
-                            }`}
-                            checked={checkboxSelectedRows.includes(audience.telco_id)}
-                            onChange={() => handleCheckboxRowSelect(audience.telco_id)}
-                          />
-                          <span
-                            style={{
-                              color: "#020617",
-                              fontSize: "14px",
-                              fontWeight: "400",
-                            }}
-                          >
-                            {audience.telco_name}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell style={{ width: "15%" }} className="py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="flex-shrink-0">{renderStatusIcon(audience.status)}</span>
-                          <span
-                            style={{
-                              color: "#020617",
-                              fontSize: "14px",
-                              fontWeight: "400",
-                              whiteSpace: "nowrap", // Prevent text wrapping
-                            }}
-                          >
-                            {audience.status}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell style={{ width: "20%" }} className="py-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            style={{
-                              color: "#020617",
-                              fontSize: "14px",
-                              fontWeight: "400",
-                            }}
-                          >
-                            {new Date(audience.updatedAt).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })}{" "}
-                            ∙{" "}
-                            {new Date(audience.updatedAt).toLocaleTimeString("en-GB", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell style={{ width: "10%" }} className="py-4 text-right">
-                        <span
-                          style={{
-                            color: "#020617",
-                            fontSize: "14px",
-                            fontWeight: "400",
-                          }}
-                        >
-                          {audience.recipients}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="py-4 pr-4 flex justify-end">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <DotsHorizontalIcon
-                              style={{ color: "#020617" }}
-                              onClick={() => handleMenuToggle(audience.telco_id)}
-                              className="cursor-pointer w-5 h-5"
+                    return (
+                      <TableRow
+                        key={audience.workspaceId}
+                        className={`${isSelected ? "bg-gray-200" : ""}`}
+                      >
+                        <TableCell className="flex justify-start py-4 text-green-900">
+                          <div className="flex items-center gap-6">
+                            <input
+                              type="checkbox"
+                              className={`accent-gray-700 bg-grey-700 text-red-500 ${
+                                isAllSelected
+                                  ? "accent-gray-700 bg-grey-700 text-red-500"
+                                  : ""
+                              }`}
+                              checked={checkboxSelectedRows.includes(
+                                audience.workspaceId
+                              )}
+                              onChange={() =>
+                                handleCheckboxRowSelect(audience.workspaceId)
+                              }
                             />
-                          </DropdownMenuTrigger>
-                          {openMenuRowId === audience.telco_id && (
-                            <DropdownMenuContent className="w-48 h-auto">
-                              <DropdownMenuItem onClick={() => handleView(audience.telco_id)}>
-                                Sync
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          )}
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                            <span
+                              style={{
+                                color: "#020617",
+                                fontSize: "14px",
+                                fontWeight: "400",
+                              }}
+                            >
+                              {audience.workspaceName}
+                            </span>
+                          </div>
+                        </TableCell>
 
+                        <TableCell style={{ width: "15%" }} className="py-4">
+                          <div className="flex items-center gap-2">
+                            <span className="flex-shrink-0">
+                              {renderStatusIcon(audience.status)}
+                            </span>
+                            <span
+                              style={{
+                                color: "#020617",
+                                fontSize: "14px",
+                                fontWeight: "400",
+                                whiteSpace: "nowrap", // Prevent text wrapping
+                              }}
+                            >
+                              {audience.status}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell style={{ width: "20%" }} className="py-4">
+                          <div className="flex items-center gap-2">
+                            <span
+                              style={{
+                                color: "#020617",
+                                fontSize: "14px",
+                                fontWeight: "400",
+                              }}
+                            >
+                              {new Date(audience.updatedAt).toLocaleDateString(
+                                "en-GB",
+                                {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                }
+                              )}{" "}
+                              ∙{" "}
+                              {new Date(audience.updatedAt).toLocaleTimeString(
+                                "en-GB",
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        <TableCell
+                          style={{ width: "10%" }}
+                          className="py-4 text-right"
+                        >
+                          <span
+                            style={{
+                              color: "#020617",
+                              fontSize: "14px",
+                              fontWeight: "400",
+                            }}
+                          >
+                            {audience.recipientCount}
+                          </span>
+                        </TableCell>
+
+                        <TableCell className="py-4 pr-4 flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <DotsHorizontalIcon
+                                style={{ color: "#020617" }}
+                                onClick={() =>
+                                  handleMenuToggle(audience.workspaceId)
+                                }
+                                className="cursor-pointer w-5 h-5"
+                              />
+                            </DropdownMenuTrigger>
+                            {openMenuRowId === audience.workspaceId && (
+                              <DropdownMenuContent className="w-48 h-auto">
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() =>
+                                    handleView(audience.workspaceId)
+                                  }
+                                >
+                                  Sync
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            )}
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           </div>
-
-        
 
           {/* Pagination controls */}
           <div className="flex justify-between items-center mt-4">
@@ -563,7 +575,9 @@ const Audiences: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-4 font-medium text-sm">
-              <span className="text-[#020617] font-medium text-[14px]">Rows per page</span>
+              <span className="text-[#020617] font-medium text-[14px]">
+                Rows per page
+              </span>
 
               <div className="relative inline-block ml-2">
                 <select
@@ -593,9 +607,7 @@ const Audiences: React.FC = () => {
                     </option>
                   ))}
                 </select>
-                <CaretSortIcon
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500 w-4 h-4"
-                />
+                <CaretSortIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500 w-4 h-4" />
               </div>
 
               <div className="ml-4 mr-4">
@@ -605,28 +617,44 @@ const Audiences: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   disabled={currentPage === 1}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                    currentPage === 1
+                      ? "cursor-not-allowed bg-gray-100"
+                      : "hover:bg-gray-200"
+                  }`}
                   onClick={() => handlePageChange(1)}
                 >
                   «
                 </button>
                 <button
                   disabled={currentPage === 1}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === 1 ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                    currentPage === 1
+                      ? "cursor-not-allowed bg-gray-100"
+                      : "hover:bg-gray-200"
+                  }`}
                   onClick={() => handlePageChange(currentPage - 1)}
                 >
                   ‹
                 </button>
                 <button
                   disabled={currentPage === totalPages}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                    currentPage === totalPages
+                      ? "cursor-not-allowed bg-gray-100"
+                      : "hover:bg-gray-200"
+                  }`}
                   onClick={() => handlePageChange(currentPage + 1)}
                 >
                   ›
                 </button>
                 <button
                   disabled={currentPage === totalPages}
-                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${currentPage === totalPages ? 'cursor-not-allowed bg-gray-100' : 'hover:bg-gray-200'}`}
+                  className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
+                    currentPage === totalPages
+                      ? "cursor-not-allowed bg-gray-100"
+                      : "hover:bg-gray-200"
+                  }`}
                   onClick={() => handlePageChange(totalPages)}
                 >
                   »
@@ -634,19 +662,18 @@ const Audiences: React.FC = () => {
               </div>
             </div>
           </div>
-
         </div>
       ) : (
         <>
-        {isLoading && null}
-        {!isLoading && (
-          <div className="flex flex-col items-center justify-center h-[500px]">
-            <h2 className="text-[24px] font-bold mb-1 text-[#000000]">
-              Here you will see all your audience lists            
-            </h2>
-          </div>
-      )}
-      </>
+          {isLoading && null}
+          {!isLoading && (
+            <div className="flex flex-col items-center justify-center h-[500px]">
+              <h2 className="text-[24px] font-bold mb-1 text-[#000000]">
+                Here you will see all your audience lists
+              </h2>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

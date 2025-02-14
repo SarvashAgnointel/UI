@@ -2,7 +2,13 @@ import React, { FC, ReactNode, useEffect, useState } from "react";
 import { Button } from "../../Components/ui/button";
 import { Activity, Check, Users } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Components/ui/card";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "src/Components/ui/select";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent,} from "../../Components/ui/chart";
 import { CalendarIcon, PaperPlaneIcon } from "@radix-ui/react-icons";
@@ -38,8 +44,8 @@ export function DatePickerWithRange({
   setCampaignCount,
 }: DatePickerWithRangeProps) {
   const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(), // Current date
-    to: addDays(new Date(), 20), // Current date + 20 days
+    from: undefined, // Current date
+    to: undefined, // Current date + 20 days
   });
   const dispatch = useDispatch();
   const toast = useToast();
@@ -975,7 +981,7 @@ const AdminHome: FC = () => {
   
   return chartData ? (
     <div className="flex-col w-full h-screen overflow-y-auto no-scrollbar">
-      <div className="flex mt-[-15px] justify-end">
+      <div className="flex mt-[-15px] justify-end gap-2">
         <div>
           {/* <DatePickerWithRange /> */}
           <DatePickerWithRange
@@ -987,44 +993,36 @@ const AdminHome: FC = () => {
           />
         </div>
         <div>
-          <Button className="ml-2 w-fit font-normal text-[#020617]" variant={"outline"}  onClick={() => {
-              if (!isWeek) {
-                setIsWeek(true);
-                setTimeRange('7d');
-                byWeekData();
-              } else {
-                setIsWeek(false);
-                setTimeRange('90d');
-                fetchData();
-                getUserCount();
-                getWorkspaceCount();
-                getCampaignsCount();
-              }
-            }}>
-            By Week
-          </Button>
-        </div>
-        <div>
-          <Button
-            className="ml-2 w-fit font-normal text-[#020617]"
-            variant={"outline"}
-            onClick={()=>{
-              if (!isMonth) {
-                setIsMonth(true);
-                setTimeRange('30d');
-                byMonthData();
-              } else {
-                setIsMonth(false);
-                setTimeRange('90d');
-                fetchData();
-                getUserCount();
-                getWorkspaceCount();
-                getCampaignsCount();
-              }
-            }}
-          >
-            By Month
-          </Button>
+        <Select
+          defaultValue="year"
+          onValueChange={(value) => {
+            if(value==="week"){
+              setIsWeek(true);
+              setTimeRange("7d");
+              byWeekData();
+            }
+            else if(value==="month"){
+              setIsMonth(true);
+              setTimeRange("30d");
+              byMonthData();
+            }
+            else{
+              setIsWeek(false);
+              setIsMonth(false);
+              setTimeRange("90d");
+              fetchData();
+            }
+          }}
+        >
+          <SelectTrigger className="w-[120px] h-9 text-[#020617] mt-6">
+            <SelectValue placeholder="Select view" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">By Week</SelectItem>
+            <SelectItem value="month">By Month</SelectItem>
+            <SelectItem value="year">By Year</SelectItem>
+          </SelectContent>
+        </Select>
         </div>
       </div>
 

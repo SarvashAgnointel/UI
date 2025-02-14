@@ -26,7 +26,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 const Profile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false); 
   const [name, setName] = useState('Sebastian Swaczynski');
   const [email, setEmail] = useState('');
   const [repeatEmail, setRepeatEmail] = useState('');
@@ -62,6 +62,8 @@ const Profile: React.FC = () => {
   const [API_URL, setAPI_URL] = useState("");
   const token = localStorage.getItem('token'); // Or sessionStorage.getItem('token')
   const [UserRole, setUserRole] = useState('');
+
+  const accountId = useSelector((state: RootState) => state.authentication.account_id);
 
   useEffect(() => {
     setIsLoading(true);
@@ -110,7 +112,9 @@ const Profile: React.FC = () => {
     fileInputRef.current?.click();
   };
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
     if (!file) {
       setFileName('');
       setErrorMessage("No file selected.");
@@ -152,11 +156,12 @@ const Profile: React.FC = () => {
           // setSuccessMessage("Image uploaded successfully!");
           // setTimeout(() => setSuccessMessage(null), 3000);
           setErrorMessage('')
-          setFileName(file.name);
+          
           // Convert image to Base64
           const base64String = reader.result?.toString().split(",")[1]; // Remove metadata
-          setBase64Image(base64String || "");
-
+          setFileName(file.name);
+          setBase64Image(base64String || " ");
+          event.target.value = "";
         }
       };
       img.onerror = () => {
@@ -168,11 +173,10 @@ const Profile: React.FC = () => {
     };
     reader.readAsDataURL(file);
   };
-
+  
   const handleUpdateImage = async () => {
     setIsLoading(true);
     const mappingId = userPersonalId;
-    
     if (!mappingId) {
       toast.toast({
         title: "Error",
@@ -189,11 +193,15 @@ const Profile: React.FC = () => {
     }
 
     try {
+      console.log("Image :" , base64Image);
       const response = await axios.put(`${apiUrlAdvAcc}/UpdateLogo_personal_id/UpdateLogo`, {
-        MappingId: parseInt(mappingId),
+        CreatedBy: accountId,
+        MappingId: mappingId,
         Image: base64Image,
-        UpdatedBy: workspaceId,
-        UpdatedDate: new Date() 
+        UpdatedBy: accountId,
+        UpdatedDate: new Date(),
+        CreatedDate: new Date(),
+
       }, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -203,18 +211,17 @@ const Profile: React.FC = () => {
       console.log("API Response:", response.data);
 
       if (response.data.status === "Success") {
+        setFileName('');
+        setBase64Image(" ");
+        setErrorMessage('');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
         toast.toast({
           title: "Success",
           description: "Logo updated successfully.",
           duration: 3000,
         });
-        
-        setFileName('');
-        setBase64Image('');
-        setErrorMessage('');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
       } else {
         toast.toast({
           title: "Error",
@@ -879,15 +886,16 @@ const Profile: React.FC = () => {
           <Button
             //onClick={handleOpen} 
             onClick={() => {
-              if (UserRole === 'Primary Owner') {
-                handleOpen(); // Open the dialog if the user is the Primary Owner
-              } else {
-                toast.toast({
-                  title: "Access denied",
-                  description: "Access denied. You are not the Primary Owner.",
-                  duration: 3000,
-                })
-              }
+              // if (UserRole === 'Primary Owner' || UserRole === 'Primary Advertiser') {
+              //   handleOpen(); // Open the dialog if the user is the Primary Owner or Primary Advertiser
+              // } else {
+              //   toast.toast({
+              //     title: "Access denied",
+              //     description: "Access denied. You are not the Primary Advertiser.",
+              //     duration: 3000,
+              //   })
+              // }
+              handleOpen();
             }}
             className="text-white py-2 px-4 text-sm hover:bg-red-700 w-[167px]" style={{ backgroundColor: "#EF4444", fontWeight: 500, fontSize: '14px' }}>
             Delete your account

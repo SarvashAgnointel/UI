@@ -97,7 +97,7 @@ const Audience: React.FC = () => {
 
     const [selectedAudienceId , setSelectedAudienceId] = useState<number>(0);
     const [isApiExecuting, setIsApiExecuting] = useState(false);
-
+    
 
     //for the internal open dialog
     const [isInternalDialogOpen , setInternalDialogOpen] = useState(false);
@@ -111,13 +111,19 @@ const Audience: React.FC = () => {
       value: "",
     });
 
+    const permissions = useSelector((state : RootState) => state.advertiserAccount.permissions);
+    console.log("PERMISSIONS :" , permissions);
+
     
     const toast = useToast();
     const dispatch = useDispatch();
     //For Date Filter
     const [dateList, setDateList] = useState<string[]>([]);
   
-    
+        // Get user permissions from Redux
+    const userPermissions = useSelector(
+      (state: RootState) => state.advertiserAccount.permissions);
+      
   
     const handleCheckboxRowSelect = (id: number) => {
       setCheckboxSelectedRows((prev) => {
@@ -452,12 +458,12 @@ const Audience: React.FC = () => {
         
         )}
         <div className="fixed flex justify-end items-end right-0 top-[-15px] z-20 p-4">
-        <Button
+      {userPermissions.includes("ADV_Audience_Add") && <Button
         onClick={() => setDialogOpen(true)}
         className="w-36 text-sm font-thin h-[35px] mt-[10px]"
       >
         Create list
-      </Button>
+      </Button> }
 
       <CreateListDialog open={isDialogOpen} onOpenChange={setDialogOpen} audienceNames={audienceNames} audiencefile_id={selectedAudienceId} />
         </div>
@@ -632,7 +638,7 @@ const Audience: React.FC = () => {
                         </TableCell>
 
                         <TableCell className="py-4 pr-4 flex justify-end">
-                          <DropdownMenu>
+                          {userPermissions.includes("ADV_Audience_Edit") && <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <DotsHorizontalIcon
                                 style={{ color: "#020617" }}
@@ -653,7 +659,7 @@ const Audience: React.FC = () => {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             )}
-                          </DropdownMenu>
+                          </DropdownMenu>}
                         </TableCell>
                       </TableRow>
                     );
@@ -794,6 +800,7 @@ const Audience: React.FC = () => {
             <h2 className="text-[24px] font-bold mb-1 text-[#000000]">
             Here you will see all your audience lists            
             </h2>
+            {userPermissions.includes("ADV_Audience_Add") && <div>
             <p className="text-[#64748B] font-normal mb-1 text-[14px]">
             Click the button below to create your first list.
             </p>
@@ -803,6 +810,7 @@ const Audience: React.FC = () => {
               style={{ width: "auto", minWidth: "unset" }}>
               Create list
             </Button>
+            </div>}
             <CreateListDialog open={isDialogOpen} onOpenChange={setDialogOpen} audienceNames={audienceNames}/>
           </div>
         )}

@@ -34,12 +34,13 @@ import { RootState } from "@/src/State/store";
 
 // Define the menu items with routes as content
 const menuItems = [
-  { label: "Profile", icon: User, path: "Profile" },
-  { label: "Notifications", icon: Bell, path: "Notification" },
-  { label: "Workspace", icon: Briefcase, path: "Workspace" },
-  { label: "Members", icon: Users, path: "Members" },
-  { label: "Billing", icon: CreditCard, path: "Billing" },
+  { label: "Profile", icon: User, path: "Profile", requiredPermission: null }, // No permission needed
+  { label: "Notifications", icon: Bell, path: "Notification", requiredPermission: "ADV_Notification_View" },
+  { label: "Workspace", icon: Briefcase, path: "Workspace", requiredPermission: "ADV_Workspace_View" },
+  { label: "Members", icon: Users, path: "Members", requiredPermission: "ADV_Member_View" },
+  { label: "Billing", icon: CreditCard, path: "Billing", requiredPermission: "ADV_Billings_View" },
 ];
+
 
 const NavItem = ({
   icon: Icon,
@@ -85,11 +86,15 @@ const NavItem = ({
 const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
   onSelect,
   selected,
-}) => (
-  <div className="h-full bg-[#FBFBFB]">
+}) => {
+  const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
+  return (
+    <div className="h-full bg-[#FBFBFB]">
     <nav className="w-[calc(100%-20px)] ml-[10px] h-full flex flex-col bg-[#FBFBFB]">
       <div className="flex-1 overflow-y-auto py-4">
-        {menuItems.map((item, index) => (
+        {menuItems
+        .filter(item => !item.requiredPermission || userPermissions?.includes(item.requiredPermission as string)) 
+        .map((item, index) => (
           <NavItem
             key={index}
             icon={item.icon}
@@ -99,6 +104,7 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
             select={selected}
           />
         ))}
+        
       </div>
       <div className="sticky bottom-0 p-4 bg-white w-full mb-[80px]">
         <div className="flex flex-col gap-1">
@@ -110,7 +116,9 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
       </div>
     </nav>
   </div>
-);
+  );
+}
+
 
 const Layout: FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);

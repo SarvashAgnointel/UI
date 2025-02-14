@@ -7,6 +7,12 @@ interface AdvAccState{
     from_date: string,
     to_date: string,
     create_template_is_loading:boolean,
+    incountry: string[],
+    targetCountry: string | string[];
+    currentCampaignData :string;
+    permissions: string[],
+    user_role_name: string,
+    from_Admin: boolean,
 }
 
 const initialState:AdvAccState={
@@ -16,12 +22,21 @@ const initialState:AdvAccState={
     from_date: '',
     to_date:'',
     create_template_is_loading:true,
+    incountry:["3","4","5"],
+    targetCountry: "",
+    currentCampaignData: "",
+    permissions: [],
+    user_role_name: '',
+    from_Admin: false,
 }
 
 const AdvertiserAccountSlice = createSlice({
     name: 'AdvertiserAccount',
     initialState:initialState,
     reducers:{
+        setFromAdmin:(state,action: PayloadAction<boolean>) => {
+            state.from_Admin = action.payload;
+        },
         setCreateBreadCrumb:(state,action: PayloadAction<boolean>)=>{
 
             state.createBreadCrumb=action.payload;
@@ -42,11 +57,39 @@ const AdvertiserAccountSlice = createSlice({
         setCreateTemplateLoading:(state,action: PayloadAction<boolean>)=>{
             state.create_template_is_loading=action.payload;
         },
+        setInCountry:(state,action: PayloadAction<string[]>)=>{
+            state.incountry=action.payload;
+        },
+        setTargetCountry:(state,action: PayloadAction<string[]>)=>{
+            state.targetCountry=action.payload;
+        },
 
+        setcurrentCampaignData:(state,action: PayloadAction<string>)=>{
+            state.currentCampaignData=action.payload;
+        },
+        //For Setting Permissions
+        setPermissions:(state,action: PayloadAction<string[]>) => {
+            state.permissions = action.payload;
+        } , 
+        setUser_Role_Name:(state,action: PayloadAction<string>) => {
+            state.user_role_name = action.payload;
+        }
+        
         
     }
 })
 
-export const {setCreateBreadCrumb,setAddWorkspaceFromDropdown,setCloseAddWorkspaceDialog,setCreateTemplateLoading,} = AdvertiserAccountSlice.actions;
+export const {
+    setCreateBreadCrumb,
+    setAddWorkspaceFromDropdown,
+    setCloseAddWorkspaceDialog,
+    setCreateTemplateLoading,
+    setInCountry,
+    setTargetCountry,
+    setcurrentCampaignData,
+    setPermissions,
+    setUser_Role_Name,
+    setFromAdmin,
+} = AdvertiserAccountSlice.actions;
 
 export default AdvertiserAccountSlice.reducer;

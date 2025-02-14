@@ -262,7 +262,8 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
   };
 
   const validateListName = (value: string): boolean => {
-    const validPattern = /^[a-zA-Z][a-zA-Z0-9 _-]*[a-zA-Z0-9]?$/; // Full validation regex
+    const validPattern = /^[a-zA-Z][a-zA-Z0-9 _-]*[a-zA-Z0-9]$/;
+ // Full validation regex
     const startsWithLetterPattern = /^[a-zA-Z]/; // First character must be a letter
 
     if (value.length === 0) {

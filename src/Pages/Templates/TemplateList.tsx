@@ -111,6 +111,9 @@ const TemplateList: React.FC = () => {
   const toast=useToast();
 
   const workspaceId = useSelector((state:RootState)=>state.authentication.workspace_id);
+      // Get user permissions from Redux
+  const userPermissions = useSelector(
+    (state: RootState) => state.advertiserAccount.permissions);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -130,9 +133,15 @@ const TemplateList: React.FC = () => {
     if (apiUrlAdvAcc) {
       getTemplateList();
       
-      SyncMetaTemplate();// Ensure that apiUrlAdvAcc is available before fetching
     }
   }, [apiUrlAdvAcc]);
+
+  useEffect(() => {
+    if (apiUrlAdvAcc) {
+      
+      SyncMetaTemplate();// Ensure that apiUrlAdvAcc is available before fetching
+    }
+  }, [apiUrlAdvAcc,templateList.length>0]);
 
 
   const SyncMetaTemplate = async () => {
@@ -527,7 +536,9 @@ const TemplateList: React.FC = () => {
                      <CircularProgress color="primary" />
                 </div>
               )}
-                <div className="fixed flex justify-end items-end right-0 top-[-15px] z-20 p-4">
+
+                  { userPermissions.includes("ADV_Template_Create") && 
+                  <div className="fixed flex justify-end items-end right-0 top-[-15px] z-20 p-4">
                        <Button
                          onClick={() => {
                            dispatch(setCreateBreadCrumb(true));
@@ -537,7 +548,7 @@ const TemplateList: React.FC = () => {
                        >
                          Create template
                        </Button>
-                     </div>
+                </div> }
 
     {hasTemplates ? (
       <><div>
@@ -675,6 +686,7 @@ const TemplateList: React.FC = () => {
                             </TableCell>
                             <TableCell>
                               <TableCell>
+                                {userPermissions.includes("ADV_Template_Edit") && 
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <DotsHorizontalIcon
@@ -698,7 +710,7 @@ const TemplateList: React.FC = () => {
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   )}
-                                </DropdownMenu>
+                                </DropdownMenu> }
                               </TableCell>
                             </TableCell>
                           </TableRow>
@@ -825,6 +837,7 @@ const TemplateList: React.FC = () => {
             <h2 className="text-[24px] font-bold mb-1 text-[#000000]">
             Here you will see all your templates
           </h2>
+          {userPermissions.includes("ADV_Template_Create") && <div>
           <p className="text-[#64748B] font-normal mb-1 text-[14px]">
             Click the button below to create your first template.
           </p>
@@ -835,7 +848,7 @@ const TemplateList: React.FC = () => {
             className="inline-flex items-center justify-center text-[14px] font-medium text-[#F8FAFC] px-5 py-5 whitespace-nowrap"
             style={{ width: "auto", minWidth: "unset" }}>          
             Create template
-          </Button>
+          </Button> </div>}
         </div>
         )}
         </>

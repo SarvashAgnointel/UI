@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect  } from "react";
 import { Button } from "../../Components/ui/button";
 import { Input } from "../../Components/ui/input";
 import { cn } from "../../lib/utils";
@@ -64,9 +64,10 @@ import {
 import { CircularProgress } from "@mui/material";
 import { Skeleton } from "../../Components/ui/skeleton";
 import DropdownMenuDemo from "../../Components/Filter/AdminCampaignDropdown";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setCreateBreadCrumb } from "../../State/slices/AdvertiserAccountSlice";
 import * as XLSX from "xlsx";
+import { RootState } from "@/src/State/store";
 
 interface Campaign {
   campaign_id: number;
@@ -86,18 +87,101 @@ type CampaignCheck = {
   name: string;
 };
 
+
 interface DatePickerWithRangeProps {
   className?: string;
+  fromDate?: Date;
+  toDate?: Date;
+  onChange?: (selectedRange: DateRange | undefined) => void;
+  setCampaignList: React.Dispatch<React.SetStateAction<Campaign[]>>;
+  getCampaignList: () => void;
+  setCurrentCampaigns: React.Dispatch<React.SetStateAction<Campaign[]>>;
+  setInitialCampaign: React.Dispatch<React.SetStateAction<boolean>>;
+  initialcampaign: boolean; 
+  
 }
 
+
+
+
 const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
-  className,
+  className,setCampaignList,getCampaignList,setCurrentCampaigns,  setInitialCampaign , initialcampaign 
 }) => {
+  const [currentData, setCurrentData] = useState<Campaign[]>([]);
+  const [fromDate, setfromDate] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiUrlAdminAcc, setapiUrlAdminAcc] = useState("");
   const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 7),
+    from: undefined,
+    to:  undefined
   });
 
+
+
+    useEffect(() => {
+      const fetchConfig = async () => {
+        try {
+          const response = await fetch("/config.json");
+          const config = await response.json();
+          setapiUrlAdminAcc(config.ApiUrlAdminAcc);
+          console.log("apiUrlAdminAcc:" , apiUrlAdminAcc);
+        } catch (error) {
+          console.error("Error loading config:", error);
+        }
+      };
+  
+      fetchConfig();
+    }, []);
+
+
+  useEffect(() => {
+
+    if (date && date.from && date.to) {
+
+      const date_to = format(date.to, "yyyy-MM-dd");
+
+      const date_from = format(date.from, "yyyy-MM-dd"); 
+
+      const ChartDateRange = async () => {
+        try {
+          const response = await axios.get(
+            `${apiUrlAdminAcc}/GetCampaignListAdminbyDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`
+          );
+      
+         
+          if (
+            response.data.status === "Success" &&
+            response.data.campaignList.length > 0
+          ) {
+           
+            setCampaignList(response.data.campaignList);
+
+          } else {
+            // setChartData(response.data);
+           // getCampaignList();
+          // setCurrentData([]);
+          // setCurrentCampaigns([]);
+          setInitialCampaign(false);
+          setCampaignList([]);
+            console.error("chart details not found");
+          }
+        } catch (error) {
+          console.error("error in fetching chart details: ", error);
+        }
+      };
+
+      ChartDateRange();
+    } else {
+      console.log("No date selected");
+    }
+  },[date])
+
+  useEffect(() => {
+    if (initialcampaign === false) {
+      setCampaignList([]);  // This will run after initialcampaign is set to false
+    }
+  }, [initialcampaign]);  // Dependency on initialcampaign state
+  
   return (
     <div className={className}>
       <Popover>
@@ -184,9 +268,9 @@ const AdminCampaignList: React.FC = () => {
   const [filterData, setFilterData] = useState({
     filter: "",
     subFilter: "",
-    value: 0,
   });
   const [hasCampaigns, setHasCampaigns] = useState(false);
+  const [initialcampaign , setInitialCampaign] = useState(true);
   const dispatch = useDispatch();
 
   //For Date Filter
@@ -239,49 +323,54 @@ const AdminCampaignList: React.FC = () => {
     }
   }, [campaignList]); // Dependency on campaignList
 
-  // Filter the campaigns by the search term and subFilter
-  const filteredCampaigns = campaignList.filter((campaign) => {
-    const matchesSearchTerm = searchTerm
-      ? campaign.campaign_name.toLowerCase().includes(searchTerm.toLowerCase())
-      : true;
+ 
 
-    const matchesSubFilter = filterData.subFilter
-      ? filterData.filter === "channel"
-        ? campaign.channel_type
-            .toLowerCase()
-            .includes(filterData.subFilter.toLowerCase())
-        : filterData.filter === "status"
-        ? campaign.status
-            .toLowerCase()
-            .includes(filterData.subFilter.toLowerCase())
-        : filterData.filter === "startedAt"
-        ? campaign.start_date_time.split("T")[0] === filterData.subFilter // Compare only the date part
-        : true
-      : true;
+// 1. Add this useEffect near your other useEffect declarations
+useEffect(() => {
+  setCurrentPage(1);
+}, [searchTerm]);
 
-    return matchesSearchTerm && matchesSubFilter;
-  });
+// 2. Replace your existing filtering and pagination section with this:
+// Apply search and filter first, then paginate
+const filteredCampaigns = campaignList.filter((campaign) => {
+  const matchesSearchTerm = searchTerm
+    ? campaign.campaign_name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase().trim())
+    : true;
 
-  // Calculate total pages for filtered campaigns
-  const totalPages: number = Math.ceil(filteredCampaigns.length / rowsPerPage);
+  const matchesSubFilter = filterData.subFilter
+    ? filterData.filter === "Channel"
+      ? campaign.channel_type
+          ?.toLowerCase()
+          .includes(filterData.subFilter.toLowerCase())
+      : filterData.filter === "Status"
+      ? campaign.status?.toLowerCase().includes(filterData.subFilter.toLowerCase())
+      : filterData.filter === "StartedAt"
+      ? campaign.start_date_time.split("T")[0] === filterData.subFilter
+      : true
+    : true;
 
-  useEffect(() => {
-    const newCurrentCampaigns = filteredCampaigns.slice(
-      (currentPage - 1) * rowsPerPage,
-      currentPage * rowsPerPage
-    );
+  return matchesSearchTerm && matchesSubFilter;
+});
 
-    setCurrentCampaigns(newCurrentCampaigns);
-  }, [filterData, campaignList, currentPage, rowsPerPage, searchTerm]);
-  // Only re-run if dependencies change
+// Calculate total pages
+const totalPages: number = Math.ceil(filteredCampaigns.length / rowsPerPage);
 
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
+// 3. Replace your useEffect for currentCampaigns with this:
+useEffect(() => {
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const newCurrentCampaigns = filteredCampaigns.slice(startIndex, endIndex);
+  setCurrentCampaigns(newCurrentCampaigns);
+}, [filteredCampaigns, currentPage, rowsPerPage]);
 
+// 4. Keep your existing handlePageChange function, just update its contents:
+const handlePageChange = (newPage: number) => {
+  if (newPage > 0 && newPage <= totalPages) {
+    setCurrentPage(newPage);
+  }
+};
   const handleEdit = (campaignId: any, channelType: any) => {
     //console.log("CampaignId : " + campaignId)
     navigate("/navbar/createCampaign", { state: { campaignId, channelType } });
@@ -304,16 +393,14 @@ const AdminCampaignList: React.FC = () => {
       "filter data: " +
         filterData.filter +
         " " +
-        filterData.subFilter +
-        " " +
-        filterData.value
-    );
+        filterData.subFilter     
+      );
   }, [filterData]);
 
   // Use useEffect to avoid re-render loop
   useEffect(() => {
     if (filterData.filter === "none") {
-      setFilterData({ filter: "none", subFilter: "", value: 0 });
+      setFilterData({ filter: "none", subFilter: "" });
     }
   }, [filterData.filter]);
 
@@ -342,6 +429,8 @@ const AdminCampaignList: React.FC = () => {
       // Ensure the menu is closed after fetching data
     }
   };
+
+ 
 
   const setDateListFunction = () => {
     const uniqueDates = campaignList.reduce(
@@ -443,19 +532,10 @@ const AdminCampaignList: React.FC = () => {
     setIsSorted(!isSorted);
   };
 
-  // Function to handle checkbox selection
-  // const handleRowSelect = (campaignId: CampaignId): void => {
-  //   setSelectedRows((prevSelected) =>
-  //     prevSelected.includes(campaignId)
-  //       ? prevSelected.filter((id) => id !== campaignId)
-  //       : [...prevSelected, campaignId]
-  //   );
-  // };
 
   useEffect(() => {
     setHasCampaigns(campaignList.length > 0);
   }, [campaignList]);
-  // const hasCampaigns = campaignList.length > 0;
 
   const handleExportButtonClick = () => {
     // Filter columns to include only the desired fields
@@ -510,7 +590,7 @@ const AdminCampaignList: React.FC = () => {
         </div>
       )}
 
-      {hasCampaigns ? (
+      {hasCampaigns || !initialcampaign ? (
         <div>
           {/* Existing table code here */}
           <div className="flex  mt-2">
@@ -524,15 +604,23 @@ const AdminCampaignList: React.FC = () => {
             </div>
             <div className="flex items-end ml-auto ">
               <div className="mb-6">
-                <DatePickerWithRange />
+                <DatePickerWithRange 
+                 initialcampaign={initialcampaign} 
+                 setInitialCampaign={setInitialCampaign} 
+                 setCurrentCampaigns={setCurrentCampaigns} // Pass the setter function
+                  getCampaignList={getCampaignList}
+                  setCampaignList={setCampaignList}/>
               </div>
-              <DropdownMenuDemo setFilterData={setFilterData} dateList={[]} />
+              <DropdownMenuDemo 
+              setFilterData={setFilterData} 
+              filterData={filterData}
+              dateList={dateList} />
               <Button
-                variant="outline"
-                className="w-24 mb-6 ml-4 mt-[-6] text-[#020617]"
+                variant="outline" 
+                className="w-full mb-6 ml-4 mt-[-6] text-[#020617] font-medium text-[14px] py-2 px-3"
                 onClick={handleExportButtonClick}
               >
-                <FileIcon className="mr-2 text-[#020617]" /> Export
+                <FileIcon style={{width:'14px' , height:'14px' }} className="mr-1 text-[#020617]" /> Export
               </Button>
             </div>
           </div>
@@ -805,7 +893,12 @@ const AdminCampaignList: React.FC = () => {
 
               <div className="relative inline-block ml-2">
                 <select
-                  className="cursor-pointer border border-gray-300 rounded-md px-2 py-1 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={currentCampaigns.length === 0}
+                  className={`cursor-pointer border border-gray-300 rounded-md px-2 py-1 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                    currentCampaigns.length === 0
+                      ? "cursor-not-allowed bg-gray-100"
+                      : ""
+                  }`}
                   style={{
                     width: "60px",
                     height: "30px",
@@ -815,11 +908,13 @@ const AdminCampaignList: React.FC = () => {
                     borderColor: "#E5E7EB",
                     boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.1)", // Adds slight shadow
                   }}
-                  value={rowsPerPage}
+                  value={currentCampaigns.length === 0 ? 0 : rowsPerPage}
+
                   onChange={(e) => {
                     setRowsPerPage(Number(e.target.value));
                     setCurrentPage(1); // Reset to first page after changing rows per page
                   }}
+                
                 >
                   {[5, 10, 20].map((num) => (
                     <option key={num} value={num}>
@@ -836,9 +931,9 @@ const AdminCampaignList: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <button
-                  disabled={currentPage === 1}
+                  disabled={currentPage === 1 || currentCampaigns.length === 0}
                   className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-                    currentPage === 1
+                    currentPage === 1 || currentCampaigns.length === 0
                       ? "cursor-not-allowed bg-gray-100"
                       : "hover:bg-gray-200"
                   }`}
@@ -847,9 +942,9 @@ const AdminCampaignList: React.FC = () => {
                   «
                 </button>
                 <button
-                  disabled={currentPage === 1}
+                  disabled={currentPage === 1 || currentCampaigns.length === 0}
                   className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-                    currentPage === 1
+                    currentPage === 1 || currentCampaigns.length === 0
                       ? "cursor-not-allowed bg-gray-100"
                       : "hover:bg-gray-200"
                   }`}
@@ -858,9 +953,9 @@ const AdminCampaignList: React.FC = () => {
                   ‹
                 </button>
                 <button
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === totalPages || currentCampaigns.length === 0}
                   className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-                    currentPage === totalPages
+                    currentPage === totalPages || currentCampaigns.length === 0
                       ? "cursor-not-allowed bg-gray-100"
                       : "hover:bg-gray-200"
                   }`}
@@ -869,9 +964,9 @@ const AdminCampaignList: React.FC = () => {
                   ›
                 </button>
                 <button
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === totalPages || currentCampaigns.length === 0}
                   className={`border p-1 pr-2 pl-2 rounded text-gray-500 ${
-                    currentPage === totalPages
+                    currentPage === totalPages || currentCampaigns.length === 0
                       ? "cursor-not-allowed bg-gray-100"
                       : "hover:bg-gray-200"
                   }`}
@@ -885,6 +980,7 @@ const AdminCampaignList: React.FC = () => {
         </div>
       ) : (
         <>
+         <>
           {isLoading && null}
           {!isLoading && (
             <div className="flex flex-col items-center justify-center h-[500px]">
@@ -894,9 +990,11 @@ const AdminCampaignList: React.FC = () => {
             </div>
           )}
         </>
+        </>
       )}
     </div>
   );
 };
 
 export default AdminCampaignList;
+

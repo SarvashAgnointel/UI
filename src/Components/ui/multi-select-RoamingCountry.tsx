@@ -123,7 +123,7 @@ interface MultiSelectProps
 
 }
 
-export const MultiSelect = React.forwardRef<
+export const MultiSelect_RoamingCountry = React.forwardRef<
   HTMLButtonElement,
   MultiSelectProps
 >(
@@ -145,7 +145,7 @@ export const MultiSelect = React.forwardRef<
     ref
   ) => {
     const [selectedValues, setSelectedValues] =
-      React.useState<string[]>(defaultValue);
+      React.useState<string[]>(['3']);
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
     const [isAnimating, setIsAnimating] = React.useState(false);
 
@@ -371,7 +371,7 @@ export const MultiSelect = React.forwardRef<
                     }}
                     className="flex-1 justify-center cursor-pointer max-w-full"
                   >
-                    Save
+                    Close
                   </CommandItem>
 
                 </div>
@@ -393,4 +393,4 @@ export const MultiSelect = React.forwardRef<
   }
 );
 
-MultiSelect.displayName = "MultiSelect";
+MultiSelect_RoamingCountry.displayName = "MultiSelect_RoamingCountry";

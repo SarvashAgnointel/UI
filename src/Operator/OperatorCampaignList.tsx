@@ -63,12 +63,11 @@ import {
 } from "@radix-ui/react-icons";
 import { CircularProgress } from "@mui/material";
 import { Skeleton } from "../Components/ui/skeleton";
-import DropdownMenuDemo from "../Components/Filter/AdminCampaignDropdown";
+import DropdownMenuDemo from "../Components/Filter/OperatorCampaignDropdown";
 import { useDispatch, useSelector } from "react-redux";
 import { setCreateBreadCrumb } from "../State/slices/AdvertiserAccountSlice";
 import * as XLSX from "xlsx";
 import { RootState } from "../State/store";
-
 interface Campaign {
   campaign_id: number;
   campaign_name: string;
@@ -89,15 +88,24 @@ type CampaignCheck = {
 
 interface DatePickerWithRangeProps {
   className?: string;
+  fromDate?: Date;
+  toDate?: Date;
+  onChange?: (selectedRange: DateRange | undefined) => void;
+  setCampaignList: React.Dispatch<React.SetStateAction<Campaign[]>>;
+  getCampaignList: () => void;
+  setCurrentCampaigns: React.Dispatch<React.SetStateAction<Campaign[]>>;
+  setInitialCampaign: React.Dispatch<React.SetStateAction<boolean>>;
+  initialcampaign: boolean; 
+  
 }
-
 const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
   className,
 }) => {
   const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 7),
+    from: undefined,
+    to:  undefined
   });
+
 
   return (
     <div className={className}>
@@ -185,9 +193,9 @@ const OperatorCampaignList: React.FC = () => {
   const [filterData, setFilterData] = useState({
     filter: "",
     subFilter: "",
-    value: 0,
   });
   const [hasCampaigns, setHasCampaigns] = useState(false);
+  const [initialcampaign , setInitialCampaign] = useState(true);
   const dispatch = useDispatch();
   const workspaceId = useSelector((state: RootState) => state.authentication.workspace_id);
   const OperatorUrl = useSelector((state:RootState)=>state.authentication.operatorUrl);
@@ -248,25 +256,29 @@ const OperatorCampaignList: React.FC = () => {
       ? campaign.campaign_name.toLowerCase().includes(searchTerm.toLowerCase())
       : true;
 
-    const matchesSubFilter = filterData.subFilter
-      ? filterData.filter === "channel"
+      const matchesSubFilter = filterData.subFilter
+      ? filterData.filter === "Channel"
         ? campaign.channel_type
-            .toLowerCase()
+            ?.toLowerCase()
             .includes(filterData.subFilter.toLowerCase())
-        : filterData.filter === "status"
-        ? campaign.status
-            .toLowerCase()
-            .includes(filterData.subFilter.toLowerCase())
-        : filterData.filter === "startedAt"
-        ? campaign.start_date_time.split("T")[0] === filterData.subFilter // Compare only the date part
+        : filterData.filter === "Status"
+        ? campaign.status?.toLowerCase().includes(filterData.subFilter.toLowerCase())
+        : filterData.filter === "StartedAt"
+        ? campaign.start_date_time.split("T")[0] === filterData.subFilter
         : true
       : true;
-
+  
     return matchesSearchTerm && matchesSubFilter;
   });
 
   // Calculate total pages for filtered campaigns
   const totalPages: number = Math.ceil(filteredCampaigns.length / rowsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages > 0 ? totalPages : 1); // Stay on the last valid page
+    }
+  }, [filteredCampaigns, totalPages]);
 
   useEffect(() => {
     const newCurrentCampaigns = filteredCampaigns.slice(
@@ -308,15 +320,14 @@ const OperatorCampaignList: React.FC = () => {
         filterData.filter +
         " " +
         filterData.subFilter +
-        " " +
-        filterData.value
+        " " 
     );
   }, [filterData]);
 
   // Use useEffect to avoid re-render loop
   useEffect(() => {
     if (filterData.filter === "none") {
-      setFilterData({ filter: "none", subFilter: "", value: 0 });
+      setFilterData({ filter: "none", subFilter: "" });
     }
   }, [filterData.filter]);
 
@@ -526,10 +537,16 @@ const OperatorCampaignList: React.FC = () => {
               />
             </div>
             <div className="flex items-end ml-auto ">
-              <div className="mb-6">
-                <DatePickerWithRange />
+            <div className="mb-6">
+                <DatePickerWithRange 
+                 initialcampaign={initialcampaign} 
+                 setInitialCampaign={setInitialCampaign} 
+                 setCurrentCampaigns={setCurrentCampaigns} // Pass the setter function
+                  getCampaignList={getCampaignList}
+                  setCampaignList={setCampaignList}/>
               </div>
-              <DropdownMenuDemo setFilterData={setFilterData} dateList={[]} />
+              <DropdownMenuDemo setFilterData={setFilterData}  filterData={filterData}
+              dateList={dateList}  />
               <Button
                 variant="outline"
                 className="w-24 mb-6 ml-4 mt-[-6] text-[#020617]"

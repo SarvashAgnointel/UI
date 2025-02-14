@@ -34,7 +34,11 @@ import {
   setworkspace,
   setWorkspaceId,
 } from "../State/slices/AuthenticationSlice";
-import { setCloseAddWorkspaceDialog } from "../State/slices/AdvertiserAccountSlice";
+import {
+  setCloseAddWorkspaceDialog,
+  setPermissions,
+  setUser_Role_Name,
+} from "../State/slices/AdvertiserAccountSlice";
 import { RootState } from "../State/store";
 import { useToast } from "../Components/ui/use-toast";
 import { Toaster } from "../Components/ui/toaster";
@@ -66,11 +70,6 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
   const email = location.state?.email || "";
   const [apiUrl, setApiUrl] = useState("");
   const [authapiUrl, setAuthApiUrl] = useState("");
-  const [fileError, setFileError] = useState<string | null>(null);
-  const [LoginState, SetLoginState] = React.useState<{
-    UserName: string;
-    Password: string;
-  }>({ UserName: "Arul", Password: "arul@123" });
 
   const [countries, setCountries] = useState<{ id: number; label: string }[]>(
     []
@@ -86,9 +85,6 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
     (state: RootState) => state.authentication.userEmail
   );
 
-  // const emailId = "tamilarasan@agnoshin.com"
-
-  //
   const [isButtonDisabled, setIsButtonDisabled] = useState(false); // State to track button disable status
 
   //
@@ -107,6 +103,11 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
   const addWorkspaceFromDropdown = useSelector(
     (state: RootState) => state.advertiserAccount.addWorkspaceFromDropdown
   );
+
+  const isAdmin = useSelector(
+    (state: RootState) => state.authentication.isAdmin
+  );
+  console.log(isAdmin);
 
   const toast = useToast();
 
@@ -209,11 +210,6 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
     }
   };
 
-  const validateName = (value: string): boolean => {
-    const regex = /^[a-zA-Z][a-zA-Z0-9\s_-]*$/;
-    return regex.test(value);
-  };
-
   const validateCompanyName = (value: string): boolean => {
     const regex = /^(?![0-9_@ ])([a-zA-Z0-9 _@]*[a-zA-Z0-9])?$/;
 
@@ -227,9 +223,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
       value.startsWith("@") ||
       value.startsWith(" ")
     ) {
-      setFirstNameError(
-        "Company name cannot start with '_', '@', or a space."
-      );
+      setFirstNameError("Company name cannot start with '_', '@', or a space.");
       return false;
     }
 
@@ -244,7 +238,6 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
     }
 
     if (!regex.test(value)) {
-      
       setFirstNameError(
         "Company name contains invalid characters or invalid placement."
       );
@@ -258,15 +251,6 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
 
   const handleFirstNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-
-    // if (validateName(value)) {
-    //   setCompanyName(value); // Set state if valid
-    //   setFirstNameError(null); // Clear error
-    // } else {
-    //   setFirstNameError(
-    //     "First character should be a letter('-',' ','_' are allowed between words)"
-    //   ); // Set error message
-    // }
     if (validateCompanyName(value)) {
       console.log("Company Name is correct");
     } else {
@@ -337,275 +321,176 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleAddWorkspaceFromDropdown = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
+  const handleAddWorkspaceFromDropdown = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (CompanyNameError !== null) {
-      return;
-    }
-
-    // Prepare dialog data
-    const dialogData = {
+    if (CompanyNameError) return;
+  
+    setIsButtonDisabled(true); // Disable the button
+  
+    const payload = {
       email: emailId,
       workspaceName: companyName,
-      billingCountry:
-        billingCountry === "United Arab Emirates" ? "14" : billingCountry,
-      workspaceIndustry:
-        selectedIndustry === "Tourism" ? "11" : selectedIndustry,
-      workspaceType:
-        selectedWorkspaceType === "Advertiser" ? "1" : selectedWorkspaceType,
+      billingCountry: billingCountry === "United Arab Emirates" ? "14" : billingCountry,
+      workspaceIndustry: selectedIndustry === "Tourism" ? "11" : selectedIndustry,
+      workspaceType: selectedWorkspaceType === "Advertiser" ? "1" : selectedWorkspaceType,
       status: "active",
       createdBy: 1,
       createdDate: new Date().toISOString(),
       updatedBy: 1,
       updatedDate: new Date().toISOString(),
       mappingId: 0,
-      base64Image: base64Image,
+      base64Image,
     };
-
-    console.log("Dialog data: " + JSON.stringify(dialogData, null, 2));
-
+  
+    console.log("Dialog data:", JSON.stringify(payload, null, 2));
+  
     try {
-      const response = await axios.post(
-        `${apiUrl}/InsertWorkspaceInfo`,
-        dialogData
-      );
+      const workspaceId = await createWorkspace(payload);
+      if (!workspaceId) throw new Error("Failed to retrieve workspace ID");
+  
+      await assignUserRoleDropdown(emailId); // Uses your existing function
+  
+      // Update Redux state
+      dispatch(setworkspace(companyName));
+      dispatch(setWorkspaceId(workspaceId));
+      setAuthenticated(true);
+      dispatch(setCloseAddWorkspaceDialog(true));
 
-      if (response.data.status === "Success") {
-        // Workspace creation success
-        const userWorkspaceRole = {
-          Mode: "InsertFromDialogDropdown",
-          EmailId: emailId,
-          WorkspaceId: response.data.workspaceId,
-        };
-
-        try {
-          const UserWorkspaceRoleResponse = await axios.post(
-            `${apiUrl}/InsertUserWorkspaceRole`,
-            userWorkspaceRole
-          );
-
-          if (
-            UserWorkspaceRoleResponse.status === 200 &&
-            UserWorkspaceRoleResponse.data.status === "Success"
-          ) {
-            console.log("W data: " + JSON.stringify(response.data, null, 2));
-
-            // Navigate after 1-second delay
-            dispatch(setworkspace(companyName));
-            dispatch(setWorkspaceId(response.data.workspaceId));
-            setAuthenticated(true);
-            dispatch(setCloseAddWorkspaceDialog(true));
-
-            // Show success toast
-            toast.toast({
-              title: "Success",
-              description: "Created Workspace",
-            });
-
-            setTimeout(() => {
-              navigate("/navbar/dashboard", {
-                state: { path: companyName, email: emailId },
-              });
-            }, 1000); // 1-second delay
-          } else {
-            console.log("Error while updating Role");
-          }
-        } catch (e) {
-          toast.toast({
-            title: "Error",
-            description: "Something went wrong, please try again.",
-          });
-          console.error("Error while updating role: ", e);
-        }
-      } else {
-        // Handle workspace creation failure
-        const Close = () => {
-          dispatch(setCloseAddWorkspaceDialog(true));
-        };
-
+  
+      setTimeout(() => {
         toast.toast({
-          title: "Error",
-          description: "Failed to Create Workspace",
+          title: "Success",
+          description: "Created Workspace",
         });
-        Close();
-      }
+        navigate("/navbar/dashboard", {
+          state: { path: companyName, email: emailId },
+        });
+      }, 1000);
     } catch (error) {
-      const Close = () => {
-        dispatch(setCloseAddWorkspaceDialog(true));
-      };
-      Close();
-      toast.toast({
-        title: "Error",
-        description: "Something went wrong, please try again.",
-      });
+      handleError(error); // Uses your existing error handler
+    } finally {
+      setIsButtonDisabled(false);
     }
   };
+  
 
   useEffect(() => {
     console.log("addworkspace: " + addWorkspaceFromDropdown);
   });
 
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (CompanyNameError !== null) {
-      return;
-    }
+  
+    if (CompanyNameError) return;
+  
     setIsButtonDisabled(true); // Disable the button when clicked
-
-    // Prepare the payload
-
+    setLoading(true);
+  
     const payload = {
-      email: email, // Placeholder email, update it dynamically
-      workspaceName: companyName, // Company name state
-      billingCountry:
-        billingCountry === "United Arab Emirates" ? "14" : billingCountry, // Billing country state
-      workspaceIndustry:
-        selectedIndustry === "Tourism" ? "11" : selectedIndustry, // Industry state
-      workspaceType:
-        selectedWorkspaceType === "Advertiser" ? "1" : selectedWorkspaceType, // Workspace type state
-      status: "active", // Static 'Active' status
-      createdBy: 1, // Example user ID, set dynamically
-      createdDate: new Date().toISOString(), // Current date
-      updatedBy: 1, // Example user ID, set dynamically
-      updatedDate: new Date().toISOString(), // Current date
-      mappingId: 0, // Adjust or set as necessary
-      base64Image: base64Image, // Base64 image from file input
+      email,
+      workspaceName: companyName,
+      billingCountry: billingCountry === "United Arab Emirates" ? "14" : billingCountry,
+      workspaceIndustry: selectedIndustry === "Tourism" ? "11" : selectedIndustry,
+      workspaceType: selectedWorkspaceType === "Advertiser" ? "1" : selectedWorkspaceType,
+      status: "active",
+      createdBy: 1,
+      createdDate: new Date().toISOString(),
+      updatedBy: 1,
+      updatedDate: new Date().toISOString(),
+      mappingId: 0,
+      base64Image,
     };
-
-    // dispatch(setWorkspaceData(payload));
+  
     dispatch(setworkspace(companyName));
-    console.log("signupdata: ", signupData);
-    console.log("personaldata: ", personalData);
-    console.log("workspacedata: ", payload);
+  
     try {
-      const signUpResponse = await axios.post(
-        `${apiUrl}/UserRegister`,
-        signupData
-      );
-      console.log("res: " + signUpResponse);
-      if (signUpResponse.data[0].Status === "Success") {
-        const personalResponse = await axios.post(
-          `${apiUrl}/InsertUserPersonalInfo`,
-          personalData
-        );
-        if (personalResponse.data.status === "Success") {
-          const response = await axios.post(
-            `${apiUrl}/InsertWorkspaceInfo`,
-            payload
-          );
-          if (response.data.status === "Success") {
-            // Workspace creation success
-            const userWorkspaceRole = {
-              Mode: "InsertAdmin",
-              EmailId: email,
-            };
-
-            try {
-              const UserWorkspaceRoleResponse = await axios.post(
-                `${apiUrl}/InsertUserWorkspaceRole`,
-                userWorkspaceRole
-              );
-
-              let path = "";
-              let workspaceId = null;
-              let workspaceType = "";
-
-              if (
-                UserWorkspaceRoleResponse.status === 200 &&
-                UserWorkspaceRoleResponse.data.status === "Success"
-              ) {
-                const WorkspaceName = await axios.get(
-                  `${apiUrl}/GetWorkspaceNameByEmail?EmailId=${email}`
-                );
-
-                if (
-                  WorkspaceName.status === 200 &&
-                  WorkspaceName.data.status === "Success"
-                ) {
-                  path = WorkspaceName.data.workspaceName.workspace_name;
-                  workspaceId = WorkspaceName.data.workspaceName.workspace_id;
-                  workspaceType =
-                    WorkspaceName.data.workspaceName.workspace_type;
-                  console.log("Workspace ID:", workspaceId);
-
-                  dispatch(setWorkspaceId(workspaceId)); // Store workspace ID in Redux
-                } else {
-                  path = "Admin";
-                }
-
-                setAuthenticated(true);
-
-                // Show toast and delay navigation
-                toast.toast({
-                  title: "SignUp Successful",
-                  description:
-                    "You have successfully signed up for our platform.",
-                });
-
-                setTimeout(() => {
-                  // Navigate based on workspaceType
-
-                  navigate(
-                    workspaceType === "Telecom Operator"
-                      ? "/operatorNavbar/dashboard"
-                      : "/navbar/dashboard",
-                    { state: { path, email } }
-                  );
-                  setNext(true);
-                }, 2000); // Delay navigation for 2 seconds to allow toast display
-              } else {
-                toast.toast({
-                  title: "Error",
-                  description:
-                    "Failed to create role for user. Please try again.",
-                });
-                setIsButtonDisabled(false); // Re-enable button if API fails
-              }
-            } catch (error) {
-              console.error("Error:", error);
-              toast.toast({
-                title: "Error",
-                description:
-                  "An error occurred while creating the workspace. Please try again.",
-              });
-              setIsButtonDisabled(false); // Re-enable button if any error occurs
-            }
-          } else {
-            toast.toast({
-              title: "Error",
-              description: "Failed to create workspace. Please try again.",
-            });
-            setIsButtonDisabled(false); // Re-enable button if workspace creation fails
-          }
-        } else {
-          //for personaldata post failure
-          toast.toast({
-            title: "Error",
-            description: "Failed to create personal data. Please try again.",
-          });
-          setIsButtonDisabled(false); // Re-enable button if API call fails
-        }
-      } else {
-        //for signupdata post failure
-        toast.toast({
-          title: "Error",
-          description: "Failed to create user. Please try again.",
-        });
-        setIsButtonDisabled(false); // Re-enable button if API call fails
-      }
-    } catch (error) {
+      await registerUser();
+      await insertPersonalInfo();
+      const workspaceId = await createWorkspace(payload);
+      if (!workspaceId) throw new Error("Failed to retrieve workspace ID");
+  
+      dispatch(setWorkspaceId(workspaceId));
+      const selectedMode = (selectedWorkspaceType === "2"? "InsertOperator" : "InsertAdmin");
+      await assignUserRole(email , selectedMode);
+      const { path, workspaceType } = await fetchWorkspaceDetails(email);
+      const selected_role_id = (selectedWorkspaceType === "2")? 11 : isAdmin? 1 : 2 ; 
+      await fetchAndStorePermissions(selected_role_id);
+  
       toast.toast({
-        title: "Error",
-        description: "Failed to create user. Please try again.",
+        title: "SignUp Successful",
+        description: "You have successfully signed up for our platform.",
       });
-      setIsButtonDisabled(false); // Re-enable button if API call fails
-      console.error("Network error:", error);
+  
+      setTimeout(() => {
+        navigate(workspaceType === "Telecom Operator" ? "/operatorNavbar/dashboard" : "/navbar/dashboard", { state: { path, email } });
+        setNext(true);
+      }, 2000);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsButtonDisabled(false);
+      setLoading(false);
     }
   };
+  
+  // API Helper Functions
+  const registerUser = async () => {
+    const response = await axios.post(`${apiUrl}/UserRegister`, signupData);
+    if (response.data[0].Status !== "Success") throw new Error("User registration failed");
+  };
+  
+  const insertPersonalInfo = async () => {
+    const response = await axios.post(`${apiUrl}/InsertUserPersonalInfo`, personalData);
+    if (response.data.status !== "Success") throw new Error("Failed to insert personal data");
+  };
+  
+  const createWorkspace = async (payload: any) => {
+    const response = await axios.post(`${apiUrl}/InsertWorkspaceInfo`, payload);
+    if (response.data.status !== "Success") throw new Error("Failed to create workspace");
+    return response.data.workspaceId;
+  };
+  
+  const assignUserRole = async (email: string , selectedMode: string) => {
+    const response = await axios.post(`${apiUrl}/InsertUserWorkspaceRole`, { Mode: selectedMode, EmailId: email });
+    if (response.status !== 200 || response.data.status !== "Success") throw new Error("Failed to assign user role");
+  };
+
+  const assignUserRoleDropdown = async (email: string) => {
+    const response = await axios.post(`${apiUrl}/InsertUserWorkspaceRole`, { Mode: "InsertAdmin", EmailId: email });
+    if (response.status !== 200 || response.data.status !== "Success") throw new Error("Failed to assign user role");
+  };
+  
+  const fetchWorkspaceDetails = async (email: string) => {
+    const response = await axios.get(`${apiUrl}/GetWorkspaceNameByEmail?EmailId=${email}`);
+    if (response.status !== 200 || response.data.status !== "Success") throw new Error("Failed to fetch workspace details");
+    
+    return {
+      path: response.data.workspaceName.workspace_name || "Admin",
+      workspaceId: response.data.workspaceName.workspace_id,
+      workspaceType: response.data.workspaceName.workspace_type,
+    };
+  };
+  
+  const fetchAndStorePermissions = async (roleId: number) => {
+    const response = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${roleId}`);
+    if (response.data.status !== "Success") throw new Error(response.data.status_description || "Failed to fetch permissions");
+  
+    const permissions = JSON.parse(response.data.roleDetails.permissions);
+    const role_name = response.data.roleDetails.roleName;
+    dispatch(setPermissions(permissions));
+    dispatch(setUser_Role_Name(role_name));
+    setAuthenticated(true);
+  };
+  
+  const handleError = (error: any) => {
+    console.error("Error:", error);
+    toast.toast({
+      title: "Error",
+      description: error.message || "An unexpected error occurred. Please try again.",
+    });
+  };
+  
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -619,11 +504,15 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
   return (
     <>
       {loading && (
-        <>
-          <CircularProgress color="primary" />
-        </>
+        
+    
+        <div className="loading-overlay">
+              <CircularProgress color="primary" />
+        </div>
+      
+          
       )}
-      {!loading &&
+      {
         (!addWorkspaceFromDropdown ? (
           <>
             <Container maxWidth="xs" sx={{ padding: 2 }}>
@@ -748,7 +637,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                     </SelectTrigger>
                     <SelectContent className="absolute z-50 top-full max-h-60 overflow-auto">
                       {workspace_types.map((data) => (
-                        <SelectItem key={data.id} value={data.id.toString()}>
+                        <SelectItem className="cursor-pointer" key={data.id} value={data.id.toString()}>
                           {/* Added flex container for alignment */}
                           <div className="flex items-center w-full">
                             <span>{data.label}</span>
@@ -781,10 +670,10 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                     </SelectTrigger>
                     <SelectContent className="absolute z-50 top-full max-h-40 overflow-auto">
                       {industries.map((data) => (
-                        <SelectItem key={data.id} value={data.id.toString()}>
+                        <SelectItem className="cursor-pointer" key={data.id} value={data.id.toString()}>
                           {/* Added flex container for alignment */}
                           <div className="flex items-center w-full">
-                            <span>{data.label}</span>
+                            <span className="cursor-pointer">{data.label}</span>
                             {selectedIndustry === data.label && (
                               <CheckIcon className="ml-2" />
                             )}
@@ -815,12 +704,13 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                     <SelectContent className="z-50 max-h-[120px] overflow-auto">
                       {countries.map((country) => (
                         <SelectItem
+                          className="cursor-pointer"
                           key={country.id}
                           value={country.id.toString()}
                         >
                           {/* Added flex container for alignment */}
                           <div className="flex items-center w-full">
-                            <span>{country.label}</span>
+                            <span className="cursor-pointer">{country.label}</span>
                             {billingCountry === country.label && (
                               <CheckIcon className="ml-2" />
                             )}
@@ -1044,9 +934,10 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
               <Button
                 type="submit"
                 className="w-full mt-2 bg-[#007AFF] text-[14px] font-medium"
-              >
-                Complete
-              </Button>
+                  disabled={isButtonDisabled} // Disable the button
+                >
+                {isButtonDisabled ? "Processing..." : "Complete"}              
+                </Button>
             </Box>
           </>
         ))}

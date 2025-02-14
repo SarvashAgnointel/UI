@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from "react";
 import { Button } from "../../Components/ui/button";
+import Default_WhatsApp_background from "../../Assets/Default_WhatsApp_background.jpeg";
 import {
   Select,
   SelectContent,
@@ -40,7 +41,10 @@ import {
   CodeIcon,
 } from "@radix-ui/react-icons";
 import { useDispatch } from "react-redux";
-import { setCreateBreadCrumb,setCreateTemplateLoading } from "../../State/slices/AdvertiserAccountSlice";
+import {
+  setCreateBreadCrumb,
+  setCreateTemplateLoading,
+} from "../../State/slices/AdvertiserAccountSlice";
 import { title } from "process";
 import { Description } from "@radix-ui/react-toast";
 import { CheckIcon } from "@radix-ui/react-icons";
@@ -49,7 +53,7 @@ import { RootState } from "../../State/store";
 import { useSelector } from "react-redux";
 import { text } from "stream/consumers";
 import { Smile, Strikethrough } from "lucide-react";
-import { Document, Page } from 'react-pdf';
+import { Document, Page } from "react-pdf";
 
 import {
   Dialog,
@@ -60,10 +64,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../../Components/ui/dialog"
+} from "../../Components/ui/dialog";
 import { Root } from "react-dom/client";
-
-
 
 interface BoxItem {
   action: string;
@@ -139,7 +141,9 @@ const textAreaIcon = () => {
 
 const CreateTemplate: React.FC = () => {
   // const [isLoading, setIsLoading] = useState(true);
-  const isLoading = useSelector((state:RootState)=>state.advertiserAccount.create_template_is_loading);
+  const isLoading = useSelector(
+    (state: RootState) => state.advertiserAccount.create_template_is_loading
+  );
   const navigate = useNavigate();
   const location = useLocation();
   const templateId = location.state?.templateId || "";
@@ -232,6 +236,14 @@ const CreateTemplate: React.FC = () => {
   const [showPicker, setShowPicker] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const [isFixed, setIsFixed] = useState(true);
+  const [smsData, setSmsData] = useState({
+    length7Bit: 0,
+    lengthUnicode: 0,
+    parts7Bit: 1,
+    partsUnicode: 1,
+    totalParts: 1,
+    messageLength: 0,
+  });
   const workspaceId = useSelector(
     (state: RootState) => state.authentication.workspace_id
   );
@@ -353,8 +365,6 @@ const CreateTemplate: React.FC = () => {
     setShowPicker(false);
   };
 
-
-
   useEffect(() => {
     const checkHeight = () => {
       if (previewRef.current) {
@@ -462,7 +472,6 @@ const CreateTemplate: React.FC = () => {
     }
   };
 
-
   const getChannelList = async () => {
     try {
       const response = await axios.get(`${apiUrlAdvAcc}/GetChannelList`);
@@ -567,6 +576,18 @@ const CreateTemplate: React.FC = () => {
         setTemplateName(templateDetailslocal.template_name);
         setUpdateChannel(templateDetailslocal.channel_type);
         setUpdateLanguage(templateDetailslocal.language);
+        setChannel(templateDetailslocal.channel_id);
+        debugger;
+
+        if (templateDetailslocal.channel_id === 2) {
+          const body = components.find(
+            (item: { type: string }) => item.type === "BODY"
+          );
+          if (body) {
+            setBodyText(body.text);
+            console.log("Body Text :" + body.text);
+          }
+        }
 
         const header = components.find(
           (item: { type: string }) => item.type === "HEADER"
@@ -611,114 +632,113 @@ const CreateTemplate: React.FC = () => {
 
             handleFileChange(event);
           }
+        }
+        const body = components.find(
+          (item: { type: string }) => item.type === "BODY"
+        );
 
-          const body = components.find(
-            (item: { type: string }) => item.type === "BODY"
-          );
+        if (body) {
+          setBodyText(body.text);
+          console.log("Body Text :" + body.text);
 
-          if (body) {
-            setBodyText(body.text);
-            console.log("Body Text :" + body.text);
+          // Check if body.example.body_text exists and has content
+          if (
+            body.example &&
+            body.example.body_text &&
+            body.example.body_text.length > 0
+          ) {
+            const transformedData: BoxItem[] = body.example.body_text.map(
+              (text: string) => ({ action: text })
+            );
 
-            // Check if body.example.body_text exists and has content
-            if (
-              body.example &&
-              body.example.body_text &&
-              body.example.body_text.length > 0
-            ) {
-              const transformedData: BoxItem[] = body.example.body_text.map(
-                (text: string) => ({ action: text })
-              );
+            setBoxes(transformedData);
 
-              setBoxes(transformedData);
+            console.log("Body text variable : " + body.example.body_text);
+          } else {
+            console.log("No example body_text available.");
+          }
+        }
 
-              console.log("Body text variable : " + body.example.body_text);
-            } else {
-              console.log("No example body_text available.");
+        const footer = components.find(
+          (item: { type: string }) => item.type === "FOOTER"
+        );
+
+        if (footer) {
+          setFooterText(footer.text);
+          console.log("Footer Text :" + footer.text);
+        }
+
+        const buttons = components.find(
+          (item: { type: string }) => item.type === "BUTTONS"
+        );
+
+        if (buttons) {
+          console.log("Button values :" + buttons.buttons.length);
+          const updatedRows = [...rows];
+          const updatedButtonIds = [...selectedButtonIds]; // Create a new array to store button IDs
+          buttons.buttons.forEach((button: any, i: number) => {
+            if (button.type === "URL") {
+              console.log("Button type : " + button.type);
+              updatedRows[i] = {
+                buttonType: "View Website",
+                buttonText: button.text,
+                websiteUrl: button.url,
+                buttonTypeDropdown: "static",
+                countryCode: "",
+                callPhoneNumber: "",
+                copyOfferCode: "",
+              };
+              updatedButtonIds[i] = "View Website"; // Update buttonType in selectedButtonIds
+            } else if (button.type === "PHONE_NUMBER") {
+              console.log("Button type : " + button.type);
+
+              // Extract country code and phone number using regex
+              const phoneNumberMatch =
+                button.phone_number.match(/^(\+\d{1,2})(\d+)$/); // Match +countryCode and the rest of the number
+
+              let countryCode = "";
+              let callPhoneNumber = "";
+
+              if (phoneNumberMatch) {
+                countryCode = phoneNumberMatch[1].replace("+", ""); // Remove '+' sign, e.g., +91 -> 91
+                callPhoneNumber = phoneNumberMatch[2]; // Get the remaining number
+              }
+
+              // Update row values
+              updatedRows[i] = {
+                buttonType: "Call Phone Number",
+                buttonText: button.text,
+                websiteUrl: "",
+                buttonTypeDropdown: "static",
+                countryCode: countryCode, // Assign extracted country code
+                callPhoneNumber: callPhoneNumber, // Assign extracted phone number
+                copyOfferCode: "",
+              };
+
+              // Update buttonType in selectedButtonIds
+              updatedButtonIds[i] = "Call Phone Number";
+
+              console.log("Country Code:", countryCode);
+              console.log("Call Phone Number:", callPhoneNumber);
             }
-          }
-
-          const footer = components.find(
-            (item: { type: string }) => item.type === "FOOTER"
-          );
-
-          if (footer) {
-            setFooterText(footer.text);
-            console.log("Footer Text :" + footer.text);
-          }
-
-          const buttons = components.find(
-            (item: { type: string }) => item.type === "BUTTONS"
-          );
-
-          if (buttons) {
-            console.log("Button values :" + buttons.buttons.length);
-            const updatedRows = [...rows];
-            const updatedButtonIds = [...selectedButtonIds]; // Create a new array to store button IDs
-            buttons.buttons.forEach((button: any, i: number) => {
-              if (button.type === "URL") {
-                console.log("Button type : " + button.type);
-                updatedRows[i] = {
-                  buttonType: "View Website",
-                  buttonText: button.text,
-                  websiteUrl: button.url,
-                  buttonTypeDropdown: "static",
-                  countryCode: "",
-                  callPhoneNumber: "",
-                  copyOfferCode: "",
-                };
-                updatedButtonIds[i] = "View Website"; // Update buttonType in selectedButtonIds
-              } else if (button.type === "PHONE_NUMBER") {
-                console.log("Button type : " + button.type);
-
-                // Extract country code and phone number using regex
-                const phoneNumberMatch =
-                  button.phone_number.match(/^(\+\d{1,2})(\d+)$/); // Match +countryCode and the rest of the number
-
-                let countryCode = "";
-                let callPhoneNumber = "";
-
-                if (phoneNumberMatch) {
-                  countryCode = phoneNumberMatch[1].replace("+", ""); // Remove '+' sign, e.g., +91 -> 91
-                  callPhoneNumber = phoneNumberMatch[2]; // Get the remaining number
-                }
-
-                // Update row values
-                updatedRows[i] = {
-                  buttonType: "Call Phone Number",
-                  buttonText: button.text,
-                  websiteUrl: "",
-                  buttonTypeDropdown: "static",
-                  countryCode: countryCode, // Assign extracted country code
-                  callPhoneNumber: callPhoneNumber, // Assign extracted phone number
-                  copyOfferCode: "",
-                };
-
-                // Update buttonType in selectedButtonIds
-                updatedButtonIds[i] = "Call Phone Number";
-
-                console.log("Country Code:", countryCode);
-                console.log("Call Phone Number:", callPhoneNumber);
-              }
-              if (button.type === "COPY_CODE") {
-                console.log("Button type : " + button.type);
-                updatedRows[i] = {
-                  buttonType: "Copy Offer Code",
-                  buttonText: button.text,
-                  websiteUrl: "",
-                  buttonTypeDropdown: "",
-                  countryCode: "",
-                  callPhoneNumber: "",
-                  copyOfferCode: button.example[0],
-                };
-                updatedButtonIds[i] = "Copy Offer Code"; // Update buttonType in selectedButtonIds
-              }
-            });
-            setRows(() => updatedRows);
-            setSelectedButtonIds(updatedButtonIds); // Update selectedButtonIds state
-            console.log("Updated Rows : ", updatedRows);
-            console.log("Updated Button IDs : ", updatedButtonIds);
-          }
+            if (button.type === "COPY_CODE") {
+              console.log("Button type : " + button.type);
+              updatedRows[i] = {
+                buttonType: "Copy Offer Code",
+                buttonText: button.text,
+                websiteUrl: "",
+                buttonTypeDropdown: "",
+                countryCode: "",
+                callPhoneNumber: "",
+                copyOfferCode: button.example[0],
+              };
+              updatedButtonIds[i] = "Copy Offer Code"; // Update buttonType in selectedButtonIds
+            }
+          });
+          setRows(() => updatedRows);
+          setSelectedButtonIds(updatedButtonIds); // Update selectedButtonIds state
+          console.log("Updated Rows : ", updatedRows);
+          console.log("Updated Button IDs : ", updatedButtonIds);
         }
       } else {
         console.log("No Templates details available in response.");
@@ -734,7 +754,6 @@ const CreateTemplate: React.FC = () => {
       //setIsLoading(true);
       dispatch(setCreateTemplateLoading(true));
       try {
-
         if (apiUrlAdvAcc) {
           await getTemplatePlatform(); // Ensure the channel list is loaded first
           if (templateId) {
@@ -769,7 +788,7 @@ const CreateTemplate: React.FC = () => {
   };
 
   const validateTemplateName = (newTemplateName: string) => {
-    debugger
+    debugger;
     const regex = /^[a-z]+[a-z0-9_]*$/;
 
     if (!newTemplateName.trim()) {
@@ -789,7 +808,7 @@ const CreateTemplate: React.FC = () => {
   };
 
   const validateLanguage = () => {
-    debugger
+    debugger;
     if (!language && !updateLanguage) {
       setLanguageError("Please select a Language");
       return false;
@@ -798,8 +817,8 @@ const CreateTemplate: React.FC = () => {
     return true;
   };
 
-  const validateChannel = (channel:any) => {
-    debugger
+  const validateChannel = (channel: any) => {
+    debugger;
     if (!channel && !updateChannel) {
       setChannelError("Please select a channel");
       return false;
@@ -809,7 +828,7 @@ const CreateTemplate: React.FC = () => {
   };
 
   const validateBody = () => {
-    debugger
+    debugger;
     if (!bodyText.trim()) {
       setBodyError("Please enter body text");
       return false;
@@ -1036,7 +1055,6 @@ const CreateTemplate: React.FC = () => {
           description: "The Template details were updated successfully",
         });
       } else {
-        
         console.error("Upload failed:", response.data.Status_Description);
         toast.toast({
           title: "Error",
@@ -1054,9 +1072,73 @@ const CreateTemplate: React.FC = () => {
     }
   };
 
+  // List of special characters that require escape sequences in 7-bit encoding
+  const escapeSequenceChars = ["|", "~", "^", "{", "}", "\\", "€", "©"];
+
+  // Function to detect if the character is Unicode (non-ASCII)
+  const isUnicode = (char: string) => {
+    return /[^\x00-\x7F]/.test(char);
+  };
+
+  // Function to calculate the message length considering encoding
+  const calculateSMSParts = (text: string) => {
+    const max7BitFirstPart = 160;
+    const max7BitSubsequentParts = 153;
+    const maxUnicode = 70;
+
+    let length7Bit = 0;
+    let lengthUnicode = 0;
+
+    // Iterate over each character in the body text
+    for (let char of text) {
+      if (isUnicode(char)) {
+        lengthUnicode += 1; // Unicode character (special character or emoji)
+      } else {
+        // If it's a 7-bit character, check if it requires escape sequence
+        if (escapeSequenceChars.includes(char)) {
+          length7Bit += 2; // Escape sequences count as 2 bytes
+        } else {
+          length7Bit += 1; // Normal 7-bit character (1 byte)
+        }
+      }
+    }
+
+    // Calculate parts based on encoding
+    let parts7Bit = 0;
+    let remaining7Bit = length7Bit;
+
+    // Calculate parts for 7-bit encoding
+    if (remaining7Bit > 0) {
+      // First part can hold up to max7BitFirstPart characters
+      parts7Bit = 1;
+      remaining7Bit -= max7BitFirstPart;
+
+      // If there are remaining characters, each subsequent part can hold max7BitSubsequentParts
+      while (remaining7Bit > 0) {
+        parts7Bit += 1;
+        remaining7Bit -= max7BitSubsequentParts;
+      }
+    }
+
+    // Calculate parts for Unicode encoding (this remains the same as previously)
+    const partsUnicode = Math.ceil(lengthUnicode / maxUnicode);
+
+    // Set the SMS data
+    setSmsData({
+      length7Bit,
+      lengthUnicode,
+      parts7Bit,
+      partsUnicode,
+      totalParts: Math.max(parts7Bit, partsUnicode), // We use the larger part count
+      messageLength: text.length, // Total character count for the message
+    });
+  };
+
   const handleBodyTextChange = (text: string) => {
     setBodyText(text);
-
+    if (Number(channel) === 2) {
+      calculateSMSParts(text);
+    }
     // Extract placeholders (e.g., {{1}}, {{2}}) from the text
     const placeholderRegex = /{{(\d+)}}/g;
     const matches = Array.from(text.matchAll(placeholderRegex));
@@ -1355,8 +1437,92 @@ const CreateTemplate: React.FC = () => {
     setMediaBase64(base64String);
   };
 
+  const handleSMSTemplateSubmit = async () => {
+    dispatch(setCreateTemplateLoading(true));
+    if (
+      !validateChannel(channel) ||
+      !validateTemplateName(templateName) ||
+      !validateLanguage() ||
+      !validateBody()
+    ) {
+      // If validation fails, do not submit
+      return;
+    }
+
+    const combinedData: any = {
+      data2: {
+        name: templateName,
+        category: "UTILITY", // adjust based on your requirement
+        allow_category_change: true,
+        language: language,
+        components: [
+          {
+            type: "BODY",
+            text: bodyText,
+          },
+        ],
+      },
+      // mediaBase64: mediaBase64,
+    };
+
+    // if (bodyText) {
+    //   const bodyComponent: any = {
+    //     type: "body",
+    //     text: bodyText,
+    //   };
+    //   // if (combinedActions && combinedActions.length > 0) {
+    //   //   bodyComponent.example = {
+    //   //     body_text: [combinedActions],
+    //   //   };
+    //   // }
+
+    //   combinedData.data2.components.push(bodyComponent);
+    // }
+    debugger;
+    console.log("sms data: ", smsData);
+    try {
+      const response = await axios.post(
+        `${apiUrlAdvAcc}/CreateSMSMessageTemplate?channel_id=${channel}&workspace_id=${workspaceId}`,
+        combinedData
+      );
+      const Close = () => {
+        //setIsLoading(false);
+        dispatch(setCreateTemplateLoading(false));
+        dispatch(setCreateBreadCrumb(false));
+        navigate("/navbar/TemplateList");
+      };
+      if (response.data.status === "Success") {
+        resetForm();
+
+        Close();
+
+        toast.toast({
+          title: "Success",
+          description: "The template created successfully",
+        });
+      } else {
+        console.error("Error in creating SMS Template");
+        Close();
+
+        toast.toast({
+          title: "Error",
+          description: "The template creation failed",
+        });
+      }
+    } catch (error) {
+      dispatch(setCreateBreadCrumb(false));
+      navigate("/navbar/TemplateList");
+      console.error("Exception occurred: ", error);
+
+      toast.toast({
+        title: "Error",
+        description: "Something error while creating template",
+      });
+    }
+  };
+
   const handleSubmit = async () => {
-    debugger
+    debugger;
     //setIsLoading(true);
     dispatch(setCreateTemplateLoading(true));
     if (
@@ -1413,14 +1579,14 @@ const CreateTemplate: React.FC = () => {
         type: string;
         format: string;
         text?: string;
-        example?: { header_handle: string[] }; // Make `text` optional since it's conditionally added
+        example?: { header_handle: string[] }; // Make text optional since it's conditionally added
       } = {
         type: "HEADER",
         format: headerType.toUpperCase(),
       };
 
       if (headerType === "text" && textInput) {
-        headerComponent.text = textInput; // Conditionally add `text` only if `headerType` is 'text'
+        headerComponent.text = textInput; // Conditionally add text only if headerType is 'text'
       } else if (headerType === "image") {
         debugger;
         headerComponent.example = { header_handle: [headerHandle] };
@@ -1520,7 +1686,7 @@ const CreateTemplate: React.FC = () => {
 
     debugger;
     //   try{
-    //   const response = await axios.post(`${apiUrlAdvAcc}/CreateTemplate`, data);
+    //   const response = await axios.post(${apiUrlAdvAcc}/CreateTemplate, data);
     //   console.log("response:" , response)
     //   if (response.data.status === 'Success') {
     //     resetForm();
@@ -1560,8 +1726,19 @@ const CreateTemplate: React.FC = () => {
         dispatch(setCreateBreadCrumb(false));
         navigate("/navbar/TemplateList");
       };
+      debugger;
 
       if (response2.status === 200) {
+        if (response2.data.message === "Template name already exists.") {
+          toast.toast({
+            title: "Error",
+            description: "Template already exists",
+          });
+          dispatch(setCreateTemplateLoading(false));
+
+          return;
+        }
+
         resetForm();
 
         Close();
@@ -1588,13 +1765,13 @@ const CreateTemplate: React.FC = () => {
 
       toast.toast({
         title: "Error",
-        description:"Something error while creating template",
+        description: "Something error while creating template",
       });
     }
   };
 
   const handleDiscardClick = () => {
-        setIsAlertOpen(true); // Open the alert dialog
+    setIsAlertOpen(true); // Open the alert dialog
   };
 
   const handleClose = () => {
@@ -1614,6 +1791,7 @@ const CreateTemplate: React.FC = () => {
         console.log("status: " + response.data.status);
         if (response.data.status === "Success") {
           console.log("Whatsapp business account connected");
+          dispatch(setCreateTemplateLoading(false));
         } else {
           toast.toast({
             title: "Warning",
@@ -1651,23 +1829,31 @@ const CreateTemplate: React.FC = () => {
       rows.length === 0;
 
     return (
-
-      <div className="flex flex-col justify-between w-full max-h-fit bottom-0">
+      <div
+        className="flex rounded-[20px] flex-col justify-between w-full max-h-fit bottom-0"
+        style={{
+          backgroundImage: `url(${Default_WhatsApp_background})`,
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+        }}
+      >
         {noContentSelected ? (
-          <div className="flex w-full justify-center">
-            <div className="flex-col justify-center text-left mt-[250px] items-center">
-              <div>{textAreaIcon()}</div>
-              <div className="mt-[30px]">
-                <p className="text-xl font-semibold">Mobile screen</p>
-              </div>
-              <div
-                className="w-[140px] mt-[10px]"
-                style={{ fontWeight: 500, fontSize: "14px" }}
-              >
-                <p className="">Preview varies based on platform selection</p>
-              </div>
-            </div>
-          </div>
+          <div className="flex w-full h-[calc(100vh-200px)] items-center justify-center">
+  <div className="text-center">
+    <div>{textAreaIcon()}</div>
+    <div className="mt-6">
+      <p className="text-xl font-semibold">Mobile screen</p>
+    </div>
+    <div
+      className="w-[125px] mt-2"
+      style={{ fontWeight: 500, fontSize: "14px" }}
+    >
+      <p>Preview varies based on platform selection</p>
+    </div>
+  </div>
+</div>
+
         ) : (
           <>
             {/* Image, Video, or Document Preview */}
@@ -1676,7 +1862,7 @@ const CreateTemplate: React.FC = () => {
                 <img
                   src={URL.createObjectURL(selectedFile!)}
                   alt="Preview"
-                  className="w-[320px] h-[200px] object-cover mx-auto"
+                  className="w-[300px] h-[200px] mt-2 object-cover mx-auto"
                 />
               )}
               {selectedOption === "video" && selectedFile && (
@@ -1691,13 +1877,15 @@ const CreateTemplate: React.FC = () => {
                 <div className="w-[320px] h-[200px] mx-auto border">
                   {selectedFile.type === "application/pdf" ? (
                     <iframe
-  src={URL.createObjectURL(selectedFile)}
-  className="w-full h-full no-scrollbar"
-  style={{ overflow: "hidden", overflowX:"hidden",overflowY:"hidden"}}
-
-  title="PDF Preview"
-/>
-
+                      src={URL.createObjectURL(selectedFile)}
+                      className="w-full h-full no-scrollbar"
+                      style={{
+                        overflow: "hidden",
+                        overflowX: "hidden",
+                        overflowY: "hidden",
+                      }}
+                      title="PDF Preview"
+                    />
                   ) : (
                     <p className="text-center text-gray-600 mt-8">
                       Cannot preview this document. Download:{" "}
@@ -1716,7 +1904,7 @@ const CreateTemplate: React.FC = () => {
             </div>
 
             {/* Body Text */}
-            <div className="flex-1 bg-white text-black w-full text-left">
+            <div className="flex-1  text-black w-full text-left">
               {selectedOption === "text" && textInput && (
                 <p
                   className="w-full text-base font-sans p-2 font-bold"
@@ -1880,53 +2068,24 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Button Text</Label>
               <Input
                 value={row.buttonText}
-                onChange={(e) =>
-                  handleRowInputChange(index, "buttonText", e.target.value)
-                }
+                onChange={(e) => handleRowInputChange(index, "buttonText", e.target.value)}
                 placeholder="Button text"
-                className="w-[100px] h-[30px]"
+                className="w-[125px] h-[36px]"
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label className="text-left">Country Code</Label>
               <Select
                 value={row.countryCode}
-                onValueChange={(value) =>
-                  handleRowInputChange(index, "countryCode", value)
-                }
+                onValueChange={(value) => handleRowInputChange(index, "countryCode", value)}
               >
-                <SelectTrigger className="w-[100px] h-[30px]">
-                  <SelectValue>
-                    {countryList.find(
-                      (country) =>
-                        country.country_code.toString() === row.countryCode
-                    )
-                      ? `${
-                          countryList.find(
-                            (country) =>
-                              country.country_code.toString() ===
-                              row.countryCode
-                          )?.country_shortname
-                        } +${
-                          countryList.find(
-                            (country) =>
-                              country.country_code.toString() ===
-                              row.countryCode
-                          )?.country_code
-                        }`
-                      : "Select Country"}
-                  </SelectValue>
+                <SelectTrigger className="w-[125px] h-[36px]">
+                  <SelectValue placeholder="Select Country" />
                 </SelectTrigger>
                 <SelectContent>
                   {countryList.map((country) => (
-                    <SelectItem
-                      key={country.country_code}
-                      value={country.country_code.toString()}
-                    >
-                      <div>{`${country.country_shortname} +${country.country_code}`}</div>
-                      <div className="text-gray-500 text-sm">
-                        {country.country_name}
-                      </div>
+                    <SelectItem key={country.country_code} value={country.country_code.toString()}>
+                      {`${country.country_shortname} +${country.country_code}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1936,16 +2095,14 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Phone Number</Label>
               <Input
                 value={row.callPhoneNumber}
-                onChange={(e) =>
-                  handleRowInputChange(index, "callPhoneNumber", e.target.value)
-                }
+                onChange={(e) => handleRowInputChange(index, "callPhoneNumber", e.target.value)}
                 placeholder="Phone number"
-                className="w-[100px] h-[30px]"
+                className="w-[120px] h-[36px]"
               />
             </div>
           </div>
         );
-
+  
       case "Copy Offer Code":
         return (
           <div className="flex space-x-4">
@@ -1953,67 +2110,56 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Button Text</Label>
               <Input
                 value={row.buttonText}
-                onChange={(e) =>
-                  handleRowInputChange(index, "buttonText", e.target.value)
-                }
+                onChange={(e) => handleRowInputChange(index, "buttonText", e.target.value)}
                 placeholder="Button text"
-                className="w-[100px] h-[30px]"
+                className="w-[125px] h-[36px]"
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label className="text-left">Offer Code</Label>
               <Input
                 value={row.copyOfferCode}
-                onChange={(e) =>
-                  handleRowInputChange(index, "copyOfferCode", e.target.value)
-                }
+                onChange={(e) => handleRowInputChange(index, "copyOfferCode", e.target.value)}
                 placeholder="Offer code"
-                className="w-[220px] h-[30px]"
+                className="w-[220px] h-[36px]"
               />
             </div>
           </div>
         );
-
+  
       default:
         return (
           <div className="flex space-x-4">
             <div className="flex flex-col gap-2">
-              <Label className="text-left pl-1">Button Text</Label>
+              <Label className="text-left">Button Text</Label>
               <Input
                 value={row.buttonText}
-                onChange={(e) =>
-                  handleRowInputChange(index, "buttonText", e.target.value)
-                }
+                onChange={(e) => handleRowInputChange(index, "buttonText", e.target.value)}
                 placeholder="Button text"
-                className="w-[100px] h-[30px]"
+                className="w-[125px] h-[36px]"
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label className="text-left pl-1">URL Type</Label>
+              <Label className="text-left">URL Type</Label>
               <Select
                 value={row.buttonTypeDropdown}
-                onValueChange={(value) =>
-                  handleRowInputChange(index, "buttonTypeDropdown", value)
-                }
+                onValueChange={(value) => handleRowInputChange(index, "buttonTypeDropdown", value)}
               >
-                <SelectTrigger className="w-[100px] h-[30px]">
+                <SelectTrigger className="w-[125px] h-[36px]">
                   <SelectValue placeholder="Static" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="static">Static</SelectItem>
-                  {/* <SelectItem value="dynamic">Dynamic</SelectItem> */}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col gap-2 pl-1">
+            <div className="flex flex-col gap-2">
               <Label className="text-left">Website URL</Label>
               <Input
                 value={row.websiteUrl}
-                onChange={(e) =>
-                  handleRowInputChange(index, "websiteUrl", e.target.value)
-                }
+                onChange={(e) => handleRowInputChange(index, "websiteUrl", e.target.value)}
                 placeholder="Website URL"
-                className="w-[100px] h-[30px]"
+                className="w-[120px] h-[36px]"
               />
             </div>
           </div>
@@ -2022,482 +2168,514 @@ const CreateTemplate: React.FC = () => {
   };
 
   return (
-
     <div className="overflow-y-auto">
       <Toaster />
-      {isLoading ? (
-      <div className="flex flex-col items-center justify-center h-[500px]">
-       <CircularProgress color="primary" />
-       </div>
-      ) : 
-      (<>
-      <div className="fixed flex justify-end space-x-3 ml-[calc(70%-135px)] top-[-8px] z-20">
+      {isLoading && (
+        <div className="loading-overlay">
+          <CircularProgress color="primary" />
+        </div>
+      )} 
+        <>
+          <div className="fixed flex justify-end space-x-3 ml-[calc(70%-135px)] top-[-8px] z-20">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                >
+                  Discard
+                </Button>
+              </DialogTrigger>
 
-      <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant={"outline"}
-          className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-        >
-          Discard
-        </Button>
-      </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogDescription>
+                    Are you sure you want to discard this Template?
+                  </DialogDescription>
+                </DialogHeader>
 
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogDescription>
-            Are you sure you want to discard this Template?
-          </DialogDescription>
-        </DialogHeader>
-        
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline" className="w-24">
-              Cancel
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" className="w-24">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+
+                  <Button
+                    className="w-24"
+                    onClick={() => {
+                      dispatch(setCreateBreadCrumb(false));
+                      navigate("/navbar/templatelist");
+                    }}
+                    autoFocus
+                  >
+                    OK
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Button
+              className="w-fit"
+              onClick={() => {
+                debugger;
+                if (templateId) {
+                  handleEdit();
+                } else {
+                  if (Number(channel) === 2) {
+                    handleSMSTemplateSubmit();
+                  } else {
+                    handleSubmit();
+                  }
+                }
+                console.log("Clicked");
+              }}
+            >
+              Save and exit
             </Button>
-          </DialogClose>
-
-          <Button
-            className="w-24"
-            onClick={() => {
-              dispatch(setCreateBreadCrumb(false));
-              navigate("/navbar/templatelist");
-            }}
-            autoFocus
-          >
-            OK
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog> 
-        <Button
-          className="w-fit"
-          onClick={() => {
-            if (templateId) {
-              handleEdit();
-            } else {
-              handleSubmit();
-            }
-            console.log("Clicked");
-          }}
-        >
-          Save and exit
-        </Button>
-      </div>
-      <div className="p-3 ">
-        <div className=" flex flex-col md:flex-row gap-6 mb-[100px]">
-          <div className="space-y-6 w-full md:w-3/5 ">
-            <div className="border p-4 rounded-lg">
-              <h2
-                className="text-left mb-2"
-                style={{ fontWeight: 600, fontSize: "16px" }}
-              >
-                Platform
-              </h2>
-              <Select
-                value={channel}
-                onValueChange={(value) => {
-                  console.log("Selected Channel ID:", value);
-                  setChannel(value);
-                  checkWhatsappAccount(value);
-                  validateChannel(value)
-                }}
-              >
-                <SelectTrigger className="text-gray-500">
-                  {" "}
-                  {/* Apply gray text color to the trigger */}
-                  <SelectValue
-                    className="text-gray-500"
-                    placeholder={
-                      templateId
-                        ? updateChannel
-                        : "Select your Template channel"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {channelList
-                    .filter(
-                      (channel) =>
-                        channel.channel_name.toLowerCase() === "whatsapp"
-                    ) // Filter WhatsApp channel
-                    .map((channel) => (
-                      <SelectItem
-                        className="text-gray-500"
-                        key={channel.channel_id}
-                        value={channel.channel_id as any}
-                      >
-                        {channel.channel_name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {channelError && (
-                <p className="text-red-500 text-xs text-left mt-2 ml-2">
-                  {channelError}
-                </p>
-              )}
-            </div>
-            <Card className="border w-full p-4 rounded-lg text-left">
-              <h2
-                className="text-lg text-left mb-2"
-                style={{ fontWeight: 600, fontSize: "16px" }}
-              >
-                Template name and language
-              </h2>
-              <div className="flex items-center space-x-4 mt-2">
-                {/* Template Column */}
-                <div className="flex-grow">
-                  <Label htmlFor="template" className="mt-2 text-left">
-                    Template
-                  </Label>
-                  <div className="relative w-full mt-2">
-                    <Input
-                      type="text"
-                      placeholder="Name your message template"
-                      className="w-full h-[35px] border rounded-md p-2 pr-10 text-gray-500"
-                      value={templateName}
-                      maxLength={512}
-                      onChange={handleInputChange}
-                    />
-                    <span className="absolute top-[8px] right-[8px] text-xs text-gray-500">
-                      {templateName.length}/{512}
-                    </span>
-                  </div>
-                </div>
-                {/* Language Column */}
-                <div className="flex-shrink-0">
-                  <Label htmlFor="language" className="mt-2 text-left">
-                    Language
-                  </Label>
-                  <Select onValueChange={(value) => setLanguage(value)}>
-                    <SelectTrigger className="text-gray-500 w-48 mt-2">
+          </div>
+          <div className="p-3 ">
+            <div className=" flex flex-col md:flex-row gap-6 mb-[100px]">
+              <div className="space-y-6 w-full md:w-3/5 ">
+                <div className="border p-4 rounded-lg">
+                  <h2
+                    className="text-left mb-2"
+                    style={{ fontWeight: 600, fontSize: "16px" }}
+                  >
+                    Platform
+                  </h2>
+                  <Select
+                    value={channel}
+                    onValueChange={(value) => {
+                      console.log(
+                        "Selected Channel ID:",
+                        value + " channelId Type: " + typeof value
+                      );
+                      setChannel(value);
+                      checkWhatsappAccount(value);
+                      validateChannel(value);
+                    }}
+                  >
+                    <SelectTrigger className="text-gray-500">
+                      {" "}
+                      {/* Apply gray text color to the trigger */}
                       <SelectValue
                         className="text-gray-500"
-                        placeholder={templateId ? updateLanguage : "English"}
+                        placeholder={
+                          templateId
+                            ? updateChannel
+                            : "Select your Template channel"
+                        }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {languageList.map((type) => (
-                        <SelectItem
-                          className="text-gray-500"
-                          key={type.language_id}
-                          value={type.language_code}
-                        >
-                          {type.language_name}
-                          {updateLanguage === type.language_name ? (
-                            <CheckIcon />
-                          ) : null}
-                        </SelectItem>
-                      ))}
+                      {channelList
+                        .filter(
+                          (channel) =>
+                            ["whatsapp", "sms"].includes(
+                              channel.channel_name.toLowerCase()
+                            ) // Filter both SMS & WhatsApp
+                        )
+                        .map((channel) => (
+                          <SelectItem
+                            className="text-gray-500"
+                            key={channel.channel_id}
+                            value={channel.channel_id as any}
+                          >
+                            {channel.channel_name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
-
-                  {LanguageError && (
-                    <p className="text-red-500 text-xs mt-2 ml-2">
-                      {LanguageError}
+                  {channelError && (
+                    <p className="text-red-500 text-xs text-left mt-2 ml-2">
+                      {channelError}
                     </p>
                   )}
                 </div>
-              </div>
-              {templateError && (
-                <p className="text-red-500 text-xs mt-1 ml-2">
-                  {templateError}
-                </p>
-              )}
-            </Card>
-
-            <div className="border p-4 rounded-lg">
-              <h2
-                className="mb-2 text-left"
-                style={{
-                  fontWeight: 600,
-                  fontSize: "16px",
-                  paddingBottom: "10px",
-                }}
-              >
-                Content
-              </h2>
-              <h5
-                className="text-md mb-2 text-left"
-                style={{ fontWeight: 500, fontSize: "14px" }}
-              >
-                Header
-                <span
-                  style={{
-                    background: "#F0F4F8", // Background color for the badge
-                    color: "#64748B", // Fixed font color for testing
-                    padding: "2px 10px", // Padding for the badge
-                    borderRadius: "9999px", // Fully rounded badge
-                    // Border style, matching the background
-                    display: "inline-flex", // Ensures correct alignment
-                    alignItems: "center", // Centers the text vertically
-                    height: "20px", // Fixed height
-                    marginLeft: "8px", // Space between title and badge
-                    fontSize: "14px", // Optional: font size for better visibility
-                    fontWeight: 600, // Set font weight for the badge text to bold
-                  }}
-                >
-                  Optional
-                </span>
-              </h5>
-              <div className="space-y-4">
-                <Select value={headerType} onValueChange={handleOptionChange}>
-                  <SelectTrigger className="w-full text-gray-500">
-                    <SelectValue
-                      placeholder={templateId ? updateHeaderType : " "}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="image">Image</SelectItem>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="document">Document</SelectItem>
-                    <SelectItem value="video">Video</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* File Input for Image, Video, or Document */}
-                {(selectedOption === "image" ||
-                  selectedOption === "video" ||
-                  selectedOption === "document") && (
-                  <div className="flex items-center space-x-4 mb-4">
-                    <label className="text-sm font-medium text-gray-700">
-                      {selectedOption.charAt(0).toUpperCase() +
-                        selectedOption.slice(1)}
-                    </label>
-                    {selectedFile ? (
-                      <div className="flex items-center space-x-2">
-                        <span className="p-2 border rounded-md bg-gray-100">
-                          {selectedFile?.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleRemoveFile}
-                          className="text-gray-600 hover:text-red-500"
-                          aria-label="Remove File"
-                        >
-                          <FaTimes />
-                        </button>
-                      </div>
-                    ) : (
-                      <Input
-                        ref={fileInputRef}
-                        style={{ fontFamily: "'Inter', sans-serif" }}
-                        type="file"
-                        accept={
-                          selectedOption === "image"
-                            ? "image/jpeg, image/png"
-                            : headerType === "video"
-                            ? "video/mp4, video/mov"
-                            : headerType === "document"
-                            ? ".pdf"
-                            : ""
-                        }
-                        onChange={handleFileChange}
-                        className="border rounded-md p-2 w-full cursor-pointer"
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Text Input for Text Header */}
-                {selectedOption === "text" && (
-                  <div className="mt-4" style={{ position: "relative" }}>
-                    <Input
-                      value={textInput}
-                      onChange={handleTextChange}
-                      className="text-gray-500 border rounded-md p-2 mb-4 w-full"
-                      placeholder="Enter your header text"
-                      maxLength={maxLength}
-                    />
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "8px",
-                        right: "8px",
-                        fontSize: "12px",
-                        color: "gray",
-                      }}
-                    >
-                      {textInput.length}/{maxLength}
-                    </span>
-                  </div>
-                )}
-
-                <div>
-                  <label
-                    className="block text-left mb-2"
-                    style={{ fontWeight: 500, fontSize: "14px" }}
+                <Card className="border w-full p-4 rounded-lg text-left">
+                  <h2
+                    className="text-lg text-left mb-2"
+                    style={{ fontWeight: 600, fontSize: "16px" }}
                   >
-                    Body
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <textarea
-                      className="w-full border rounded p-2 text-gray-500"
-                      rows={4}
-                      maxLength={1024}
-                      value={bodyText}
-                      placeholder="Hello"
-                      onChange={(e) => handleBodyTextChange(e.target.value)}
-                      style={{ paddingRight: "50px" }}
-                    ></textarea>
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "8px",
-                        right: "8px",
-                        fontSize: "12px",
-                        color: "gray",
-                      }}
-                    >
-                      {bodyText.length}/1024
-                    </span>
-                  </div>
-                  {BodyError && (
-                    <p className="text-red-500 text-sm text-left">{BodyError}</p>
-                  )}
-
-                  <div className="flex gap-4 flex-row w-full justify-end">
-                    <Smile
-                      className="w-4 h-4 mt-2 cursor-pointer"
-                      onClick={() => setShowPicker((val) => !val)}
-                    />
-                    <FontBoldIcon
-                      className="w-4 z-50 h-4 mt-2 cursor-pointer"
-                      onClick={makeTextBold}
-                    />
-                    <FontItalicIcon
-                      className="w-4 h-4 mt-2 cursor-pointer"
-                      onClick={makeTextItalic}
-                    />
-                    <Strikethrough
-                      className="w-4 h-4 mt-2 cursor-pointer"
-                      onClick={makeTextStrikethrough}
-                    />
-                    <CodeIcon
-                      className="w-4 h-4 mt-2 cursor-pointer"
-                      onClick={makeTextMonospace}
-                    />
-
-                    <Button
-                      onClick={addVariable}
-                      variant="ghost"
-                      className="w-[130px] mt-[-6]  h-[30px]"
-                    >
-                      <AddIcon /> Add variable
-                    </Button>
-
-                    <InfoCircledIcon className="mt-2 ml-[5px] text-[#fffff] cursor-pointer" />
-                  </div>
-                  {showPicker && (
-                    <div>
-                      <EmojiPicker
-                        className="z-10"
-                        onEmojiClick={(emoji: any) => onEmojiClick(emoji)}
-                      />
+                    Template name and language
+                  </h2>
+                  <div className="flex items-center space-x-4 mt-2">
+                    {/* Template Column */}
+                    <div className="flex-grow">
+                      <Label htmlFor="template" className="mt-2 text-left">
+                        Template
+                      </Label>
+                      <div className="relative w-full mt-2">
+                        <Input
+                          type="text"
+                          placeholder="Name your message template"
+                          className="w-full h-[35px] border rounded-md p-2 pr-10 text-gray-500"
+                          value={templateName}
+                          maxLength={512}
+                          onChange={handleInputChange}
+                        />
+                        <span className="absolute top-[8px] right-[8px] text-xs text-gray-500">
+                          {templateName.length}/{512}
+                        </span>
+                      </div>
                     </div>
-                  )}
-
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color:
-                        bodyText.length < 25 ? "error.main" : "text.secondary",
-                      mt: 1,
-                      textAlign: "right",
-                      fontFamily: "Salesforce Sans, sans-serif",
-                    }}
-                  ></Typography>
-
-                  <Container>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        alignItems: "center",
-                        mt: 1,
-                      }}
-                    ></Box>
-
-                    <div style={{ textAlign: "left", marginTop: "25px" }}>
-                      {boxes.map((box, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            marginTop: "15px",
-                          }}
-                        >
-                          <Typography
-                            variant="body2"
-                            sx={{ color: "black", fontSize: "12px" }}
-                          >
-                            <p>{`{{${i + 1}}}`}</p>
-                          </Typography>
-                          <TextField
-                            size="small"
-                            type="text"
-                            variant="standard"
-                            sx={{ marginLeft: "10px", flex: 1 }}
-                            value={box.action}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                              updateButtonAction(i, e)
+                    {/* Language Column */}
+                    <div className="flex-shrink-0">
+                      <Label htmlFor="language" className="mt-2 text-left">
+                        Language
+                      </Label>
+                      <Select onValueChange={(value) => setLanguage(value)}>
+                        <SelectTrigger className="text-gray-500 w-48 mt-2">
+                          <SelectValue
+                            className="text-gray-500"
+                            placeholder={
+                              templateId ? updateLanguage : "English"
                             }
                           />
-                          <IconButton
-                            onClick={() => onTextboxDelete(i)}
-                            sx={{
-                              color: "lightgray",
-                              borderRadius: "50%",
-                              padding: "8px",
-                              "&:hover": {
-                                backgroundColor: "rgba(211, 211, 211, 0.3)",
-                              },
-                              marginLeft: "10px",
+                        </SelectTrigger>
+                        <SelectContent>
+                          {languageList.map((type) => (
+                            <SelectItem
+                              className="text-gray-500"
+                              key={type.language_id}
+                              value={type.language_code}
+                            >
+                              {type.language_name}
+                              {updateLanguage === type.language_name ? (
+                                <CheckIcon />
+                              ) : null}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {LanguageError && (
+                        <p className="text-red-500 text-xs mt-2 ml-2">
+                          {LanguageError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {templateError && (
+                    <p className="text-red-500 text-xs mt-1 ml-2">
+                      {templateError}
+                    </p>
+                  )}
+                </Card>
+
+                <div className="border p-4 rounded-lg">
+                  <h2
+                    className="mb-2 text-left"
+                    style={{
+                      fontWeight: 600,
+                      fontSize: "16px",
+                      paddingBottom: "10px",
+                    }}
+                  >
+                    Content
+                  </h2>
+
+                  {Number(channel) !== 2 ? (
+                    <>
+                      <h5
+                        className="text-md mb-2 text-left"
+                        style={{ fontWeight: 500, fontSize: "14px" }}
+                      >
+                        Header
+                        <div
+                          style={{
+                            background: "#F0F4F8", // Background color for the badge
+                            color: "#64748B", // Fixed font color for testing
+                            padding: "2px 10px", // Padding for the badge
+                            borderRadius: "9999px", // Fully rounded badge
+                            // Border style, matching the background
+                            display: "inline-flex", // Ensures correct alignment
+                            alignItems: "center", // Centers the text vertically
+                            height: "20px", // Fixed height
+                            marginLeft: "8px", // Space between title and badge
+                            fontSize: "14px", // Optional: font size for better visibility
+                            fontWeight: 600, // Set font weight for the badge text to bold
+                          }}
+                        >
+                          Optional
+                        </div>
+                      </h5>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+
+                  <div className="space-y-4">
+                    {Number(channel) !== 2 ? (
+                      <Select
+                        value={headerType}
+                        onValueChange={handleOptionChange}
+                      >
+                        <SelectTrigger className="w-full text-gray-500">
+                          <SelectValue
+                            placeholder={templateId ? updateHeaderType : " "}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="image">Image</SelectItem>
+                          <SelectItem value="text">Text</SelectItem>
+                          <SelectItem value="document">Document</SelectItem>
+                          <SelectItem value="video">Video</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <></>
+                    )}
+
+                    {/* File Input for Image, Video, or Document */}
+                    {(selectedOption === "image" ||
+                      selectedOption === "video" ||
+                      selectedOption === "document") && (
+                      <div className="flex items-center space-x-4 mb-4">
+                        <label className="text-sm font-medium text-gray-700">
+                          {selectedOption.charAt(0).toUpperCase() +
+                            selectedOption.slice(1)}
+                        </label>
+                        {selectedFile ? (
+                          <div className="flex items-center space-x-2">
+                            <span className="p-2 border rounded-md bg-gray-100">
+                              {selectedFile?.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleRemoveFile}
+                              className="text-gray-600 hover:text-red-500"
+                              aria-label="Remove File"
+                            >
+                              <FaTimes />
+                            </button>
+                          </div>
+                        ) : (
+                          <Input
+                            ref={fileInputRef}
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                            type="file"
+                            accept={
+                              selectedOption === "image"
+                                ? "image/jpeg, image/png"
+                                : headerType === "video"
+                                ? "video/mp4, video/mov"
+                                : headerType === "document"
+                                ? ".pdf"
+                                : ""
+                            }
+                            onChange={handleFileChange}
+                            className="border rounded-md p-2 w-full cursor-pointer"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Text Input for Text Header */}
+                    {selectedOption === "text" && (
+                      <div className="mt-4" style={{ position: "relative" }}>
+                        <Input
+                          value={textInput}
+                          onChange={handleTextChange}
+                          className="text-gray-500 border rounded-md p-2 mb-4 w-full"
+                          placeholder="Enter your header text"
+                          maxLength={60}
+                        />
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "8px",
+                            right: "8px",
+                            fontSize: "12px",
+                            color: "gray",
+                          }}
+                        >
+                          {textInput.length}/{maxLength}
+                        </span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label
+                        className="block text-left mb-2"
+                        style={{ fontWeight: 500, fontSize: "14px" }}
+                      >
+                        Body
+                      </label>
+                      <div style={{ position: "relative" }}>
+                        <textarea
+                          className="w-full border rounded p-2 text-gray-500"
+                          rows={4}
+                          maxLength={1024}
+                          value={bodyText}
+                          placeholder="Hello"
+                          onChange={(e) => handleBodyTextChange(e.target.value)}
+                          style={{ paddingRight: "50px" }}
+                        ></textarea>
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "8px",
+                            right: "8px",
+                            fontSize: "12px",
+                            color: "gray",
+                          }}
+                        >
+                          {bodyText.length}/1024
+                        </span>
+                      </div>
+                      {BodyError && (
+                        <p className="text-red-500 text-sm text-left">
+                          {BodyError}
+                        </p>
+                      )}
+
+                      <div className="flex gap-4 flex-row w-full justify-end">
+                        <Smile
+                          className="w-4 h-4 mt-2 cursor-pointer"
+                          onClick={() => setShowPicker((val) => !val)}
+                        />
+                        <FontBoldIcon
+                          className="w-4 z-50 h-4 mt-2 cursor-pointer"
+                          onClick={makeTextBold}
+                        />
+                        <FontItalicIcon
+                          className="w-4 h-4 mt-2 cursor-pointer"
+                          onClick={makeTextItalic}
+                        />
+                        <Strikethrough
+                          className="w-4 h-4 mt-2 cursor-pointer"
+                          onClick={makeTextStrikethrough}
+                        />
+                        <CodeIcon
+                          className="w-4 h-4 mt-2 cursor-pointer"
+                          onClick={makeTextMonospace}
+                        />
+                        {Number(channel) !== 2 ? (
+                          <Button
+                            onClick={addVariable}
+                            variant="ghost"
+                            className="w-[125px] mt-[-6]  h-[30px]"
+                          >
+                            <AddIcon /> Add variable
+                          </Button>
+                        ) : (
+                          <></>
+                        )}
+
+                        <InfoCircledIcon className="mt-2 ml-[5px] text-[#fffff] cursor-pointer" />
+                      </div>
+                      {showPicker && (
+                        <div>
+                          <EmojiPicker
+                            className="z-10"
+                            onEmojiClick={(emoji: any) => onEmojiClick(emoji)}
+                          />
+                        </div>
+                      )}
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color:
+                            bodyText.length < 25
+                              ? "error.main"
+                              : "text.secondary",
+                          mt: 1,
+                          textAlign: "right",
+                          fontFamily: "Salesforce Sans, sans-serif",
+                        }}
+                      ></Typography>
+
+                      <Container>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            alignItems: "center",
+                            mt: 1,
+                          }}
+                        ></Box>
+
+                        <div style={{ textAlign: "left", marginTop: "25px" }}>
+                          {boxes.map((box, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                marginTop: "15px",
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{ color: "black", fontSize: "12px" }}
+                              >
+                                <p>{`{{${i + 1}}}`}</p>
+                              </Typography>
+                              <TextField
+                                size="small"
+                                type="text"
+                                variant="standard"
+                                sx={{ marginLeft: "10px", flex: 1 }}
+                                value={box.action}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                  updateButtonAction(i, e)
+                                }
+                              />
+                              <IconButton
+                                onClick={() => onTextboxDelete(i)}
+                                sx={{
+                                  color: "lightgray",
+                                  borderRadius: "50%",
+                                  padding: "8px",
+                                  "&:hover": {
+                                    backgroundColor: "rgba(211, 211, 211, 0.3)",
+                                  },
+                                  marginLeft: "10px",
+                                }}
+                              >
+                                <CancelIcon />
+                              </IconButton>
+                            </div>
+                          ))}
+                        </div>
+                      </Container>
+                    </div>
+
+                    {Number(channel) !== 2 ? (
+                      <div>
+                        <label
+                          className="block text-left mb-2"
+                          style={{ fontWeight: 500, fontSize: "14px" }}
+                        >
+                          Footer
+                          <span
+                            style={{
+                              background: "#F0F4F8",
+                              color: "#64748B",
+                              padding: "2px 10px",
+                              borderRadius: "9999px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              height: "20px",
+                              marginLeft: "8px",
+                              fontSize: "14px",
+                              fontWeight: 600,
                             }}
                           >
-                            <CancelIcon />
-                          </IconButton>
-                        </div>
-                      ))}
-                    </div>
-                  </Container>
+                            Optional
+                          </span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter text"
+                          className="w-full border rounded p-2"
+                          value={FooterText}
+                          onChange={(e) => setFooterText(e.target.value)}
+                        />
 
-                </div>
-
-                <div>
-                  <label
-                    className="block text-left mb-2"
-                    style={{ fontWeight: 500, fontSize: "14px" }}
-                  >
-                    Footer
-                    <span
-                      style={{
-                        background: "#F0F4F8",
-                        color: "#64748B",
-                        padding: "2px 10px",
-                        borderRadius: "9999px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        height: "20px",
-                        marginLeft: "8px",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Optional
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter text"
-                    className="w-full border rounded p-2"
-                    value={FooterText}
-                    onChange={(e) => setFooterText(e.target.value)}
-                  />
-
-                  {/*<Select value={FooterText} onValueChange={handleFooterChange}>
+                        {/*<Select value={FooterText} onValueChange={handleFooterChange}>
                     <SelectTrigger className="w-full border rounded p-2 text-gray-500">
                       <SelectValue placeholder="Select an option" />
                     </SelectTrigger>
@@ -2506,151 +2684,140 @@ const CreateTemplate: React.FC = () => {
                       <SelectItem value="Welcome">Welcome</SelectItem>
                     </SelectContent>
                   </Select>*/}
-                </div>
-              </div>
-            </div>
-            <div className="border p-4 rounded-lg">
-              <Typography
-                variant="h6"
-                style={{
-                  fontSize: "16px",
-                  color: "black",
-                  textAlign: "left",
-                  fontWeight: "bold",
-                  marginBottom: "8px",
-                }}
-              >
-                Buttons
-                <span
-                  style={{
-                    background: "#F0F4F8",
-                    color: "#64748B",
-                    padding: "2px 10px",
-                    borderRadius: "9999px",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    height: "20px",
-                    marginLeft: "8px",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                  }}
-                >
-                  Optional
-                </span>
-              </Typography>
-
-              <div className="inline-block mt-4 w-full flex-col justify-start">
-                <Button
-                  onClick={handleAddRow}
-                  className="flex items-center px-4 py-2 border border-gray-300 font-thin rounded-md text-white hover:bg-gray-900 "
-                  style={{
-                    width: "150px",
-                    height: "40px",
-                    background: "#3A85F7",
-                    marginTop: "-8px",
-                    marginBottom: "15px",
-                    marginLeft: "",
-                    fontWeight: "normal",
-                  }}
-                >
-                  <span className="mr-1">
-                    <PlusIcon className="w-4 h-4" />
-                  </span>
-                  Add button
-                  <span className="ml-1">
-                    <ChevronDownIcon className="w-4 h-4" />
-                  </span>
-                </Button>
-
-                {warning && (
-                  <p className="text-red-500 text-sm mt-2">{warning}</p>
-                )}
-                <div className="space-y-4">
-                  {rows.map((row, index) => (
-                    <div
-                      key={index}
-                      className="flex space-x-4 space-y-4 items-center"
-                    >
-                      <div className="space-y-4 pt-4">
-                        <div className="flex flex-col gap-2">
-                          <Label className="w-full font-bold text-left">
-                            Type of action
-                          </Label>
-                          <Select
-                            value={row.buttonType}
-                            onValueChange={(value) =>
-                              handleRowInputChange(index, "buttonType", value)
-                            }
-                          >
-                            <SelectTrigger className="w-[125px] h-[30px]">
-                              <SelectValue placeholder="Select Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="View Website">
-                                View Website
-                              </SelectItem>
-                              <SelectItem value="Call Phone Number">
-                                Call Phone Number
-                              </SelectItem>
-                              <SelectItem value="Copy Offer Code">
-                                Copy Offer Code
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
-                      {renderRowFields(row, index)}
-                      <IconButton
-                        onClick={() => onDeleteRow(row, index)}
-                        sx={{
-                          color: "gray", // Slightly darker than lightgray for better visibility
-                          borderRadius: "10%", // Circular shape
-                          padding: "4px", // Reduced padding for a smaller icon size
-                          // Optional border for a more distinct look
-                          "&:hover": {
-                            backgroundColor: "rgba(211, 211, 211, 0.3)", // Hover effect
-                          },
-                          marginLeft: "10px",
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+
+                  {/* </>):(<></>)} */}
+                </div>
+                {Number(channel) !== 2 ? (
+                  <div className="border p-4 rounded-lg">
+                    <Typography
+                      variant="h6"
+                      style={{
+                        fontSize: "16px",
+                        color: "black",
+                        textAlign: "left",
+                        fontWeight: "bold",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Buttons
+                      <span
+                        style={{
+                          background: "#F0F4F8",
+                          color: "#64748B",
+                          padding: "2px 10px",
+                          borderRadius: "9999px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          height: "20px",
+                          marginLeft: "8px",
+                          fontSize: "14px",
+                          fontWeight: 600,
                         }}
                       >
-                        <CloseIcon sx={{ fontSize: 18 }} />{" "}
-                        {/* Smaller font size to match the image */}
-                      </IconButton>
-                    </div>
-                  ))}
+                        Optional
+                      </span>
+                    </Typography>
+
+                    <div className="inline-block mt-4 w-full flex-col justify-start">
+  <Button
+    onClick={handleAddRow}
+    className="flex items-center px-4 py-2 border border-gray-300 font-thin rounded-md text-white hover:bg-gray-900"
+    style={{
+      width: "125px",
+      height: "40px",
+      background: "#3A85F7",
+      marginTop: "-8px",
+      marginBottom: "15px",
+      fontWeight: "normal",
+    }}
+  >
+    <span className="mr-1">
+      <PlusIcon className="w-4 h-4" />
+    </span>
+    Add button
+    <span className="ml-1">
+      <ChevronDownIcon className="w-4 h-4" />
+    </span>
+  </Button>
+
+  {warning && <p className="text-red-500 text-sm mt-2">{warning}</p>}
+
+  <div className="space-y-4">
+    {rows.map((row, index) => (
+      <div key={index} className="flex space-x-4 items-center">
+        <div className="flex flex-col gap-2">
+          <Label className="font-bold text-left">Type of action</Label>
+          <Select
+            value={row.buttonType}
+            onValueChange={(value) => handleRowInputChange(index, "buttonType", value)}
+          >
+            <SelectTrigger className="w-[125px] h-[36px]">
+              <SelectValue placeholder="Select Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="View Website">View Website</SelectItem>
+              <SelectItem value="Call Phone Number">Call Phone Number</SelectItem>
+              <SelectItem value="Copy Offer Code">Copy Offer Code</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {renderRowFields(row, index)}
+
+        <IconButton
+          onClick={() => onDeleteRow(row, index)}
+          sx={{
+            color: "gray",
+            borderRadius: "10%",
+            padding: "4px",
+            "&:hover": {
+              backgroundColor: "rgba(211, 211, 211, 0.3)",
+            },
+            marginLeft: "10px",
+          }}
+        >
+          <CloseIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </div>
+    ))}
+  </div>
+</div>
+
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
+
+              <div
+                ref={previewRef}
+                className={`border  max-h-fit top-auto right-14 rounded-lg`}
+                // style={{
+                //   // Adjust top positioning when fixed
+                //   right: "14px", // Fixed right position for the preview container
+                //   zIndex: 10, // Ensure it appears above other content
+                //   // Apply rounded corners for a cleaner design
+                // }}
+              >
+                <h2 className="mb-2 mt-4 font-bold">Template Preview</h2>
+                <div className="flex flex-col justify-between rounded-[30px] text-black p-4 w-[350px] min-h-auto">
+                  <div className="justify-center">
+                    <i className="fas fa-mobile-alt text-4xl mb-4"></i>
+                    {renderPreview()}{" "}
+                    {/* Function to render the preview content dynamically */}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <div
-            ref={previewRef}
-            className={`border  max-h-fit top-auto right-14 rounded-lg`}
-            // style={{
-            //   // Adjust top positioning when fixed
-            //   right: "14px", // Fixed right position for the preview container
-            //   zIndex: 10, // Ensure it appears above other content
-            //   // Apply rounded corners for a cleaner design
-            // }}
-          >
-            <h2 className="mb-2 mt-4 font-bold">Template Preview</h2>
-            <div className="flex flex-col justify-between rounded-[30px] text-black p-4 w-[350px] min-h-auto">
-              <div className="justify-center">
-                <i className="fas fa-mobile-alt text-4xl mb-4"></i>
-                {renderPreview()}{" "}
-                {/* Function to render the preview content dynamically */}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </>)
-
-      }
-
+        </>
+      
     </div>
-    
-    
   );
 };
 

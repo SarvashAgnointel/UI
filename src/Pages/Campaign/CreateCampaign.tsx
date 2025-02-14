@@ -1,16 +1,9 @@
 import { Button } from "../../Components/ui/button";
 import { Card } from "../../Components/ui/card";
 import { Label } from "../../Components/ui/label";
-import {
-  Select,
-  SelectItem,
-  SelectTrigger,
-  SelectContent,
-  SelectValue,
-} from "../../Components/ui/select";
+import {Select,SelectItem,SelectTrigger,SelectContent,SelectValue,} from "../../Components/ui/select";
 import { CircularProgress } from "@mui/material";
 import { Input } from "../../Components/ui/input";
-
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { useState, SetStateAction, useEffect } from "react";
@@ -25,28 +18,28 @@ import { CalendarIcon } from "@radix-ui/react-icons";
 import { addDays, format, startOfMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Calendar } from "../../Components/ui/calendar";
-
+// import { MultiSelect_RoamingCountry } from "../../Components/ui/multi-select-RoamingCountry";
+// import { MultiSelect_TargetCountry } from "../../Components/ui/multi-select-TargetCountry";
 import { MultiSelect } from "../../Components/ui/multi-select";
 import { Switch } from "../../Components/ui/switch";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../Components/ui/popover";
+import {Popover,PopoverContent,PopoverTrigger,} from "../../Components/ui/popover";
 import { cn } from "../../lib/utils";
 import { useDispatch, useSelector } from "react-redux";
-import { setCreateBreadCrumb } from "../../State/slices/AdvertiserAccountSlice";
+import { setCreateBreadCrumb , setTargetCountry} from "../../State/slices/AdvertiserAccountSlice";
 import { RootState } from "@/src/State/store";
 import { FaPaperPlane } from "react-icons/fa";
 import { LuPlane } from "react-icons/lu";
-// import { useToast } from "react-toastify";
+import { DialogContent } from "../../Components/ui/dialog";
+import { Dialog } from "../../Components/ui/dialog";
+import { DialogTitle , DialogFooter } from "../../Components/ui/dialog";
+import { DialogHeader } from "../../Components/ui/dialog";
+import { DialogDescription } from "../../Components/ui/dialog";
 
 interface AudienceCardProps {
   selectedRecipients: number;
   totalRecipients: number;
 }
 
-// Define the Country type
 interface Country {
   country_id: number;
   country_name: string;
@@ -127,10 +120,15 @@ interface BillingCountry {
   currency_name: string;
 }
 
+interface PhNoList {
+    id : number,
+    phone_name: string,
+    phone_number : string
+}
+
 const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
   className,
 }) => {
-  // Initialize the date range with the 1st of the current month and today's date
   const [date, setDate] = useState<{ from: Date; to: Date }>({
     from: startOfMonth(new Date()), // First day of the current month
     to: new Date(), // Today
@@ -173,13 +171,19 @@ const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
 };
 
 export default function CreateCampaign() {
+
   const [campaignName, setCampaignName] = useState<string>("");
-  const [channelList, setChannelList] = useState<Channel[]>([]); // State for the channel list
+  const [channelList, setChannelList] = useState<Channel[]>([]); 
   const [templatefilterlist, setTemplatefilterlist] = useState<Template[]>([]);
   const [channel, setChannel] = useState("");
   const [templateList, setTemplateList] = useState<Template[]>([]);
   const [audienceList, setAudienceList] = useState<Audience[]>([]);
   const [template, setTemplate] = useState("");
+  const [phoneNumberList, setPhoneNumberList] = useState<PhNoList[]>([]);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [selectedPhoneName, setSelectedPhoneName] = useState(""); // Store selected phone name (for display)
+  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState(""); // Store actual phone number (for API)
+
   const [reachPeopleFrom, setReachPeopleFrom] = useState<string[]>([]);
   const [reachPeopleIn, setReachPeopleIn] = useState<string[]>([]);
   const [campaignBudget, setCampaignBudget] = useState<string>("");
@@ -194,24 +198,15 @@ export default function CreateCampaign() {
   const [updateChannel, setUpdateChannel] = useState("");
   const [updateTemplate, setUpdateTemplate] = useState("");
   const [updateCountry, setUpdateCountry] = useState("");
-  const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>([
-    "react",
-    "angular",
-  ]);
   const [updateRoamingCountry, setUpdateRoamingCountry] = useState("");
   const [isLoading, setLoading] = useState(true);
   const [isCardLoading, setIsCardLoading] = useState(false);
-
-  const selectedRecipients = 1240;
-  const totalRecipients = 3448;
-  const percentage = Math.round((selectedRecipients / totalRecipients) * 100);
   const navigate = useNavigate();
   const location = useLocation();
+  const campaignNames = location.state?.campaignNames || []; 
   const campaignId = location.state?.campaignId || "";
   const channelName = location.state?.channelType || "";
-  const [campaignNameError, setCampaignNameError] = useState<string | null>(
-    null
-  );
+  const [campaignNameError, setCampaignNameError] = useState<string | null>( null);
   const [channelError, setChannelError] = useState<string | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [AudienceError, setAudienceError] = useState<string | null>(null);
@@ -221,12 +216,8 @@ export default function CreateCampaign() {
   const [enddateError, setEndDateError] = useState<string | null>(null);
   const [FstartdateError, setFStartDateError] = useState<string | null>(null);
   const [FenddateError, setFEndDateError] = useState<string | null>(null);
-  const [targetCountryError, setTargetCountryError] = useState<string | null>(
-    null
-  );
-  const [roamingCountryError, setRoamingCountryError] = useState<string | null>(
-    null
-  );
+  const [targetCountryError, setTargetCountryError] = useState<string | null>(null);
+  const [roamingCountryError, setRoamingCountryError] = useState<string | null>( null);
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
   const [isStartCalendarOpen, setStartCalendarOpen] = useState(false);
   const [isFStartCalendarOpen, setFStartCalendarOpen] = useState(false);
@@ -255,6 +246,7 @@ export default function CreateCampaign() {
   const [behaviourList, setBehaviourList] = useState<Behaviour[]>([]);
   const [deviceList, setDeviceList] = useState<Device[]>([]);
   const [osList, setOsList] = useState<OS[]>([]);
+  //const [phoneNumberList, setPhoneNumberList] = useState<PhNoList[]>([]);
   const [age, setAge] = useState(0);
   const [gender, setGender] = useState(0);
   const [incomeLevel, setIncomeLevel] = useState(0);
@@ -263,8 +255,6 @@ export default function CreateCampaign() {
   const [behaviour, setBehaviour] = useState(0);
   const [device, setDevice] = useState(0);
   const [osDevice, setOsDevice] = useState(0);
-   
-
   
   const [updateAge, setUpdateAge] = useState("");
   const [updateGender, setUpdateGender] = useState("");
@@ -274,6 +264,8 @@ export default function CreateCampaign() {
   const [updateBehaviour, setUpdateBehaviour] = useState("");
   const [updateDevice, setUpdateDevice] = useState("");
   const [updateOsDevice, setUpdateOsDevice] = useState("");
+
+  const incountry = useSelector((state:RootState) => state.advertiserAccount.incountry);
 
   const [ageError, setAgeError] = useState<string | null>(null);
   const [genderError, setGenderError] = useState<string | null>(null);
@@ -289,28 +281,74 @@ export default function CreateCampaign() {
   const [showRussiaAndKazakhstan, setShowRussiaAndKazakhstan] = useState(false);
   const [hasRussiaOrKazakhstanSelected, setHasRussiaOrKazakhstanSelected] = useState(false); 
 
-  const [budgetType, setBudgetType] = useState("daily"); // default to daily budget
-  const [messageFrequency, setMessageFrequency] = useState<string>("1"); // Default to daily
-  //const [dailyRecipientLimit , setDailyRecipientLimit] = useState(0); // Default to daily
+  const [budgetType, setBudgetType] = useState<string>(""); // default to daily budget
+  const [messageFrequency, setMessageFrequency] = useState<string | null>(null); // Default to daily
   const [dailyRecipientLimit, setDailyRecipientLimit] = useState<number | "">("");
   const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
   const [isDailyLimitTouched, setIsDailyLimitTouched] = useState(false);
   const [isFrequencyOpen, setIsFrequencyOpen] = useState(false);
   const [isReceiveLimitOpen, setIsReceiveLimitOpen] = useState(false);
+  const [messageFrequencyError, setMessageFrequencyError] = useState<string | null>(null);
+  const [startTimeError, setStartTimeError] = useState<string | null>(null);
+  const [endTimeError, setEndTimeError] = useState<string | null>(null);
+  const [budgetTypeError, setBudgetTypeError] = useState<string | null>(null);
+  const [isAdminApproved, setIsAdminApproved] = useState<boolean | null>(null);
+  const [isOperatorApproved, setIsOperatorApproved] = useState<boolean | null>(null);
+  const [budgetAndSchedule, setBudgetAndSchedule] = useState<string>("");
+  const [sequentialDelivery, setSequentialDelivery] = useState<boolean | null>(null);
+  const [preventDuplicateMessages, setPreventDuplicateMessages] = useState<boolean | null>(null);
+  const [deliveryStartTime, setDeliveryStartTime] = useState<string>("");
+  const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
+  const [tempSelectedCountries, setTempSelectedCountries] = useState<string[]>([]); 
   
+  const selectedRecipients = 1240;
+  const totalRecipients = 3448;
+  const percentage = Math.round((selectedRecipients / totalRecipients) * 100);
+  const [walletAmount,setWalletAmount]=useState<string>("");
+  const [totalRecepientsdFromAud , setTotalRecepientsFromAud] = useState<string>("");
+  const [SelectedRecipientsFromAud, setSelectedRecipientsFromAud] = useState<number>(0);
+  const [totalRecipientsFromOP, setTotalRecipientsByOP] = useState<number>(0); // total recipients count from operator
+  const [SelectedRecipientsFromOP, setSelectedRecipientsByOP] = useState<number>(0);// by using Country and CampiagnBudget based recipients count from operator
+  const [SelectedLocation, setSelectedLocation] = useState<string[]>([]);
+  const [selectedcampaignBudget, setSelectedCampaignBudget] = useState<number>(0);  //Maha
 
-const [isAdminApproved, setIsAdminApproved] = useState<boolean | null>(null);
-const [isOperatorApproved, setIsOperatorApproved] = useState<boolean | null>(null);
-const [budgetAndSchedule, setBudgetAndSchedule] = useState<string>("");
-//const [messageFrequency, setMessageFrequency] = useState<string>("");
-const [sequentialDelivery, setSequentialDelivery] = useState<boolean | null>(null);
-const [preventDuplicateMessages, setPreventDuplicateMessages] = useState<boolean | null>(null);
-//const [dailyRecipientLimit, setDailyRecipientLimit] = useState<number>(0);
-const [deliveryStartTime, setDeliveryStartTime] = useState<string>("");
-const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
+  const [recipientsData, setRecipientsData] = useState<{
+    campaignBudget: number | null;
+    workspaceId: number | null;
+    location: string | null;
+    totalRecipients: number | null;
+    userPersonalId: number | null;
+    userAccountId: number | null;
+    email: string | null;
+    productName: string | null;
+    perMessage: number | null;
+    totalCost: number | null;
+    remainingAmount: number | null;
+    maxRecipients: number | null;
+  }>({
+    campaignBudget: null,
+    workspaceId: null,
+    location: null,
+    totalRecipients: null,
+    userPersonalId: null,
+    userAccountId: null,
+    email: null,
+    productName: null,
+    perMessage: null,
+    totalCost: null,
+    remainingAmount: null,
+    maxRecipients: null,
+  });
+  
+ 
+  
+  const [showDialog, setShowDialog] = useState(false);
+  const handleDiscard = () => {
+    dispatch(setCreateBreadCrumb(false));
+    navigate("/navbar/campaignlist");
+  };
 
 
-  const [tempSelectedCountries, setTempSelectedCountries] = useState<string[]>([]);  // Temporary storage
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -323,18 +361,26 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     setIsFocusedOrHasValue(true);
   };
 
-  const handleBlur = () => {
-    setHasInteracted(true);
-    validateCampaignName();
-    validateBudget();
-    validateStartDate(campaignStartDate);
+  type FieldName = 'campaignName' | 'campaignBudget' | 'campaignStartDate';
 
-    if (campaignBudget === "") {
-      setIsFocusedOrHasValue(false);
+  const handleBlur = (fieldName: FieldName) => {
+    setHasInteracted(true);
+  
+    switch (fieldName) {
+      case 'campaignName':
+        validateCampaignName(campaignName);
+        break;
+      case 'campaignBudget':
+        validateBudget(campaignBudget);
+        break;
+      case 'campaignStartDate':
+        validateStartDate(campaignStartDate);
+        break;
+      default:
+        break;
     }
   };
-
-
+  
   const handleMultiSelectClose = async () => {
     if (isCardLoading) return; // Prevent multiple clicks
   
@@ -348,13 +394,11 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
   
     setShowRussiaAndKazakhstan(hasRussiaOrKazakhstan);
     setReachPeopleFrom(tempSelectedCountries);
-  
-    // ✅ If Russia/Kazakhstan is NOT selected, do NOT show loader
+
     if (!hasRussiaOrKazakhstan) {
       return;
     }
-  
-    // ✅ Show loader only when needed
+ 
     setIsCardLoading(true);
   
     try {
@@ -367,6 +411,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
         GetBehaviourList(),
         GetDeviceList(),
         GetOSDeviceList(),
+        
       ]);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -513,7 +558,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
         });
       }
       finally{
-      
+
       }
     };
 
@@ -540,6 +585,9 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
             getAudienceList(),
             getTargetCountryList(),
             getRoamingCountryList(),
+            getWalletAmount(),
+            getTotalRecipientsFromOp(),
+            GetSMSPhoneNUmbers(),
             campaignId ? loadCampaignList(campaignId) : Promise.resolve(),
           ]);
           console.log("CmapaignID Check?" ,campaignId );
@@ -560,15 +608,14 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
  
   }, [apiUrlAdvAcc]);
   
-
-  
-
   const handleCampaignNameChange = (value: string) => {
     setCampaignName(value);
-    //validateCampaignName();
-    if (campaignNameError) validateCampaignName(); // Re-validate if there's already an error
-  };
+    
+    // ✅ Immediately validate for duplicates while typing
+    validateCampaignName(value);
 
+  };
+ 
   const handleChannelChange = (value: string) => {
     setChannel(value);
     validateChannel(value); // Pass the updated value for validation
@@ -580,36 +627,77 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     console.log("temp:", template); // Pass the updated value for validation
   };
 
-  const handleAudienceChange = (value: string) => {
-    setAudience(parseInt(value));
-    validateAudience(parseInt(value));
-    console.log("Audi:", audience);
-  };
-
-  const handleReachPeopleFromChange = (values: string[]) => {
+  
+  const handleReachPeopleFromChange = async (values: string[]) => {
+    setReachPeopleFrom(values);
     validateFromCountry(values);
     setTempSelectedCountries(values);
+    console.log("Country Value:", values);
   
-    // Check if Russia/Kazakhstan is selected
-    const hasRussiaOrKazakhstan = values.some((id) =>
-      ["Russia", "Kazakhstan"].includes(
-        targetCountryList.find((c) => c.country_id.toString() === id)
-          ?.country_name ?? ""
+    if (values.length > 0) {
+      setAudience(0);
+    } else if (reachPeopleIn.length === 0) {
+      setAudience(0);
+    }
+  
+    const selectedCountryNames = values
+      .map((id) => 
+        targetCountryList.find((c) => c.country_id.toString() === id)?.country_name ?? ""
       )
-    );
+      .filter(Boolean);
   
-    // Toggle visibility instantly
-    //setShowRussiaAndKazakhstan(hasRussiaOrKazakhstan);
+    setSelectedLocation(selectedCountryNames);
+    console.log("Formatted Country Names:", selectedCountryNames.join(", "));
+  
+    const hasRussiaOrKazakhstan = selectedCountryNames.some((name) =>
+      ["Russia", "Kazakhstan"].includes(name)
+    );
     setHasRussiaOrKazakhstanSelected(hasRussiaOrKazakhstan);
     if (!hasRussiaOrKazakhstan) {
       setShowRussiaAndKazakhstan(false);
     }
+  
+    try {
+      await Promise.all([
+        getTotalRecipientsByCountry(selectedCountryNames.join(",")), 
+        // Use selectedCountryNames directly
+      ]);
+      console.log("success");
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
   
-
   const handleReachPeopleInChange = (values: string[]) => {
     setReachPeopleIn(values);
-    validateInCountry(values); // Pass the updated values for validation
+    validateInCountry(values);
+  
+    if (values.length > 0) {
+      setAudience(0); // Set "None" if a country is selected
+    } else if (reachPeopleFrom.length === 0) {
+      setAudience(0); // Re-enable "Predefined Audience" if both fields are empty
+    }
+  };
+  
+  const handleAudienceChange = async (value: string) => {
+    if (value === "none") {
+      setAudience(0); 
+      setAudienceError(null);// Keep "None" as the default when no country is selected
+    } else {
+      setReachPeopleFrom([]);
+      setReachPeopleIn([]);
+      setAudience(parseInt(value)); // Convert string to number
+    }
+    validateAudience(parseInt(value));
+  
+  try {
+    await Promise.all([
+      getAudienceRecipient(parseInt(totalRecepientsdFromAud),selectedcampaignBudget),]);
+  
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+
   };
 
   const handleAgeChange = (value: string) => {
@@ -654,26 +742,96 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     validateOsDevice(parseInt(value)); // Pass the updated
   };
 
-  const handleCampaignBudgetChange = (
+  const handleCampaignBudgetChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setCampaignBudget(e.target.value);
-    //validateBudget();
-    if (budgetError) validateBudget();
+    const updatedBudget = e.target.value;
+    setCampaignBudget(updatedBudget);
+    validateBudget(updatedBudget);
+    //if (budgetError) validateBudget();
+    try {
+      await Promise.all([
+        audience !== 0
+          ? getAudienceRecipient(parseInt(totalRecepientsdFromAud), parseInt(updatedBudget))
+          : getTotalRecipientsByBudget(updatedBudget),
+      ]);
+    } catch (error) {
+      console.error("Error fetching recipients data:", error);
+    }
+    
   };
 
-  const validateDailyLimit = (): boolean => {
-    if (!isDailyLimitTouched) return true; // Skip validation if input was never clicked
-  
-    const numericValue = Number(dailyRecipientLimit);
-    if (dailyRecipientLimit === "" || isNaN(numericValue) || numericValue < 1 || numericValue > 100) {
-      setDailyLimitError("Please enter a valid percentage between 1 and 100");
-      return false;
+  const handleBudgetTypeChange = (value: string) => {
+    setBudgetType(value);
+    ValidateBudgetType(value);
+    // Revalidate budget when budget type changes (if there's a budget entered)
+    if (campaignBudget) {
+      validateBudget(campaignBudget);
     }
+  };
   
+  const validateDailyLimit = (): boolean => {
+
+     if (typeof dailyRecipientLimit === 'string' && dailyRecipientLimit.trim() === '') {
+    setDailyLimitError('Daily Recipient limit is required');
+    return false;
+  }
+  const numericValue = Number(dailyRecipientLimit);
+  if (isNaN(numericValue) || numericValue < 1 || numericValue > 100) {
+    setDailyLimitError('Please enter a valid percentage between 1 and 100');
+    return false;
+  }  
     setDailyLimitError(null);
     return true;
   };
+  
+
+  const validateMessageFrequency = (value: string | null): boolean => {
+    console.log("validateMessageFrequency:" , value);
+    if (!value) {
+      setMessageFrequencyError("Message frequency is required.");
+      return false;
+    }
+    setMessageFrequencyError("");
+    return true;
+  };
+
+  
+  const ValidateBudgetType = (value: string | null): boolean => {
+    
+    if (!value) {
+      setBudgetTypeError("Budget Type is required.");
+      return false;
+    }
+    setBudgetTypeError("");
+    return true;
+  };
+
+
+  const validateStartTime = (value: string | null) => {
+    if (!value) {
+      setStartTimeError("Start time is required.");
+      return false;
+    }
+    setStartTimeError(null);
+    return true;
+  };
+  
+  const validateEndTime = (value: string | null) => {
+    if (!value) {
+      setEndTimeError("End time is required.");
+      return false;
+    }
+  
+    if (deliveryStartTime && value <= deliveryStartTime) {
+      setEndTimeError("End time must be later than start time.");
+      return false;
+    }
+  
+    setEndTimeError(null);
+    return true;
+  };
+  
 
   const handleFCampaignBudgetChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -704,18 +862,42 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     }
   };
     
+  useEffect(() => {
+    console.log("campaignNames: : --> ", campaignNames); 
+  }, [campaignNames]);
 
   const [hasInteracted, setHasInteracted] = useState(false);
-  const validateCampaignName = (): boolean => {
-    if (!campaignName.trim()) {
+  
+  const validateCampaignName = (name: string): boolean => {
+   
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
       setCampaignNameError("Campaign name is required");
       return false;
     }
+  
+    console.log("campaignNames:", campaignNames, "Entered Campaign Name:", name.trim());
+  
+    if (campaignNames.some((existingName: string) => existingName.trim().toLowerCase() === trimmedName.toLowerCase())) {        
+    setCampaignNameError("The campaign name already exists. Please choose a different name.");
+      return false;
+    }
+
+    const specialCharAtEdgesPattern = /^[^a-zA-Z0-9].*|.*[^a-zA-Z0-9]$/;
+
+    // Test if the trimmed name starts or ends with a special character
+    if (specialCharAtEdgesPattern.test(trimmedName)) {
+      setCampaignNameError("Campaign name should not start or end with a special character.");
+      return false;
+    }
+    
     setCampaignNameError(null);
     return true;
   };
-
+  
   const validateChannel = (value: string): boolean => {
+  console.log("validateChannel" , value);
     if (!value) {
       setChannelError("Please select a channel");
       return false;
@@ -736,6 +918,11 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
 
   const validateAudience = (value: number): boolean => {
     console.log("Audience Value:" , value)
+
+    if (isAudienceDisabled) {
+      setAudienceError(null);
+      return true;
+    }
     if (!value) {
       setAudienceError("Please select a Audience");
       return false;
@@ -744,41 +931,61 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     return true;
   };
 
-  // const validateAudience = (value: string): boolean => {
-  //   console.log("Audi Value:" , value);
-  //   if (!value) {
-  //     setAudienceError("Please select a template");
-  //     return false;
-  //   }
-  //   console.log("Audii Value:" , value);
-  //   setAudienceError(null);
-  //   return true;
-  // };
+const isReachPeopleFromDisabled = audience !== 0 && audience !== null;
+const isReachPeopleInDisabled = audience !== 0 && audience !== null;
+const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 0;
+
 
   const validateFromCountry = (values: string[]): boolean => {
-    if (!values.length) {
+    
+    const isDisabled = audience !== 0 && audience !== null;
+
+  if (isDisabled) {
+    setTargetCountryError(null); // Clear error if field is disabled
+    return true;
+  }
+    if (values.length === 0) {
       setTargetCountryError("Please select a country");
       return false;
     }
+  
     setTargetCountryError(null);
     return true;
   };
-
+  
   const validateInCountry = (values: string[]): boolean => {
-    if (!values.length) {
+    
+    const isDisabled = audience !== 0 && audience !== null;
+
+    if (isDisabled) {
+      setRoamingCountryError(null); // Clear error if field is disabled
+      return true;
+    }
+
+    if (values.length === 0) {
       setRoamingCountryError("Please select a country");
       return false;
     }
+  
     setRoamingCountryError(null);
     return true;
   };
+  
 
-  const validateBudget = (): boolean => {
-    const parsedBudget = parseFloat(campaignBudget);
+  const validateBudget = (value: string): boolean => {
+    const parsedBudget = parseFloat(value);
+    const wallet = parseFloat(walletAmount);
+
     if (!campaignBudget.trim() || isNaN(parsedBudget) || parsedBudget <= 0) {
       setBudgetError("Please enter a valid campaign budget");
       return false;
     }
+
+    if (parsedBudget > wallet) {
+      setBudgetError("You do not have enough balance in your wallet.");
+      return false;
+    }
+
     setBudgetError(null);
     return true;
   };
@@ -911,24 +1118,6 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     } else {
       setEndDateError(null);
     }
-
-    // if (!FcampaignStartDate) {
-    //   setFStartDateError("Start date is required");
-    //   isValid = false;
-    // } else {
-    //   setFStartDateError(null);
-    // }
-
-    // if (!FcampaignEndDate) {
-    //   setFEndDateError("End date is required");
-    //   isValid = false;
-    // } else if (new Date(FcampaignEndDate) < new Date(FcampaignStartDate)) {
-    //   setFEndDateError("End date cannot be earlier than start date");
-    //   isValid = false;
-    // } else {
-    //   setFEndDateError(null);
-    // }
-
     return isValid;
   };
 
@@ -1051,7 +1240,9 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
       );
       if (response.data.status === "Success") {
         setAudienceList(response.data.audienceList);
+        setTotalRecepientsFromAud(response.data.audienceList[0].total_people);
         console.log("audience list: ", response.data.audienceList);
+        console.log("audience Total Recepients: ", response.data.audienceList[0].total_people);
       } else {
         console.error("No audience list found for workspace");
       }
@@ -1104,6 +1295,125 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     }
   };
 
+  const getWalletAmount = async () => {
+    setLoading(true);
+
+    try {
+      const response = await axios.get( `${apiUrlAdvAcc}/GetWalletAmount?workspaceId=` + workspaceId );
+
+
+      if (response.data && response.data.walletAmount) {
+        setWalletAmount(response.data.walletAmount);
+        console.log("wallet Amount  : ", response.data.walletAmount);
+      } else {
+        console.log("No wallet Amount available in response.");
+      }
+    } catch (error) {
+      // Handle error if API call fails
+
+      console.error("Error fetching in get wallet amount:", error);
+    } finally {
+    }
+  };
+
+  const getTotalRecipientsFromOp = async () => {
+    try {
+      const response = await axios.get(`${apiUrlAdvAcc}/GetTotalRecipients`);
+  
+      if (response.data && response.data.status === "Success") {
+        setTotalRecipientsByOP(response.data.totalRecipients);
+        console.log("Total Recipients: ", response.data.totalRecipients);
+      } else {
+        console.log("No recipients available in response.");
+      }
+    } catch (error) {
+      console.error("Error fetching total recipients:", error);
+    }
+  };
+
+  const getTotalRecipientsByCountry = async (countryNames: string) => {
+    try {
+      const response = await axios.get(
+        `${apiUrlAdvAcc}/GetTotalRecipientsByCountry/${countryNames}`
+      );
+  
+      if (response.data && response.data.status === "Success") {
+        setSelectedRecipientsByOP(response.data.totalRecipients);
+        console.log("Total Recipients for", countryNames, ":", response.data.totalRecipients);
+      } else {
+        console.log("No recipients available for", countryNames);
+      }
+    } catch (error) {
+      console.error("Error fetching total recipients:", error);
+    }
+  };
+
+  const getTotalRecipientsByBudget = async (campaignBudgetValue: string) => {
+    try {
+      const response = await axios.get(
+        `${apiUrlAdvAcc}/GetTotalRecipientsByBudget/get-recipients`,
+        {
+          params: {
+            campaignBudget: campaignBudgetValue,
+            workspaceId,
+            location: SelectedLocation.join(","),
+          },
+        }
+      );
+  
+      if (response.data && response.data.status === "Success") {
+        setRecipientsData((prevData) => ({
+          ...prevData, 
+          totalRecipients: response.data.totalRecipients,
+          maxRecipients: response.data.maxRecipients,
+          totalCost: response.data.totalCost,
+          remainingAmount: response.data.remainingAmount,
+        }));
+        setSelectedRecipientsByOP(response.data.totalRecipients);
+        console.log("Total Recipients Data:", response.data);
+      } else {
+        console.log("No recipients data available.");
+      }
+    } catch (error) {
+      console.error("Error fetching total recipients:", error);
+    }
+  };
+  
+  const getAudienceRecipient = async (audienceTotalRecepients: number, campBudget: number) => {
+    try {
+      const response = await axios.get(
+        `${apiUrlAdvAcc}/GetRecipientsByCampaignBudget`,
+        {
+          params: {
+            campBudget,
+            workspaceId,
+            audienceTotalRecepients,
+          },
+        }
+      );
+  
+      if (response.data && response.data.status === "Success") {
+        const { totalRecipients, maxRecipients } = response.data.data || {}; // Ensure response structure
+  
+        setRecipientsData((prevData) => ({
+          ...prevData,
+          ...response.data.data,
+        }));
+  
+        // Update states correctly
+        setSelectedRecipientsFromAud(totalRecipients || 0);
+        //setTotalRecepientsFromAud(maxRecipients || 0); // Ensure maxRecipients updates as well
+  
+        console.log("Audience Recipients Data:", totalRecipients);
+      } else {
+        console.log("No audience recipients data available.");
+      }
+    } catch (error) {
+      console.error("Error fetching audience recipients:", error);
+    }
+  };
+  
+  
   const getAgeList = async () => {
   //  setLoading(true);
 
@@ -1248,10 +1558,46 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
   };
 
 
+  const GetSMSPhoneNUmbers = async () => {
+    
+    try {
+    //  const response = await axios.get(`${apiUrlAdvAcc}/GetSmsPhoneNumbers`);
+      const response = await axios.get( `${apiUrlAdvAcc}/GetSmsPhoneNumbers?workspace_id=` + workspaceId );
+      if (response.data && response.data.phoneNumberList) {
+        setPhoneNumberList(response.data.phoneNumberList);  // Use correct key
+        console.log("Phone List:", response.data.phoneNumberList);
+      } else {
+        console.log("No phone numbers available in response.");
+      }
+      
+    } catch (error) {
+      // Handle error if API call fails
+
+      console.error("Error fetching PhoneList:", error);
+    } 
+  };
+
+
+  useEffect(() => {
+    if (workspaceId) {
+      GetSMSPhoneNUmbers();
+    }
+  }, [workspaceId]);
+
+  // useEffect(() => {
+  //   if (targetCountryList.length > 0) {
+  //     loadCampaignList(campaignId); // Call only if the list is available
+  //   }
+  // }, [targetCountryList, campaignId]);
+  
+  const extractTime = (dateTime: string) => {
+    return dateTime ? dateTime.split("T")[1].slice(0, 5) : ""; // Extract HH:MM
+  }
   const loadCampaignList = async (id: any) => {
     setLoading(true);
 
     try {
+  
       const response = await axios.get(
         `${apiUrlAdvAcc}/GetCampaignDetailsById?CampaignId=` + id
       );
@@ -1265,14 +1611,12 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
         setCampaignBudget(campaignDetailslocal.campaign_budget);
         setUpdateChannel(campaignDetailslocal.channel_type);
         setUpdateTemplate(campaignDetailslocal.template_name);
-        //setUpdateCountry(campaignDetailslocal.target_country);
-        setUpdateRoamingCountry(
-          campaignDetailslocal.roaming_country
-            ? campaignDetailslocal.roaming_country.split(",").map((c: string) => c.trim()) // ✅ Explicitly define c as string
-            : []
-        );
-        
-        setUpdateRoamingCountry(campaignDetailslocal.roaming_country);
+        setUpdateCountry(campaignDetailslocal.target_country || ""); 
+        setUpdateRoamingCountry(campaignDetailslocal.roaming_country || "");
+
+       // dispatch(setTargetCountry(countryIds));
+       //  dispatch(setTargetCountry(['3', '4', '14', '43', '44'])
+
         setUpdateAge(campaignDetailslocal.age);
         setUpdateGender(campaignDetailslocal.gender);
         setUpdateIncomeLevel(campaignDetailslocal.income_level);
@@ -1288,38 +1632,43 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
 
         setIsAdminApproved(campaignDetailslocal.isAdminApproved);
         setIsOperatorApproved(campaignDetailslocal.isOperatorApproved);
-        setBudgetAndSchedule(campaignDetailslocal.budget_and_schedule);
+        setBudgetType(campaignDetailslocal.budget_and_schedule);
         setMessageFrequency(campaignDetailslocal.message_frequency);
         setSequentialDelivery(campaignDetailslocal.sequential_delivery);
         setPreventDuplicateMessages(campaignDetailslocal.prevent_duplicate_messages);
         setDailyRecipientLimit(campaignDetailslocal.daily_recipient_limit);
-        setDeliveryStartTime(campaignDetailslocal.delivery_start_time);
-        setDeliveryEndTime(campaignDetailslocal.delivery_end_time);
+        setDeliveryStartTime(extractTime(campaignDetailslocal.delivery_start_time)); // Sets "10:00"
+        setDeliveryEndTime(extractTime(campaignDetailslocal.delivery_end_time)); // Sets "18:00"
+        
 
         const formattedStartDate =
           campaignDetailslocal.start_date_time.split("T")[0];
-        handleStartDateChange(new Date(formattedStartDate)); // Call handleDateChange for the start date
+        handleStartDateChange(new Date(formattedStartDate)); 
 
-        // Format and set the end date using handleDateChange
         const formattedEndDate =
           campaignDetailslocal.end_date_time.split("T")[0];
+
+
+          const budgetTypeMapping: Record<string, string> = {
+            daily: "Daily budget",
+            lifetime: "Lifetime budget",
+          };
+          
+          const normalizedBudgetType = budgetTypeMapping[campaignDetailslocal.budget_and_schedule.toLowerCase()] || "";
+          
+          setBudgetType(normalizedBudgetType);
+          
+
         handleEndDateChange(new Date(formattedEndDate)); // Call handleDateChange for the end date
         console.log("API Target Country:", campaignDetailslocal.target_country);
         console.log("API Roam Country:", campaignDetailslocal.roaming_country);
         console.log("Updated State Target Country:", updateCountry);
         console.log("Updated State Roaming Country:", updateRoamingCountry);
 
-
-        const formattedTargetCountry = campaignDetailslocal.target_country
-        ? campaignDetailslocal.target_country.split(",").map((c: string) => c.trim())
-        : [];
+       // setReachPeopleIn(['3', '4', '5']);
+      // setReachPeopleFrom( campaignDetailslocal.target_country.split(","));
+        console.log("UP Target:",reachPeopleFrom);
   
-      console.log("✅ Processed Target Country:", formattedTargetCountry);
-  
-      setUpdateCountry(formattedTargetCountry); // Ensure it's an array
-  
-
-
       } else {
         console.log("No campaign details available in response.");
       }
@@ -1329,17 +1678,54 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     }
   };
 
+        // Split country names into an array
+        const countryNamesArray = updateCountry
+        ? updateCountry.split(",").map((name: string) => name.trim())
+        : [];
+
+        // console.log("Processed Country Names Array:", countryNamesArray);
+        // console.log("Available Target Country List:", targetCountryList);
+
+        // Convert country names to country IDs
+        const countryIds = countryNamesArray.map((countryName: string) => {
+       // console.log("Searching for Country Name:", countryName);
+        const selectedCountry = targetCountryList.find(
+          (findcountry: Country) => findcountry.country_name.trim().toLowerCase() === countryName.toLowerCase()
+        );
+        if (selectedCountry) {
+         // console.log(`Match Found: ${selectedCountry.country_name} -> ID: ${selectedCountry.country_id}`);
+        } else {
+         // console.log(`No Match Found for: ${countryName}`);
+        }
+        return selectedCountry ? selectedCountry.country_id.toString() : null;
+        }).filter((id: string | null): id is string => id !== null);
+
+       // console.log("Mapped Target Country IDs:", countryIds);
+
+
+
+  const convertToISO8601 = (time: string) => {
+    // Get the current date in YYYY-MM-DD format
+    const today = new Date();
+    const baseDate = today.toISOString().split("T")[0]; // Extract only the date part
+  
+    // Append the time and convert to ISO 8601 format
+    const isoDate = new Date(`${baseDate}T${time}:00.000Z`).toISOString();
+  
+    return isoDate;
+  };
+
   const handleSubmit = async () => {
     setIsDailyLimitTouched(true);
     
-    const isCampaignNameValid = validateCampaignName();
+    const isCampaignNameValid = validateCampaignName(campaignName);
     const isChannelValid = validateChannel(channel);
     const isTemplateValid = validateTemplate(template);
     const isAudienceValid = validateAudience(audience);
     //const isAudienceValid = validateAudience(audience.toString());
     const isFromCountryValid = validateFromCountry(reachPeopleFrom);
     const isInCountryValid = validateInCountry(reachPeopleIn);
-    const isBudgetValid = validateBudget();
+    const isBudgetValid = validateBudget(campaignBudget);
     const isFBudgetValid = validateFBudget();
     const isStartDateValid = validateStartDate(campaignStartDate);
     const isEndDateValid = validateEndDate(campaignEndDate);
@@ -1353,6 +1739,10 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     const isDeviceValid = validateDevice(device);
     const isOsDeviceValid = validateOsDevice(osDevice);
     const isDailyLimitValid = validateDailyLimit();
+    const isValidStartTime = validateStartTime(deliveryStartTime);
+    const isValidEndTime = validateEndTime(deliveryEndTime);
+    const isValidFrequency = validateMessageFrequency(messageFrequency);
+    const isValidBudgetType = ValidateBudgetType(budgetType);
 
     if (!isDailyLimitValid) {
       setDailyLimitError("Please enter a valid percentage between 1 and 100"); // Ensure error message appears on submit
@@ -1369,41 +1759,17 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
       !isBudgetValid ||
       !isStartDateValid ||
       !isEndDateValid ||
-      !isDailyLimitValid
-      //!areDatesValid
-      // !isAgeValid ||
-      // !isGenderValid ||
-      // !isIncomeLevelValid ||
-      // !isLocationValid ||
-      //  !isInterestValid ||
-      //  !isBehaviourValid ||
-      //  !isDeviceValid ||
-      //  !isOsDeviceValid
+      !isDailyLimitValid ||
+      !isValidStartTime ||
+      !isValidEndTime ||
+      !isValidFrequency||
+      !isValidBudgetType
+
     ) {
       return;
     }
 
     try {
-      console.log("API Calling : ");
-      console.log("Age : " + age);
-      console.log("Gender:", gender);
-      console.log("Income Level : " + incomeLevel);
-      console.log("Location : " + locationcity);
-      console.log("Interest : " + interest);
-      console.log("Behaviour : " + behaviour);
-      console.log("Device : " + device);
-      console.log("OS Device : " + osDevice);
-      console.log("Channel :", channel);
-      console.log("Audi:", audience);
-      console.log("AudiN:", Number(audience));
-      // debugger;
-      // const
-      //  channelId = channelList.find(
-      //   (data) => data.channel_name === channel
-      // );
-      //  debugger;
-      
-
       const data = {
         CampaignName: campaignName,
         CampaignBudget: campaignBudget,
@@ -1412,8 +1778,6 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
         RoamingCountry: JSON.stringify(reachPeopleIn),
         StartDateTime: formatingDate(campaignStartDate),
         EndDateTime: formatingDate(campaignEndDate),
-        // FStartDateTime: formatingDate(FcampaignStartDate),
-        // FEndDateTime: formatingDate(FcampaignEndDate),
         status: "In review",
         TemplateName: template,
         CreatedBy: 1,
@@ -1437,18 +1801,18 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
         fStartDateTime: "2025-01-02T05:37:38.105Z",
         fEndDateTime: "2025-01-02T05:37:38.105Z",
        // campaignId: 495, // Hardcoded Campaign ID
-        isAdminApproved: "", // Placeholder
-        isOperatorApproved: "", // Placeholder
-        budgetAndSchedule: budgetType, // Placeholder
-        messageFrequency: "string", // Placeholder
-        sequentialDelivery: "string", // Placeholder
-        preventDuplicateMessages: "string", // Placeholder
-        dailyRecipientLimit: dailyRecipientLimit, // Hardcoded as per request
-        deliveryStartTime: "2025-01-31T05:11:44.329Z", // Hardcoded DateTime
-        deliveryEndTime: "2025-01-31T05:11:44.329Z" // Hardcoded DateTime
+        isAdminApproved: "", 
+        isOperatorApproved: "", 
+        budgetAndSchedule: budgetType, 
+        messageFrequency: messageFrequency, 
+        sequentialDelivery: "Enabled", 
+        preventDuplicateMessages: "Disabled", 
+        dailyRecipientLimit: dailyRecipientLimit, 
+        deliveryStartTime: convertToISO8601(deliveryStartTime), 
+        deliveryEndTime: convertToISO8601(deliveryEndTime),
+        sms_number: selectedPhoneNumber,
       };
       
-
       // debugger;
       console.log(data);
       //debugger;
@@ -1464,7 +1828,8 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
           } else {
             console.log("Api could not fetch campaign contacts for workspace");
           }
-        } catch (error) {
+        } 
+		catch (error) {
           console.log("Error in capaign contact api: ", error);
         } finally {
           resetForm();
@@ -1576,7 +1941,8 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     // );
     // const updateCountryId = selectedCountry ? selectedCountry.country_id : null;
 
-    const countryArray = updateCountry.split(","); // Split the string into an array
+    const countryArray = updateCountry.split(",").map((c) => c.trim()); // Convert string to an array
+    //const countryArray = updateCountry.split(","); // Split the string into an array
 
     const countryIds = countryArray
       .map((countryName) => {
@@ -1589,9 +1955,9 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
       .filter((id) => id !== null); 
 
     const updateCountryId = JSON.stringify(countryIds);
-
+    console.log("updateTargetCountryId 1: ", updateCountryId);
     const roamingCountryArray = updateRoamingCountry.split(","); 
-
+    
     const roamingCountryIds = roamingCountryArray
       .map((countryName) => {
         const selectedCountry = roamingCountryList.find(
@@ -1613,15 +1979,21 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
       reachPeopleFrom.length === 0 // Check if the array is empty
         ? updateRoamingCountryId // Use the array of IDs
         : reachPeopleIn.map((id) => id.trim());
+  
+        debugger;
+        console.log("Targ Count:" , );
+        console.log("logs:" , Array.isArray(TargetCountry) ? TargetCountry : [TargetCountry]);
+       // dispatch(setTargetCountry(Array.isArray(TargetCountry) ? TargetCountry : [TargetCountry]));
 
+       // dispatch(setTargetCountry(['4']));
     if (
-      !validateCampaignName() &&
+      !validateCampaignName(campaignName) &&
       !validateChannel(channel) &&
       !validateTemplate(template) &&
       !validateAudience(audience) &&
       !validateFromCountry(reachPeopleFrom) &&
       !validateInCountry(reachPeopleIn) &&
-      !validateBudget() &&
+      !validateBudget(campaignBudget) &&
       !validateFBudget() &&
       !validateStartDate(campaignStartDate) &&
       !validateEndDate(campaignEndDate) &&
@@ -1633,7 +2005,8 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
       !validateInterest(interest) &&
       !validateBehaviour(behaviour) &&
       !validateDevice(device) &&
-      !validateOsDevice(osDevice)
+      !validateOsDevice(osDevice)&&
+      !validateDailyLimit()
     ) {
       return;
     }
@@ -1681,15 +2054,15 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
         fStartDateTime: "2025-01-02T05:37:38.105Z",
         fEndDateTime: "2025-01-02T05:37:38.105Z",
 
-        isAdminApproved: "string", 
-        isOperatorApproved: "string", 
-        budgetAndSchedule: "string", 
-        messageFrequency: "string", 
-        sequentialDelivery: "string", 
-        preventDuplicateMessages: "string", // Placeholder
-        dailyRecipientLimit: 0, // Hardcoded as per request
-        deliveryStartTime: "2025-01-31T06:07:59.625Z", // Hardcoded DateTime
-        deliveryEndTime: "2025-01-31T06:07:59.625Z"
+        isAdminApproved: "NULL", 
+        isOperatorApproved: "NULL", 
+        budgetAndSchedule: budgetType, 
+        messageFrequency: messageFrequency, 
+        sequentialDelivery: "Enabled", 
+        preventDuplicateMessages: "Disabled", 
+        dailyRecipientLimit: dailyRecipientLimit, 
+        deliveryStartTime: convertToISO8601(deliveryStartTime), 
+        deliveryEndTime: convertToISO8601(deliveryEndTime)
       };
       // debugger;
       console.log(data);
@@ -1831,23 +2204,46 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
       <>
 
         <div className="fixed flex justify-end gap-4 mr-[40px] items-end right-[0px] top-[-15px] z-20 ">
+          
           <Button
             variant={"outline"}
             className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-            onClick={() => {
-              dispatch(setCreateBreadCrumb(false));
-              navigate("/navbar/campaignlist");
-            }}
+            // onClick={() => {
+            //   dispatch(setCreateBreadCrumb(false));
+            //   navigate("/navbar/campaignlist");
+            // }}
+            onClick={() => setShowDialog(true)}
           >
             Discard
           </Button>
+          {/* Confirmation Dialog */}
+      {showDialog && (
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogContent>
+            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to discard the changes? This action cannot be undone.
+            </DialogDescription>
+            <DialogFooter className="flex justify-end gap-2">
+              <Button variant="outline" className="w-[120px] px-3 py-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white" onClick={() => setShowDialog(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" className="w-[120px] px-3 py-2 border-gray-300 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleDiscard}>
+               OK
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
           <Button
             className="w-[80px] text-[#F8FAFC]"
             onClick={() => {
               if (campaignId) {
-                handleEdit(); // Call handleEdit if campaignId exists
+                handleEdit(); 
+                console.log(" Camp Edit"); // Call handleEdit if campaignId exists
               } else {
-                handleSubmit(); // Call handleSubmit if campaignId does not exist
+                handleSubmit();
+                console.log("camp submit"); // Call handleSubmit if campaignId does not exist
               }
               console.log("Clicked"); // Log the click event
             }}
@@ -1857,7 +2253,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
         </div>
         <div className="gap-4 flex ">
           <div className="ml-4">
-            <Card className="w-[580px] mt-2 p-4 shadow-sm">
+            <Card className="w-[600px] mt-2 p-4 shadow-sm">
               <div className="text-left">
                 <h3 className="text-base font-bold text-[#020617] text-left">
                   Create campaign
@@ -1876,7 +2272,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     placeholder={"New campaign - " + getCurrentDateTime()}
                     value={campaignName}
                     onChange={(e) => handleCampaignNameChange(e.target.value)}
-                    onBlur={handleBlur}
+                    onBlur={() => handleBlur('campaignName')}
                     onFocus={handleFocus}
                     className="mt-2 text-[#64748B] text-sm font-normal"
                   />
@@ -1899,11 +2295,12 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       handleChannelChange(value);
                       channelFilter(value);
                       console.log("Selected Channel ID:", value);
+                      setTemplateError("");
                     }}
                   >
-                    <SelectTrigger className="text-gray-500 mt-2">
+                    <SelectTrigger className="text-gray-500 mt-2 cursor-pointer">
                       <SelectValue
-                        className="text-[#64748B] text-sm font-normal"
+                        className="text-[#64748B] text-sm font-normal cursor-pointer"
                         placeholder={
                           campaignId
                             ? updateChannel
@@ -1915,11 +2312,11 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       {channelList
                         .filter(
                           (channel) =>
-                            channel.channel_name.toLowerCase() === "whatsapp"
+                            ["whatsapp", "sms"].includes(channel.channel_name.toLowerCase()) // Filter both SMS & WhatsApp
                         ) // Filter WhatsApp channel
                         .map((channel) => (
                           <SelectItem
-                            className="text-[#64748B] text-sm font-normal"
+                            className="text-[#64748B] text-sm font-normal cursor-pointer"
                             key={channel.channel_id}
                             value={channel.channel_id as any}
                           >
@@ -1940,18 +2337,67 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     className="mt-2 font-medium text-[#020617]"
                     style={{ fontSize: "14px" }}
                   >
+                     Phone Number
+                  </Label>
+      <Select
+        value={selectedPhoneName}
+        onValueChange={(value) => {
+          const selectedPhone = phoneNumberList.find((phone) => phone.phone_name === value);
+          if (selectedPhone) {
+            setSelectedPhoneName(selectedPhone.phone_name);
+            setSelectedPhoneNumber(selectedPhone.phone_number);
+            console.log("Selected Phone Name:", selectedPhone.phone_name);
+            console.log("Selected Phone Number:", selectedPhone.phone_number);
+          }
+        }}
+      >
+      <SelectTrigger className="text-gray-500 mt-2 cursor-pointer">
+     <SelectValue
+           className="text-[#64748B] text-sm font-normal cursor-pointer"
+           placeholder="Select Phone Name" />
+        </SelectTrigger>
+        <SelectContent>
+          {phoneNumberList.length > 0 ? (
+            phoneNumberList.map((phone) => (
+              <SelectItem key={phone.id} value={phone.phone_name} className="text-sm text-[#64748B]">
+                {phone.phone_name}
+              </SelectItem>
+            ))
+          ) : (
+            <div className="text-gray-500 p-2">No phone numbers available</div>
+          )}
+        </SelectContent>
+      </Select>
+    </div>
+
+                <div className="mt-4 mb-4">
+                  <Label
+                    htmlFor="template"
+                    className="mt-2 font-medium text-[#020617]"
+                    style={{ fontSize: "14px" }}
+                  >
                     Template
                   </Label>
                   <Select
                     value={template}
                     onValueChange={(value) => {
+                      if (!channel) {
+                        setTemplateError("Please select a channel first"); // Show error if no channel is selected
+                        return;
+                      }
                       console.log("Selected Template ID:", value);
                       handleTemplateChange(value);
-                    }} // Use onValueChange instead of onChange
+                      setTemplateError(""); 
+                    }} 
+                    onOpenChange={(isOpen) => {
+                      if (isOpen && !channel) {
+                        setTemplateError("Please select a channel first"); // Show error when opening template without a channel
+                      }
+                    }}
                   >
-                    <SelectTrigger className="text-gray-500 mt-2">
+                    <SelectTrigger className="text-gray-500 mt-2 cursor-pointer">
                       <SelectValue
-                        className="text-[#64748B] text-sm font-normal"
+                        className="text-[#64748B] text-sm font-normal cursor-pointer"
                         placeholder={
                           campaignId
                             ? updateTemplate
@@ -1964,7 +2410,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         <>
                           {/* {setChannel(template.channel_type)} */}
                           <SelectItem
-                            className="text-[#64748B] text-sm font-normal"
+                            className="text-[#64748B] text-sm font-normal cursor-pointer"
                             key={template.template_id}
                             value={template.template_id as any}
                           >
@@ -1974,20 +2420,24 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       ))}
                     </SelectContent>
                   </Select>
-                  {templateError && (
-                    <p className="text-red-500 text-sm">{templateError}</p>
+                  
+               
+                {templateError && (
+                    <p className="text-red-500 text-sm mt-1">{templateError}</p>
                   )}
-                </div>
                 {/* Add small gray text below */}
-                <p className="text-gray-500 text-xs mt-0">
+                <p className="text-gray-500 text-xs mt-1">
                   Note: To start a campaign, you must first create and add a
                   template. Campaigns can only be initiated after a template has
                   been successfully added.
                 </p>
               </div>
+             
+
+    </div>
             </Card>
 
-            <Card className="w-[580px] mt-6 p-4 shadow-sm">
+            <Card className="w-[600px] mt-6 p-4 shadow-sm">
               <div className="mt-2 text-left">
                 <h3
                   className="text-base text-[#020617] font-bold text-left"
@@ -2013,7 +2463,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     Reach people from
                   </Label>
                   <MultiSelect
-                    className="text-[#64748B] text-sm font-normal mt-1"
+                    className="text-[#64748B] text-sm font-normal mt-1 cursor-pointer"
                     options={targetCountryList.map((country) => ({
                       label: country.country_name,
                       value: country.country_id.toString(), // Convert ID to string
@@ -2024,24 +2474,23 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       handleReachPeopleFromChange(values); // Update selected values
                     }}
                   //  onValueChange={handleReachPeopleFromChange}
-                    // defaultValue={
-                    //   updateCountry
-                    //     ? Array.isArray(updateCountry)
-                    //       ? updateCountry.map(String) // Ensure it's an array of strings
-                    //       : [updateCountry.toString()] // Convert single value to an array
-                    //     : [] // Default to an empty array if no value is present
-                    // }
-                    value={tempSelectedCountries.length > 0 ? tempSelectedCountries : []} // Ensuring proper binding
-                    placeholder={tempSelectedCountries.length > 0 ? tempSelectedCountries.join(", ") : "Select country"}
-// Bind pre-selected values
-                   //value={reachPeopleFrom}
-                   // placeholder={campaignId ? updateCountry : "Select country"}
-                    maxCount={3}
-                    variant="inverted"
-                    onClose={handleMultiSelectClose} 
+                    defaultValue={
+                      updateCountry
+                        ? Array.isArray(updateCountry)
+                          ? updateCountry.map(String) // Ensure it's an array of strings
+                          : [updateCountry.toString()] // Convert single value to an array
+                        : [] // Default to an empty array if no value is present
+                    }
+
+                  value={reachPeopleFrom}
+                  placeholder={campaignId ? updateCountry : "Select country"}
+                  maxCount={3}
+                  variant="inverted"
+                  onClose={handleMultiSelectClose} 
+                  disabled={audience !== 0}
                   />
 
-                  {targetCountryError && (
+                  {!isReachPeopleFromDisabled && targetCountryError && (
                     <p className="text-red-500 text-sm">{targetCountryError}</p>
                   )}
                 </div>
@@ -2053,14 +2502,13 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     Reach people traveling to
                   </Label>
                   <MultiSelect
-                    className="text-[#64748B] text-sm font-normal mt-1"
+                    className="text-[#64748B] text-sm font-normal mt-1 cursor-pointer"
                     options={roamingCountryList.map((country) => ({
                       label: country.country_name,
                       value: country.country_id.toString(), // Convert to string
                     }))}
                     onValueChange={(values) => {
                       console.log("Selected Country IDs:", values);
-                      console.log("RoamCountry:::" , updateRoamingCountry);
                       handleReachPeopleInChange(values); // Expecting values as string[]
                     }}
                     value={reachPeopleFrom}
@@ -2069,8 +2517,10 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     }
                     maxCount={3}
                     variant="inverted"
+                    disabled={audience !== 0}
+
                   />
-                  {roamingCountryError && (
+                  { !isReachPeopleInDisabled && roamingCountryError && (
                     <p className="text-red-500 text-sm">
                       {roamingCountryError}
                     </p>
@@ -2085,26 +2535,34 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                   </Label>
                   <Select
                     // value={age.toString()}
-                    value={audience !== 0 ? audience.toString() : undefined}
+                    value={audience !== 0 ? audience.toString() : "none"}
                     onValueChange={(value) => {
                       console.log("Selected audience ID:", value);
                       console.log("Updated audience:", updateAudience);
                       handleAudienceChange(value);
                     }}
+                    disabled={reachPeopleFrom.length > 0 || reachPeopleIn.length > 0} 
                   >
-                    <SelectTrigger className="text-gray-500 mt-2">
+                    <SelectTrigger className="text-gray-500 mt-2 cursor-pointer">
                       <SelectValue
-                        className="text-[#64748B] text-sm font-normal"
+                        className="text-[#64748B] text-sm font-normal cursor-pointer"
                         // placeholder={age === 0 ? "Select Age" : age}
                         placeholder={campaignId ? updateAudience : "Audience"}
                       />
                     </SelectTrigger>
                     <SelectContent>
+                    <SelectItem
+                      className="text-[#64748B] text-sm font-normal cursor-pointer"
+                      key="none"
+                      value="none"
+                    >
+                      None
+                    </SelectItem>
                       {audienceList.map((audience) => (
                         <>
                           {/* {setChannel(template.channel_type)} */}
                           <SelectItem
-                            className="text-[#64748B] text-sm font-normal"
+                            className="text-[#64748B] text-sm font-normal cursor-pointer" 
                             key={audience.list_id}
                             value={audience.list_id.toString()}
                           >
@@ -2114,7 +2572,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       ))}
                     </SelectContent>
                   </Select>
-                  {AudienceError && (
+                  {!isAudienceDisabled && audience !== 0 && AudienceError && (
                     <p className="text-red-500 text-sm">{AudienceError}</p>
                   )}
                 </div>
@@ -2130,7 +2588,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
     <CircularProgress color="primary" />
     </div>
      ) :showRussiaAndKazakhstan ? (
-              <Card className="w-[580px] mt-6 p-4 shadow-sm">
+              <Card className="w-[600px] mt-6 p-4 shadow-sm">
                 <div className="mt-2 text-left">
                   <h3 className="text-base text-[#020617] font-bold text-left">
                     Target segment (Russia and Kazakhstan only)
@@ -2162,7 +2620,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           handleAgeChange(value);
                         }}
                       >
-                        <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3">
+                        <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3 cursor-pointer">
                           <SelectValue
                             placeholder={campaignId ? updateAge : "Age"} // Placeholder or selected value
                             className="text-[#ecf4ff] text-sm font-normal"
@@ -2171,7 +2629,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         <SelectContent>
                           {ageList.map((age) => (
                             <SelectItem
-                              className="text-[#64748B] text-sm font-normal"
+                              className="text-[#64748B] text-sm font-normal cursor-pointer"
                               key={age.id}
                               value={age.id.toString()}
                             >
@@ -2183,22 +2641,6 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     </div>
 
                     <div className="flex-1">
-                      {/* <Label htmlFor="gender" className="text-sm font-normal text-[#020617]">
-              Gender
-            </Label> */}
-                      {/* <Select
-                          value={gender ! ==0 ? gender.toString() : undefined}
-                          onValueChange={(value) => {
-                            console.log("Selected gender ID:", value);
-                            handleGenderChange(value);
-                          }} >
-                        <SelectTrigger className="text-gray-500 mt-7">
-                          <SelectValue
-                            className="text-[#64748B] text-sm font-normal"
-                            
-                            placeholder={campaignId ? updateGender : "Gender"}
-                          />
-                        </SelectTrigger> */}
                       <Select
                         value={gender !== 0 ? gender.toString() : undefined} // Dynamically bind selected value
                         onValueChange={(value) => {
@@ -2206,7 +2648,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           handleGenderChange(value);
                         }}
                       >
-                        <SelectTrigger className="text-gray-500 mt-7 flex items-center justify-between px-3">
+                        <SelectTrigger className="text-gray-500 mt-7 flex items-center justify-between px-3 cursor-pointer">
                           <SelectValue
                             placeholder={campaignId ? updateGender : "Gender"} // Placeholder or selected value
                             className="text-[#64748B] text-sm font-normal"
@@ -2220,7 +2662,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           {genderList.map((gender) => (
                             <>
                               <SelectItem
-                                className="text-[#64748B] text-sm font-normal"
+                                className="text-[#64748B] text-sm font-normal cursor-pointer"
                                 key={gender.id}
                                 value={gender.id.toString()}
                               >
@@ -2245,19 +2687,19 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           handleIncomeLevelChange(value);
                         }}
                       >
-                        <SelectTrigger className="text-gray-500 mt-7 flex items-center justify-between px-3">
+                        <SelectTrigger className="text-gray-500 mt-7 flex items-center justify-between px-3 cursor-pointer">
                           <SelectValue
                             placeholder={
                               campaignId ? updateIncomeLevel : "IncomeLevel"
                             } // Placeholder or selected value
-                            className="text-[#64748B] text-sm font-normal"
+                            className="text-[#64748B] text-sm font-normal cursor-pointer"
                           />
                         </SelectTrigger>
                         <SelectContent>
                           {IncomeLevelList.map((incomeLevel) => (
                             <>
                               <SelectItem
-                                className="text-[#64748B] text-sm font-normal"
+                                className="text-[#64748B] text-sm font-normal cursor-pointer"
                                 key={incomeLevel.id}
                                 value={incomeLevel.id.toString()}
                               >
@@ -2287,7 +2729,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         handleLocationChange(value);
                       }}
                     >
-                      <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3">
+                      <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3 cursor-pointer">
                         <SelectValue
                           className="text-[#64748B] text-sm font-normal"
                           placeholder={
@@ -2300,11 +2742,11 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
               <SelectItem value="Almaty" className="text-[#64748B] text-sm font-normal">Almaty</SelectItem>
             </SelectContent> */}
 
-                      <SelectContent>
+                      <SelectContent> 
                         {locationList.map((locationcity) => (
                           <>
                             <SelectItem
-                              className="text-[#64748B] text-sm font-normal"
+                              className="text-[#64748B] text-sm font-normal cursor-pointer"
                               key={locationcity.id}
                               value={locationcity.id.toString()}
                             >
@@ -2332,7 +2774,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         handleInterestChange(value);
                       }}
                     >
-                      <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3">
+                      <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3 cursor-pointer">
                         <SelectValue
                           placeholder={
                             campaignId ? updateInterest : "Select interest"
@@ -2348,7 +2790,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         {interestList.map((interest) => (
                           <>
                             <SelectItem
-                              className="text-[#64748B] text-sm font-normal"
+                              className="text-[#64748B] text-sm font-normal cursor-pointer"
                               key={interest.id}
                               value={interest.id.toString()}
                             >
@@ -2375,9 +2817,9 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         handleBehaviourChange(value);
                       }}
                     >
-                      <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3">
+                      <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3 cursor-pointer">
                         <SelectValue
-                          className="text-[#64748B] text-sm font-normal"
+                          className="text-[#64748B] text-sm font-normal cursor-pointer"
                           placeholder={
                             campaignId ? updateBehaviour : "Select Behaviour"
                           }
@@ -2392,7 +2834,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         {behaviourList.map((behaviour) => (
                           <>
                             <SelectItem
-                              className="text-[#64748B] text-sm font-normal"
+                              className="text-[#64748B] text-sm font-normal cursor-pointer"
                               key={behaviour.id}
                               value={behaviour.id.toString()}
                             >
@@ -2420,9 +2862,9 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           handleOsDeviceChange(value);
                         }}
                       >
-                        <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3">
+                        <SelectTrigger className="text-gray-500 mt-2 flex items-center justify-between px-3 cursor-pointer">
                           <SelectValue
-                            className="text-[#64748B] text-sm font-normal"
+                            className="text-[#64748B] text-sm font-normal cursor-pointer"
                             placeholder={
                               campaignId
                                 ? updateOsDevice
@@ -2435,7 +2877,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           {osList.map((os_device) => (
                             <>
                               <SelectItem
-                                className="text-[#64748B] text-sm font-normal"
+                                className="text-[#64748B] text-sm font-normal cursor-pointer"
                                 key={os_device.id}
                                 value={os_device.id.toString()}
                               >
@@ -2455,9 +2897,9 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           handleDeviceChange(value);
                         }}
                       >
-                        <SelectTrigger className="text-gray-500 mt-7 mr-6 flex items-center justify-between px-3">
+                        <SelectTrigger className="text-gray-500 mt-7 mr-6 flex items-center justify-between px-3 cursor-pointer">
                           <SelectValue
-                            className="text-[#64748B] text-sm font-normal"
+                            className="text-[#64748B] text-sm font-normal cursor-pointer"
                             placeholder={
                               campaignId ? updateDevice : "Select device"
                             }
@@ -2468,7 +2910,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                           {deviceList.map((device) => (
                             <>
                               <SelectItem
-                                className="text-[#64748B] text-sm font-normal"
+                                className="text-[#64748B] text-sm font-normal cursor-pointer"
                                 key={device.id}
                                 value={device.id.toString()}
                               >
@@ -2500,16 +2942,18 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     </Label>
                     <Select
                       value={budgetType}
-                      onValueChange={(value) => setBudgetType(value)}
-                    >
-                      <SelectTrigger className="mt-2 w-full border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-2 focus:ring-ring">
+                      onValueChange={(value) => {
+                        handleBudgetTypeChange(value);
+                        }} >
+                      <SelectTrigger className="mt-2 w-full cursor-pointer border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-2 focus:ring-ring">
                         <SelectValue placeholder="Select budget type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="daily">Daily budget</SelectItem>
-                        <SelectItem value="lifetime">Lifetime budget</SelectItem>
+                        <SelectItem value="Daily budget" className="cursor-pointer">Daily budget</SelectItem>
+                        <SelectItem value="Lifetime budget" className="cursor-pointer">Lifetime budget</SelectItem>
                       </SelectContent>
                     </Select>
+                     {budgetTypeError && <p className="text-red-500 text-sm mt-1">{budgetTypeError}</p>}
                   </div>
 
                   {/* Budget Amount Input */}
@@ -2518,7 +2962,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     htmlFor="campaignBudget"
                     className="text-sm font-medium text-[#020617]"
                   >
-                    {budgetType === 'daily' ? 'Daily budget' : 'Lifetime budget'}
+                    {budgetType ? budgetType : "Budget type"}
                   </Label>
                   <div className="relative mt-2">
                   <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring">
@@ -2528,16 +2972,16 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       type="number"
                       value={campaignBudget}
                       placeholder="10.00"
-                       className="w-full border-0 bg-transparent p-0 pl-1 focus:outline-none focus:ring-0"
+                      className="w-full border-0 bg-transparent p-0 pl-1 focus:outline-none focus:ring-0"
                       onChange={handleCampaignBudgetChange}
                       onFocus={handleFocus}
-                      onBlur={handleBlur}
-                      
+                      //onBlur={() => handleBlur('campaignBudget')}
+                      onBlur={() => validateBudget(campaignBudget)}
                     />
                     <span className="text-[#64748B] text-sm font-normal">
                       {currencyData.length > 0
                         ? currencyData[0].currency_name
-                        : "null"}
+                        : ""}
                     </span>
                   </div>
                   {budgetError && (
@@ -2554,7 +2998,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                   >
                     Campaign start date
                   </Label>
-                  <div className="relative mt-2 text-[#64748B] text-sm font-normal">
+                  <div className="relative w-full flex items-center border border-gray-300 rounded px-2">
                     <input
                       id="campaignStartDate"
                       type="text"
@@ -2565,14 +3009,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         if (/^[0-9/]*$/.test(input)) {
                           setCampaignStartDate(input);
                         }
-                      }}
-                      onFocus={handleFocus}
-                      onBlur={() => {
-                        if (!campaignStartDate.trim()) {
-                          setStartDateError("Start date is required"); // Reset error if field is empty
-                          return;
-                        }
-                          const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+                     const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
                           if (!dateRegex.test(campaignStartDate)) {
                             setStartDateError("Invalid date format (dd/MM/yyyy required)");
                             return;
@@ -2589,9 +3026,18 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                         handleStartDateChange(dateValue);
 
                       }}
+                      onFocus={handleFocus}
+                      onBlur={() => {
+                        if (!campaignStartDate.trim()) {
+                          setStartDateError("Start date is required"); // Reset error if field is empty
+                          return;
+                        }
+                          
+
+                      }}
                       placeholder="dd/mm/yyyy"
                       style={{ fontSize: "14px" }}
-                      className="w-full p-2 border border-gray-300 rounded text-[#64748B] text-sm font-normal"
+                      className="w-full p-2 text-[#64748B] text-sm font-normal pr-10 bg-transparent focus:outline-none"
                     />                  
                     <Popover
                       open={isStartCalendarOpen}
@@ -2627,10 +3073,11 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       />
                       </PopoverContent>
                     </Popover>
-                    {startdateError && (
-                      <p className="text-red-500 text-sm h-[20px]">{startdateError}</p>
-                    )}
+                   
                   </div>
+                  {startdateError && (
+                      <p className="text-red-500 text-sm mt-1">{startdateError}</p>
+                    )}
                 </div>
                 <div className="mt-4">
                 <Label
@@ -2639,7 +3086,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                 >
                   Campaign end date
                 </Label>
-                <div className="relative mt-2 text-[#64748B] text-sm font-normal">
+                <div className="relative w-full flex items-center border border-gray-300 rounded px-2">
                   <input
                     id="campaignEndDate"
                     type="text"
@@ -2673,11 +3120,12 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     }}
                     placeholder="dd/mm/yyyy"
                     style={{ fontSize: "14px" }}
-                    className="w-full p-2 border border-gray-300 rounded text-[#64748B] text-sm font-normal"
+                    className="w-full p-2 text-[#64748B] text-sm font-normal pr-10 bg-transparent focus:outline-none"
                   />
+            
                   <Popover open={isEndCalendarOpen} onOpenChange={setEndCalendarOpen}>
                     <PopoverTrigger asChild>
-                      <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <button className="absolute right-3 top-1/2 transform -translate-y-1/2">
                         <CalendarIcon className="text-gray-500" />
                       </button>
                     </PopoverTrigger>
@@ -2700,10 +3148,8 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       />
                     </PopoverContent>
                   </Popover>
-                  {enddateError && (
-                    <p className="text-red-500 text-sm h-[20px]">{enddateError}</p>
-                  )}
-                </div>
+                  </div>
+                {enddateError && (<p className="text-red-500 text-sm mt-1 ">{enddateError}</p> )}
               </div>
               </div>
             </Card>
@@ -2731,11 +3177,12 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                       onBlur={validateDailyLimit}
                       onFocus={() => setIsDailyLimitTouched(true)}
                     />
-                    {dailyLimitError && <p className="text-red-500 text-sm mt-1">{dailyLimitError}</p>}
+                   
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                       <span className="text-gray-500 text-sm">%</span>
                     </div>
                   </div>
+                  {dailyLimitError && <p className="text-red-500 text-sm mt-1">{dailyLimitError}</p>}
                   <p className="mt-1 text-sm text-gray-500">
                     Percentage of total recipients to message each day
                   </p>
@@ -2747,19 +3194,25 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                     Message frequency
                   </Label>
                   <div className="mt-2">
-                    <Select>
-                      <SelectTrigger className="w-full">
+                  <Select 
+                  value={messageFrequency ?? undefined} 
+                  onValueChange={(value) =>{
+                     setMessageFrequency(value)  
+                     validateMessageFrequency(value);
+                  }}>
+                      <SelectTrigger className="w-full cursor-pointer">
                         <SelectValue placeholder="Select sending frequency" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">Every day</SelectItem>
-                        <SelectItem value="2">Every 2 days</SelectItem>
-                        <SelectItem value="3">Every 3 days</SelectItem>
-                        <SelectItem value="7">Once a week</SelectItem>
-                        <SelectItem value="14">Every 2 weeks</SelectItem>
-                        <SelectItem value="30">Once a month</SelectItem>
+                        <SelectItem value="1" className="cursor-pointer">Every day</SelectItem>
+                        <SelectItem value="2" className="cursor-pointer">Every 2 days</SelectItem>
+                        <SelectItem value="3" className="cursor-pointer">Every 3 days</SelectItem>
+                        <SelectItem value="7" className="cursor-pointer">Once a week</SelectItem>
+                        <SelectItem value="14" className="cursor-pointer">Every 2 weeks</SelectItem>
+                        <SelectItem value="30" className="cursor-pointer">Once a month</SelectItem>
                       </SelectContent>
                     </Select>
+                    {messageFrequencyError && <p className="text-red-500 text-sm mt-1">{messageFrequencyError}</p>}
                     <p className="mt-1 text-sm text-gray-500">
                       Define how often the campaign messages should be sent
                     </p>
@@ -2797,28 +3250,39 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
                   </Label>
                   <div className="mt-2 flex gap-4">
                     <div className="flex-1">
-                      <Select>
-                        <SelectTrigger>
+                    <Select 
+                    value={deliveryStartTime || undefined}
+                    onValueChange={(value) =>{
+
+                     setDeliveryStartTime(value);
+                     validateStartTime(value);
+                    // validateEndTime(deliveryEndTime);
+                    }}>
+                        <SelectTrigger className='cursor-pointer'>
                           <SelectValue placeholder="Start time" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="09:00">09:00</SelectItem>
-                          <SelectItem value="10:00">10:00</SelectItem>
-                          <SelectItem value="11:00">11:00</SelectItem>
+                          <SelectItem value="09:00" className="cursor-pointer">09:00</SelectItem>
+                          <SelectItem value="10:00" className="cursor-pointer">10:00</SelectItem>
+                          <SelectItem value="11:00" className="cursor-pointer">11:00</SelectItem>
                         </SelectContent>
                       </Select>
+                      {startTimeError && <p className="text-red-500 text-sm">{startTimeError}</p>}
                     </div>
                     <div className="flex-1">
-                      <Select>
+                       <Select value={deliveryEndTime} onValueChange={(value) => {
+                        setDeliveryEndTime(value);
+                        validateEndTime(value);}}>
                         <SelectTrigger>
                           <SelectValue placeholder="End time" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="17:00">17:00</SelectItem>
-                          <SelectItem value="18:00">18:00</SelectItem>
-                          <SelectItem value="19:00">19:00</SelectItem>
+                          <SelectItem value="17:00" className="cursor-pointer">17:00</SelectItem>
+                          <SelectItem value="18:00" className="cursor-pointer">18:00</SelectItem>
+                          <SelectItem value="19:00" className="cursor-pointer">19:00</SelectItem>
                         </SelectContent>
                       </Select>
+                      {endTimeError && <p className="text-red-500 text-sm">{endTimeError}</p>}
                     </div>
                   </div>
                   <p className="mt-1 text-sm text-gray-500">
@@ -2829,7 +3293,7 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
             </Card>
 
           </div>
-          <div className="mt-2 mb-8">
+          <div className="mt-2 mb-8 ml-auto">
             <Card className="w-[420px] p-4 rounded-lg shadow-sm border border-gray-200">
               {/* Title */}
               <h3 className="text-md text-[#020617] font-semibold text-left">
@@ -2864,9 +3328,13 @@ const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
 
               {/* Recipients Count */}
               <div className="ml-4">
-                <div className="mt-4 text-center text-[14px] space-x-8 text-[#1C2024] font-medium">
-                  {selectedRecipients} out of {totalRecipients} total recipients
-                </div>
+              
+              
+              <div className="mt-4 text-center text-[14px] space-x-8 text-[#1C2024] font-medium">
+              {audience !== 0
+                ? `${SelectedRecipientsFromAud.toLocaleString()} out of ${totalRecepientsdFromAud.toLocaleString()} total recipients`
+                : `${SelectedRecipientsFromOP.toLocaleString()} out of ${totalRecipientsFromOP.toLocaleString()} total recipients`}
+            </div>
 
                 {/* Information Section */}
                 <div className="flex pl-16 pr-16 items-start mt-4 pt-2">

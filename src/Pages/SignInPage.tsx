@@ -8,7 +8,7 @@ import { Container, Typography, Box, CircularProgress } from "@mui/material";
 import axios from "axios";
 // import { ToastContainer, toast } from "react-toastify";
 import crypto from 'crypto-js';
-import {setForgotPassword ,setForgotEmail } from '../State/slices/AuthenticationSlice';
+import {setForgotPassword ,setForgotEmail, setAccountId } from '../State/slices/AuthenticationSlice';
 import { useDispatch,useSelector } from "react-redux";
 import { RootState } from "../State/store";
 import { useToast } from "../Components/ui/use-toast";
@@ -91,7 +91,7 @@ const CustomSignupForm: FC<CustomSignupFormProps> = ({ email, setEmail, setAuthe
 
   const handleSubmitUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent form submission default behavior
-    
+    setIsLoading(true);
     if (!newPassword || !confirmPassword) {
       toast.toast({
         title: "Error",
@@ -119,14 +119,17 @@ const CustomSignupForm: FC<CustomSignupFormProps> = ({ email, setEmail, setAuthe
           title: "Success",
           description: "Password updated successfully",
         });
-        setIsLoading(false);
-        dispatch(setForgotPassword(false));
-        navigate("/"); // Navigate without adding query parameters
+        setTimeout(() => {
+          setIsLoading(false);
+          dispatch(setForgotPassword(false));
+          navigate("/"); // Navigate without adding query parameters
+        }, 1000);
       } else {
         toast.toast({
           title: "Error",
           description: "An error occurred, please try again",
         });
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Error during UpdatePassword API call:", error);
@@ -134,6 +137,7 @@ const CustomSignupForm: FC<CustomSignupFormProps> = ({ email, setEmail, setAuthe
         title: "Error",
         description: "An error occurred, please try again",
       });
+      setIsLoading(false);
     }
   };
   
@@ -150,12 +154,6 @@ const CustomSignupForm: FC<CustomSignupFormProps> = ({ email, setEmail, setAuthe
     setChangePassword(true);
     dispatch(setForgotEmail(newEmail));
     setEmailError(null);
-
-    // if (!validateEmail(newEmail)) {
-    //   setEmailError("Please enter a valid email address");
-    //   setIsLoading(false);
-    //   return;
-    // }
   
     try {
       
@@ -272,27 +270,17 @@ const CustomSignupForm: FC<CustomSignupFormProps> = ({ email, setEmail, setAuthe
           // sessionStorage.setItem("token" , response.data[0]?.Token);
           localStorage.setItem("token" , token);
           console.log("token" , response.data[0]?.Token);
-
-          // const token = localStorage.getItem("accessToken");
-
-          // if (token) {
-          //   try {
-          //     const decoded = decode(token);
-          //     console.log(decoded);
-          //   } catch (error) {
-          //     console.error("Failed to decode token:", error);
-          //   }
-          // } else {
-          //   console.error("Token not found in localStorage.");
-          // }
           
         }
 
-        const emailId = await axios.post(`${apiUrl}/GetUserAccountByEmail`, {
+        const Account_response = await axios.post(`${apiUrl}/GetUserAccountByEmail`, {
           email: email
         });
-        if (emailId.data[0]?.Status === "Success") {
-          localStorage.setItem("userid", emailId.data[0]?.User_Account_Id);
+        if (Account_response.data[0]?.Status === "Success") {
+          localStorage.setItem("userid", Account_response.data[0]?.User_Account_Id);
+          const userAccountId = Account_response.data[0]?.User_Account_Id;
+          console.log("Account_ID :" , userAccountId);
+          dispatch(setAccountId(userAccountId)); 
         } else {
           console.log("User account ID not found");
         }

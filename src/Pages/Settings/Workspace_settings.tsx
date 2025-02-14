@@ -81,8 +81,10 @@ const Workspace_settings: FC = () => {
   const id = localStorage.getItem("userid");
   const Existing_mailId = useSelector((state: RootState) => state.authentication.userEmail);
   const toast = useToast();
+  const accountId = useSelector((state: RootState) => state.authentication.account_id);
+
   //const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState<string | undefined>(undefined); // Initialize with `undefined` or an empty string
-  const apiUrlAdvAcc = useSelector((state:RootState)=>state.authentication.apiURL);
+  const apiUrlAdvAcc = useSelector((state: RootState) => state.authentication.apiURL);
 
   // useEffect(() => {
   //   setIsLoading(true);
@@ -112,68 +114,68 @@ const Workspace_settings: FC = () => {
     if (!apiUrlAdvAcc) {
       // Show a toast message when apiUrlAdvAcc is not available
       toast.toast({
-          title: "Error",
-          description: "Something went wrong. Please try again.",
-          duration: 3000, // Show for 3 seconds
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        duration: 3000, // Show for 3 seconds
       });
       return; // Prevent further execution if the URL is missing
-  }  // Prevent early API calls
+    }  // Prevent early API calls
     console.log(apiUrlAdvAcc);
     console.log("API URL available, fetching initial data...");
     GetWorkspaceDetailsByID();
     getcountrylist();
     getindustrylist()
   }, [apiUrlAdvAcc]);// Runs when apiUrlAdminAcc is updated
-  
+
   useEffect(() => {
     if (mailId && workspaceId) {
-        GetRoleNameByEmailAndWorkspace();
+      GetRoleNameByEmailAndWorkspace();
     }
-}, [mailId, workspaceId]);
+  }, [mailId, workspaceId]);
 
 
 
-const GetRoleNameByEmailAndWorkspace = () => {
-  setIsLoading(true);
-  if (!mailId || !workspaceId || !apiUrlAdvAcc) {
+  const GetRoleNameByEmailAndWorkspace = () => {
+    setIsLoading(true);
+    if (!mailId || !workspaceId || !apiUrlAdvAcc) {
       console.log("Waiting for mailId and workspaceId...");
       return; // Prevent API call if data is missing
-  }
+    }
 
-  axios
-    .post(`${apiUrlAdvAcc}/GetRoleNameByEmailAndWorkspace`, {
-      email: mailId,
-      workspaceInfoId: workspaceId,
-    })
-    .then((response) => {
-      console.log("response data:", response.data);
-      const firstItem = response.data?.[0];
+    axios
+      .post(`${apiUrlAdvAcc}/GetRoleNameByEmailAndWorkspace`, {
+        email: mailId,
+        workspaceInfoId: workspaceId,
+      })
+      .then((response) => {
+        console.log("response data:", response.data);
+        const firstItem = response.data?.[0];
 
-      if (firstItem?.Status === "Success") {
-        setUserRole(firstItem.Role_Name);
-        console.log("RoleName:", firstItem.Role_Name);
-      } else {
-        console.error("API Error:", response.data.status_Description);
+        if (firstItem?.Status === "Success") {
+          setUserRole(firstItem.Role_Name);
+          console.log("RoleName:", firstItem.Role_Name);
+        } else {
+          console.error("API Error:", response.data.status_Description);
+          // toast.toast({  // Corrected toast usage
+          //   title: "Error",
+          //   description: "Something went wrong. Please try again.",
+          //   duration: 3000,
+          // });
+        }
+      })
+      .catch((error) => {
+        console.error("Error in getting User Role info data:", error);
+
         // toast.toast({  // Corrected toast usage
         //   title: "Error",
         //   description: "Something went wrong. Please try again.",
         //   duration: 3000,
         // });
-      }
-    })
-    .catch((error) => {
-      console.error("Error in getting User Role info data:", error);
-
-      // toast.toast({  // Corrected toast usage
-      //   title: "Error",
-      //   description: "Something went wrong. Please try again.",
-      //   duration: 3000,
-      // });
-    })
-    .finally(() => {
-      setIsLoading(false);
-    });
-};
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
 
   const dispatch = useDispatch();
   // const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
@@ -191,20 +193,20 @@ const GetRoleNameByEmailAndWorkspace = () => {
       if (response.data.status === "Success") {
         setcountrylist(response.data.countryList as Country[]); // Safeguard for empty array
         console.log(response.data.countryList, 'countrylist');
-      } else if(response.data.status_Description) {
+      } else if (response.data.status_Description) {
         console.error(response.data.status_Description);
         // toast.toast({
         //     title: "Error",
         //     description: response.data.status_Description,
         //     duration: 3000,
         // });
-    } else {
+      } else {
         // toast.toast({
         //     title: "Error",
         //     description: "Something went wrong. Please try again.",
         //     duration: 3000,
         // });
-    }
+      }
     } catch (error) {
       console.error("Error fetching accounts:", error);
 
@@ -224,20 +226,20 @@ const GetRoleNameByEmailAndWorkspace = () => {
       if (response.data.status === "Success") {
         setindustrylist(response.data.industryList as Industry[]); // Safeguard for empty array
         console.log(response.data.industryList, 'industrylist');
-      } else if(response.data.status_Description) {
+      } else if (response.data.status_Description) {
         console.error(response.data.status_Description);
         // toast.toast({
         //     title: "Error",
         //     description: response.data.status_Description,
         //     duration: 3000,
         // });
-    } else {
+      } else {
         // toast.toast({
         //     title: "Error",
         //     description: "Something went wrong. Please try again.",
         //     duration: 3000,
         // });
-    }
+      }
     } catch (error) {
       console.error("Error fetching accounts:", error);
 
@@ -328,9 +330,9 @@ const GetRoleNameByEmailAndWorkspace = () => {
     const value = e.target.value;
 
     if (!value.trim()) {
-        setnameError('Please fill the field.');
-        setName(value);
-        return;
+      setnameError('Please fill the field.');
+      setName(value);
+      return;
     }
 
     // First character should NOT be a special character (letters & numbers allowed)
@@ -343,15 +345,15 @@ const GetRoleNameByEmailAndWorkspace = () => {
 
     // Ensure spaces are allowed in between but not at the start or end
     if (!firstCharRegex.test(firstChar)) {
-        setnameError('First character should not be a special character.');
+      setnameError('First character should not be a special character.');
     } else if (!lastCharRegex.test(lastChar)) {
-        setnameError('Last character should not be a special character or empty space.');
+      setnameError('Last character should not be a special character or empty space.');
     } else {
-        setnameError('');
+      setnameError('');
     }
 
     setName(value);
-};
+  };
 
   const handleProfileUpdate = async () => {
     setIsLoading(true);
@@ -717,7 +719,7 @@ const GetRoleNameByEmailAndWorkspace = () => {
   const handleUpdateImage = async () => {
     setIsLoading(true);
     const mappingId = workspace_id;
-    
+
     if (!mappingId) {
       toast.toast({
         title: "Error",
@@ -735,10 +737,12 @@ const GetRoleNameByEmailAndWorkspace = () => {
 
     try {
       const response = await axios.put(`${apiUrlAdvAcc}/UpdateLogo_workspace_id`, {
+        CreatedBy: accountId,
         MappingId: mappingId,
         Image: base64Image,
-        UpdatedBy: workspaceId,
-        UpdatedDate: new Date()
+        UpdatedBy: workspace_id,
+        UpdatedDate: new Date(),
+        CreatedDate: new Date(),
       }, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -753,7 +757,7 @@ const GetRoleNameByEmailAndWorkspace = () => {
           description: "Logo updated successfully.",
           duration: 3000,
         });
-        
+
         setFileName('');
         setBase64Image('');
         setErrorMessage('');
@@ -1002,7 +1006,7 @@ const GetRoleNameByEmailAndWorkspace = () => {
               onChange={handleImageUpload}
             />
           </div>
-          <Button  onClick={handleUpdateImage} disabled={isLoading} className="py-1 px-3 text-sm w-[128px] mt-1" style={{ fontWeight: 400, fontSize: '14px' }}>
+          <Button onClick={handleUpdateImage} disabled={isLoading} className="py-1 px-3 text-sm w-[128px] mt-1" style={{ fontWeight: 400, fontSize: '14px' }}>
             {isLoading ? 'Updating...' : 'Update Image'}
           </Button>
         </Card>
@@ -1275,12 +1279,12 @@ const GetRoleNameByEmailAndWorkspace = () => {
           </Typography>
           <Button
             onClick={() => {
-              if (UserRole === 'Primary Owner') {
-                handleOpen(); // Open the dialog if the user is the Primary Owner
+              if (UserRole === 'Primary Owner' || UserRole ==='Primary Advertiser') {
+                handleOpen(); // Open the dialog if the user is the Primary Owner or Primary Advertiser
               } else {
                 toast.toast({
                   title: "Access denied",
-                  description: "Access denied. You are not a Primary Owner.",
+                  description: "Access denied. You are not a Primary Advertiser.",
                   duration: 3000,
                 })
               }

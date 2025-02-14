@@ -46,7 +46,7 @@ const menuItems = [
   { label: "Channels", icon: LightningBoltIcon, path: "channels" },
   { label: "Team", icon: AvatarIcon, path: "team" },
   { label: "Plans", icon: CreditCard, path: "plans" },
-  { label: "Advertiser", icon: Users, path: "advertiser" },
+  // { label: "Advertiser", icon: Users, path: "advertiser" },
 ];
 
 interface NavItemProps {
@@ -257,7 +257,7 @@ const Navbar: FC<{
       try {
         const response = await axios.get("/config.json");
         const apiUrlAdminAcc = response.data.ApiUrlAdminAcc;
-        const res = await axios.get(apiUrlAdminAcc + "/GetInReviewCount");
+        const res =await axios.get(`${apiUrlAdminAcc}/GetInReviewCount?Mode=admin`);
         if (res.data.status === "Success") {
           dispatch(SetCampaignInReviewCount(res.data.campaignCount));
           setInReviewCount(res.data.campaignCount);

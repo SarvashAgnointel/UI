@@ -194,7 +194,7 @@ const DropdownMenuDemo: FC<{
               <SelectContent>
                 <SelectItem value="Live" className="cursor-pointer">Live</SelectItem>
                 <SelectItem value="Pending" className="cursor-pointer">Pending</SelectItem>
-                <SelectItem value="InReview" className="cursor-pointer">In review</SelectItem>
+                <SelectItem value="In review" className="cursor-pointer">In review</SelectItem>
                 <SelectItem value="Paused" className="cursor-pointer">Paused</SelectItem>
                 <SelectItem value="Completed" className="cursor-pointer">Completed</SelectItem>
               </SelectContent>

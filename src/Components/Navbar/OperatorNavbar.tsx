@@ -15,7 +15,7 @@ import {
   User2,
   Wallet
 } from "lucide-react";
-import { DropdownMenuDemo } from "./Dropdown";
+import { DropdownMenuDemo } from "./Operator_Dropdown";
 import {
   BellIcon,
   ChatBubbleIcon,
@@ -54,10 +54,10 @@ import { SetCampaignInReviewCount } from "../../State/slices/OperatorSlice";
 import { setWorkspaceId} from "../../State/slices/AuthenticationSlice"
 // Define the menu items with routes as content
 const menuItems = [
-    { label: "Dashboard", icon: HomeIcon, path: "dashboard" },
-    { label: "Campaigns", icon: PaperPlaneIcon, path: "campaignlist" },
-    { label: "Data", icon: ChatBubbleIcon, path: "dataList" },
-    { label: "Members", icon: Users, path: "members" }
+    { label: "Dashboard", icon: HomeIcon, path: "dashboard", permissions: "TO_Dashboard_View" },
+    { label: "Campaigns", icon: PaperPlaneIcon, path: "campaignlist" , permissions: "TO_Campaigns_View" },
+    { label: "Data", icon: ChatBubbleIcon, path: "dataList" ,permissions: "TO_Data_View" },
+    { label: "Members", icon: Users, path: "members" , permissions: "TO_Members_View" }
   ];
 
 interface NavItemProps {
@@ -131,6 +131,9 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string , count
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
+  console.log("PERMISSION :" , userPermissions);
+  
   return (
     <div className="bg-[#FBFBFB] h-full">
       <nav
@@ -138,7 +141,9 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string , count
         style={{ backgroundColor: "#FBFBFB" }}
       >
         <div className="flex-1 overflow-y-auto py-4">
-          {menuItems.map((item, index) => (
+          {menuItems
+          .filter(item => userPermissions.includes(item.permissions)) 
+          .map((item, index) => (
             <NavItem
               key={index}
               icon={item.icon}
@@ -155,26 +160,9 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string , count
         </div>
         <div className="sticky bottom-0 p-4 w-full">
           <div className="flex flex-col space-y-2">
-            <div className="py-4 flex flex-col gap-[10px]">
-            <Button className="w-[96px] h-[27px] text-[14px] font-normal" onClick={()=>navigate("/settings/Billing",{state: { route:"Billing" }})}>
-              <div className="flex pr-16 pl-16 pt-8 pb-8 gap-[10px]">
-                <span><Wallet size={16}/></span>
-                <span className='flex justify-center items-center w-[48px] h-[16px]'>Top Up</span>
-              </div>
-            </Button>
-              <span className="text-sm text-[#020617] text-left font-[400px] flex gap-1">
-                <span>7,328</span>
-                <span className="text-[#64748B]">/</span>
-                <span>10,000</span>
-                <span>Messages</span>
-              </span>
-              <Progress value={73} className="w-[218px] h-[6px]" color="#3A85F7" />
-            </div>
             <div
               style={{
                 position: "sticky",
-                // left: '30px',
-                // bottom: '30px',
                 paddingTop: "2px",
                 zIndex: 20,
                 marginBottom: "2px",
@@ -204,6 +192,11 @@ const Navbar: FC<{
   const [workspaceName, setWorkspaceName] = useState("");
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const emailId = useSelector((state:RootState)=>state.authentication.userEmail); 
+  
+          // Get user permissions from Redux
+  const userRoleName = useSelector(
+    (state: RootState) => state.advertiserAccount.user_role_name);
+
   const AdvAccUrl = useSelector(
     (state: RootState) => state.authentication.apiURL
   );
@@ -222,7 +215,16 @@ const Navbar: FC<{
 
     const workspaceId=useSelector(
       (state: RootState) => state.authentication.workspace_id
-    )
+    );
+
+      useEffect(() => {
+        console.log("Role Name :" , userRoleName);
+        if (userRoleName === "Operator Campaign Manager") {
+          setSelectedLabel("Campaigns");
+        }else{
+          setSelectedLabel("Dashboard");
+        }
+      }, [userRoleName]); // Runs whenever userRoleName changes
 
   useEffect(() => {
     debugger
@@ -277,10 +279,6 @@ const Navbar: FC<{
    
   }, []);
 
-
-  // useEffect(()=>{
-
-  // },[breadCrumbStatus])
   return (
     <div className="h-screen">
       <TooltipProvider delayDuration={0}>

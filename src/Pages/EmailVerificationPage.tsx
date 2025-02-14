@@ -14,12 +14,13 @@ import axios from "axios";
 import config from '../config.json';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
-import { setmail,setworkspace,setWorkspaceId,setAdvUrl, setAdminUrl,setForgotPassword, setIsAdmin,setSmsUrl, setOperatorUrl } from '../State/slices/AuthenticationSlice';
+import { setmail,setworkspace,setWorkspaceId,setAdvUrl, setAdminUrl,setForgotPassword, setIsAdmin,setSmsUrl, setOperatorUrl, setRoleId } from '../State/slices/AuthenticationSlice';
 import { RootState } from '../State/store';
 import { useToast } from "../Components/ui/use-toast";
 import { Toaster } from "../Components/ui/toaster";
 
 import jwt_decode, { jwtDecode, JwtPayload } from "jwt-decode"; // Replacing jsonwebtoken with jwt-decode
+import { setPermissions, setUser_Role_Name } from '../State/slices/AdvertiserAccountSlice';
 
 
 
@@ -95,11 +96,13 @@ export default function EmailVerificationPage() {
     const toast = useToast();
 
     const workspaceId = useSelector((state:RootState)=>state.authentication.workspace_id);
+    const accountId = useSelector((state:RootState)=>state.authentication.account_id);
 
     const isInvited = useSelector((state: RootState) => state.authentication.isInvited);
     const token = useSelector((state: RootState) => state.authentication.inviteToken.token);
 
     const forgotPassword = useSelector((state:RootState)=>state.authentication.forgotPassword);
+
     console.log("FP:" ,forgotPassword);
     
     useEffect(() => {
@@ -147,137 +150,159 @@ export default function EmailVerificationPage() {
 
     const handleSubmit = async (email: string, otp: string) => {
         if (timer <= 0) {
-            // If the timer has expired, show the toast message and prevent submission
             toast.toast({
                 title: "Time Expired",
                 description: "Time expired. Please click Resend OTP.",
             });
-            setValue(""); // Clear the OTP input field
-            return; // Do not proceed with OTP verification
+            setValue("");
+            return;
         }
     
         setIsLoading(true);
-        try {
-            const response = await axios.post(`${apiUrl}/VerifyOtp`, {
-                Email: email,
-                Otp: otp,
-            });
     
-            console.log("Response:", response);
+        try {
+            const response = await axios.post(`${apiUrl}/VerifyOtp`, { Email: email, Otp: otp });
     
             if (response.status === 200 && response.data.status === "Success") {
-                sessionStorage.setItem("otpVerified", "true"); // OTP verified flag
-                let path = "";
-                let workspace_type="";
+                sessionStorage.setItem("otpVerified", "true");
     
-                const Close = async () => {
-                    if (Login === "Login") {
-                        const res = await axios.get(`${apiUrl}/GetWorkspaceNameByEmail?EmailId=${email}`);
-                        if (res.status === 200 && res.data.status === "Success") {
-                            const AdminResp = async () => {
-                                try {
-                                    const response = await axios.get(`${apiUrl}/CheckIfAdmin?EmailId=` + email);
-                                    if (response.data.status === "Success") {
-                                        dispatch(setIsAdmin(response.data.isAdmin));
-                                    } else {
-                                        console.log("Check IF_Admin API error");
-                                    }
-                                } catch (error) {
-                                    console.log(error);
-                                }
-                            };
-                            AdminResp();
-                            debugger
-                            workspace_type = res.data.workspaceName.workspace_type;
-                            dispatch(setmail(email));
-                            path = res.data.workspaceName.workspace_name;
-                            dispatch(setworkspace(path));
-                            const wid = res.data.workspaceName.workspace_id;
-                            dispatch(setWorkspaceId(wid));
-                            console.log("Wid:", wid);
-                            console.log("workspaceId", workspaceId);
+                await handlePostOTP(email);
     
-                            setTimeout(() => {
-                        
-                              navigate(workspace_type === "Telecom Operator"
-                                ? "/operatorNavbar/dashboard"
-                                : "/navbar/dashboard", { state: { path, email } });
-                            }, 2000); // Delay navigation for 2 seconds to allow toast display
-                            
-                        } else {
-                            path = "";
-                        }
-                        
-                        setTimeout(() => {
-                            navigate(
-                                Login === "Login"
-                                  ? workspace_type === "Telecom Operator"
-                                    ? "/operatorNavbar/dashboard"
-                                    : "/navbar/dashboard"
-                                  : "/personalinfo",
-                                { state: { path, email } }
-                              );
-                            setIsLoading(false);
-                        }, 2000); // Delay navigation for 2 seconds to allow toast display
-                    } else if (forgotPassword) {
-                        navigate("/");
-                    } else {
-                        if (isInvited) {
-                            const decoded = jwtDecode<DecodedToken>(token);
-                            console.log(decoded);
-                            const wid = decoded.WorkspaceId;
-                            console.log("Email Verification WID: ", wid);
-                            dispatch(setWorkspaceId(wid));
-                            navigate("/personalinfo", { state: { path, email } });
-                        }
-                        try{
-                            const response = await axios.get(`${apiUrl}/CheckIfAdmin?EmailId=` + email);
-                            if (response.data.status === "Success") {
-                                dispatch(setIsAdmin(response.data.isAdmin));
-                            } else {
-                                console.log("Check IF_Admin API error");
-                                }
-                        } catch { 
-                            toast.toast({
-                                title: "Error",
-                                description: "Something went wrong please try again.",
-                            });
-                        }
-                        
-                        navigate("/personalinfo", { state: { path, email } });
-                    }
-                };
-                Close();
                 toast.toast({
                     title: "Success",
                     description: "OTP verified successfully",
                 });
-                setTimeout(() => {
-                }, 2000); // Delay navigation for 2 seconds to allow toast display
             } else {
-                // Keep user on the OTP page and show error message
-                console.log("Invalid OTP Response:", response);
-                toast.toast({
-                    title: "Error",
-                    description: "Invalid OTP. Please try again or wait to resend.",
-                });
-                setTimeout(() => {
-                }, 2000); // Delay navigation for 2 seconds to allow toast display
-                setValue(""); // Clear the input field for the next attempt
+                handleOTPError();
             }
         } catch (error) {
-            console.error("Error during API call:", error);
+            console.error("Error during OTP verification:", error);
             toast.toast({
                 title: "Error",
                 description: "An error occurred, please try again.",
             });
-            setTimeout(() => {
-            }, 2000); // Delay navigation for 2 seconds to allow toast display
             setValue("");
         } finally {
             setIsLoading(false);
         }
     };
+    
+    const handlePostOTP = async (email: string) => {
+        if (Login === "Login") {
+            try {
+                const workspaceResponse = await axios.get(`${apiUrl}/GetWorkspaceNameByEmail?EmailId=${email}`);
+                if (workspaceResponse.status === 200 && workspaceResponse.data.status === "Success") {
+                    const { workspace_name, workspace_type, workspace_id } = workspaceResponse.data.workspaceName;
+    
+                    dispatch(setmail(email));
+                    dispatch(setworkspace(workspace_name));
+                    dispatch(setWorkspaceId(workspace_id));
+    
+                    await checkIfAdmin(email);
+                    await fetchRoleDetails(accountId, workspace_id);
+    
+                    navigateWithDelay(
+                        workspace_type === "Telecom Operator" ? "/operatorNavbar/dashboard" : "/navbar/dashboard",
+                        { state: { path: workspace_name, email } }
+                    );
+                }
+            } catch (error) {
+                console.error("Error fetching workspace:", error);
+            }
+        } else if (forgotPassword) {
+            navigate("/");
+        } else {
+            await checkIfAdmin(email);
+            if(isInvited){
+                await handleInvitation(email);
+            }
+            navigate("/personalinfo", { state: { path: "", email } });
+        }
+    };
+    
+    const checkIfAdmin = async (email: string) => {
+        try {
+            const response = await axios.get(`${apiUrl}/CheckIfAdmin?EmailId=${email}`);
+            if (response.data.status === "Success") {
+                dispatch(setIsAdmin(response.data.isAdmin));
+            } else {
+                console.log("CheckIfAdmin API error");
+            }
+        } catch (error) {
+            console.error("Error checking admin status:", error);
+        }
+    };
+    
+    const fetchRoleDetails = async (accountId: number, workspaceId: number) => {
+        try {
+            const response = await axios.get(
+                `${apiUrl}/GetUserWorkspaceRoleDetails/GetUserWorkspaceRoleDetails?accountId=${accountId}&workspaceId=${workspaceId}`
+            );
+    
+            if (response.data.status === "Success") {
+                const roleId = response.data.userWorkspaceRoleDetails[0]?.roleId;
+                dispatch(setRoleId(roleId))
+                if (roleId) {
+                    await fetchPermissions(roleId);
+                }
+            } else {
+                console.log("GetUserWorkspaceRoleDetails API error");
+            }
+        } catch (error) {
+            console.error("Error fetching user workspace role details:", error);
+        }
+    };
+    
+    const fetchPermissions = async (roleId: string) => {
+        try {
+            const response = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${roleId}`);
+            if (response.data.status === "Success") {
+                const permissions = JSON.parse(response.data.roleDetails.permissions);
+                const role_name = response.data.roleDetails.roleName;
+                dispatch(setPermissions(permissions));
+                dispatch(setUser_Role_Name(role_name));
+            } else {
+                console.log("GetPermissionsByRoleId API error");
+            }
+        } catch (error) {
+            console.error("Error fetching permissions:", error);
+        }
+    };
+    
+    const handleInvitation = async (email: string) => {
+        try {
+            const decoded = jwtDecode<DecodedToken>(token);
+            const workspaceId = decoded.WorkspaceId;
+    
+            dispatch(setWorkspaceId(workspaceId));
+            navigate("/personalinfo", { state: { path: "", email } });
+    
+        } catch (error) {
+            console.error("Error handling invitation:", error);
+            toast.toast({
+                title: "Error",
+                description: "Something went wrong. Please try again.",
+            });
+        }
+    };
+    
+    const navigateWithDelay = (path: string, state: any) => {
+        setTimeout(() => {
+            navigate(path, state);
+        }, 2000);
+    };
+    
+    const handleOTPError = () => {
+        console.log("Invalid OTP Response");
+        toast.toast({
+            title: "Error",
+            description: "Invalid OTP. Please try again or wait to resend.",
+        });
+        setValue("");
+    };
+    
+
+
 
     const otpInputRef = useRef<HTMLInputElement>(null); // Specify the input element type
 

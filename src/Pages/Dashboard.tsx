@@ -530,7 +530,7 @@ const Dashboard: FC = () => {
   const [date_Week, setDate_Week] = React.useState<DateRange | undefined>({
     from: subDays(new Date(), 7), // 7 days before the current date
     to: new Date(), // Current date
-  });
+  }); 
   const [date_Month, setDate_Month] = React.useState<DateRange | undefined>({
     from: subDays(new Date(), 30), // 7 days before the current date
     to: new Date(), // Current date
