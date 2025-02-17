@@ -541,7 +541,8 @@ const AdminSMS: FC = () => {
             </Button>
           </div>
           {connectionList != null ? (
-            <div className="flex flex-col gap-4 max-h-[40vh] overflow-y-auto rounded-xl">
+          <div className="rounded-md border overflow-hidden">
+            <div className="max-h-[60vh] overflow-y-auto">
               <Table className="rounded-xl border-[#020202]">
                 <TableHeader className="text-center text-[14px] font-medium">
                   <TableRow className="sticky top-0 bg-white z-10">
@@ -731,6 +732,7 @@ const AdminSMS: FC = () => {
                 </TableBody>
               </Table>
             </div>
+          </div>
           ) : (
             <div className="flex items-center justify-center h-screen">
               <Button

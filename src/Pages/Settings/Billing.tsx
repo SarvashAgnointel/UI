@@ -25,6 +25,13 @@ import { RootState } from "@/src/State/store";
 import { Elements, useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import ReactDOM from "react-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../Components/ui/dialog";
 
 interface Workspaces {
   workspaceid: number;
@@ -63,6 +70,47 @@ type EmbeddedCheckoutProps = {
   quantity: number;
   productName: string;
 };
+
+type BillingDialogProps={
+  open: boolean;
+  handleClose: () => void;
+  priceId:string;
+  quantity: number;
+}
+
+export const BillingDialog: FC<BillingDialogProps> = ({
+  open,
+  handleClose,
+  priceId,
+  quantity,
+}) => {
+  useEffect(() => {
+    if (!open) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = "";
+      }, 500);
+    }
+  }, [open]);
+  const [next, setNext] = useState(true);
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="m-2 overflow-y-auto p-6 no-scrollbar h-full min-w-auto">
+        <DialogHeader>
+          <DialogTitle className="font-semibold text-[#09090B] text-[18px]"></DialogTitle>
+          <DialogDescription className="font-medium text-[#71717A] text-[14px]">
+            
+          </DialogDescription>
+        </DialogHeader>
+        {/* Content, e.g., form fields, buttons */}
+
+        <EmbeddedCheckout1 priceId={priceId} quantity={quantity} />
+
+
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const Billing: FC = () => {
 
   // const intialWorkspacesList: Workspaces[] = [
@@ -88,6 +136,11 @@ const Billing: FC = () => {
   const mailId = useSelector((state:RootState)=>state.authentication.userEmail);
   const [isSorted, setIsSorted] = useState(false);
   const [walletAmount, setWalletAmount] = useState<number | null>(null);
+
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
 
   useEffect(() => {
 
@@ -292,12 +345,13 @@ const Billing: FC = () => {
       const response = await axios.get(`${apiUrlAdvAcc}/GetuserTransaction?accountid=${id}`);
       console.log("Response : ", response.data.user_transaction);
       setTransactionList(response.data.user_transaction)
-      if (response.data.status == "Success") {
+      if (response.data.status === "Success") {
         if (response.data) {
-          toast.toast({
-            title: "Success",
-            description: "Transaction received successfully",
-          })
+          // toast.toast({
+          //   title: "Success",
+          //   description: "Transaction received successfully",
+          // })
+          console.log("Transaction Received")
         } else {
           console.error("Error fetching Transaction details: response - ", response);
         }
@@ -406,7 +460,7 @@ const Billing: FC = () => {
   const handlePurchase = async (plan: BillingPlan) => {
     try {
       debugger;
-
+      handleOpen();
 
 
       const formattedDescription = formatDescription(plan.features, plan.symbol);
@@ -560,8 +614,8 @@ const Billing: FC = () => {
 
 
   return (
-
     <div className="flex-col gap-6 h-full overflow-y-auto">
+      <Toaster/>
       <Card className='mb-[15px] mt-2'>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -569,8 +623,17 @@ const Billing: FC = () => {
               <h2 className="text-lg font-bold text-left">Wallet</h2>
               <p className="text-sm text-gray-600 text-left">Total funds (AED) and remaining messages in your wallet</p>
             </div>
-            {!showAddFunds && isPrimaryOwner && (
-              <Button className="w-15 text-white mt-0" onClick={() => setShowAddFunds(true)}> + Add funds </Button>
+            {!showAddFunds && (
+              <Button className="w-15 text-white mt-0" 
+              onClick={() => 
+                {billingDetails.length>0?
+                  setShowAddFunds(true):
+                  toast.toast({
+                    title: "Alert",
+                    description: "No available plans for your billing country",
+                    duration:1000
+                  })
+                }}> + Add funds </Button>
             )}
           </div>
 
@@ -584,7 +647,9 @@ const Billing: FC = () => {
       </span>
                 <span className="text-4xl text-gray-200 ml-3"> / </span>
                 <div className="ml-4 flex flex-col items-start">
-                  <span className="text-sm text-gray-800 font-semibold text-left">457,328 / 810,000 Messages</span>
+                  <span className="text-sm text-gray-800 font-semibold text-left">  
+                    {/* {debitMessageCount.toLocaleString()} / {creditMessageCount.toLocaleString()} Messages */}
+                    </span>
                   <div className="w-72">
                     <Progress value={45} className="h-2 rounded-full" />
                   </div>
@@ -593,7 +658,8 @@ const Billing: FC = () => {
           </div>
         </CardHeader>
       </Card>
-      {priceId && <EmbeddedCheckout1 priceId={priceId} quantity={quantity} />}
+      {/* {priceId && <EmbeddedCheckout1 priceId={priceId} quantity={quantity} />} */}
+      {priceId && <BillingDialog priceId={priceId} quantity={quantity} open={open} handleClose={handleClose}/>}
 
       {showAddFunds && (
         <div className="flex-col gap-4 mb-18">

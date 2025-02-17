@@ -110,10 +110,11 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
   onSelect,
   selected,
 }) => {
+  const sampleTotalMessageCount = 10000;
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
-  
+  const sentCount = useSelector((state:RootState)=>state.advertiserAccount.sent_count_sidenav);
   return (
     <div className="bg-[#FBFBFB] h-full">
       <nav
@@ -152,12 +153,12 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
               </div>
             </Button> 
               <span className="text-sm text-[#020617] text-left font-[400px] flex gap-1">
-                <span>7,328</span>
+                <span>{sentCount||0}</span>
                 <span className="text-[#64748B]">/</span>
-                <span>10,000</span>
+                <span>{sampleTotalMessageCount||10000}</span>
                 <span>Messages</span>
               </span>
-              <Progress value={73} className="w-[218px] h-[6px]" color="#3A85F7" />
+              <Progress value={(sentCount/sampleTotalMessageCount)*100} className="w-[218px] h-[6px]" color="#3A85F7" />
             </> }
             <div
               style={{
@@ -252,7 +253,8 @@ const Navbar: FC<{
           const dataUrl = `data:image/jpeg;base64,${base64String}`;
           setImageSrc(dataUrl);
         } else {
-          console.error("Failed to fetch image:", response.data.status_Description);
+          setImageSrc("");
+          console.error("Failed to fetch image:" , response.data.status_Description);
         }
       } catch (error) {
         console.error("Error fetching image:", error);
@@ -336,16 +338,16 @@ const Navbar: FC<{
                             <Link
                               to="#"
                               className={
-                                selectedLabel == "Dashboard"
-                                  ? "text-[#64748B] font-normal text-[8px] ml-4"
-                                  : "text-[#020617] font-normal text-[8px] ml-4"
+                                selectedLabel === "Dashboard"
+                                  ? "text-[#64748B] font-normal text-[10px] ml-4"
+                                  : "text-[#020617] font-normal text-[10px] ml-4"
                               }
                             >
                               {workspaceName}
                             </Link>
                           </BreadcrumbLink>
                         </BreadcrumbItem>
-                        {selectedLabel == "Dashboard" ? (
+                        {selectedLabel === "Dashboard" ? (
                           <BreadcrumbItem>
                             <BreadcrumbPage></BreadcrumbPage>
                           </BreadcrumbItem>
@@ -357,8 +359,8 @@ const Navbar: FC<{
                               <BreadcrumbPage
                                 className={
                                   breadCrumbStatus
-                                    ? "text-[#020617] font-normal text-[8px] mt-1"
-                                    : "text-[#64748B] font-normal text-[8px] mt-1"
+                                    ? "text-[#020617] font-normal text-[10px] mt-1"
+                                    : "text-[#64748B] font-normal text-[10px] mt-1"
                                 }
                               >
                                 {selectedLabel}
@@ -369,7 +371,7 @@ const Navbar: FC<{
                               <>
                                 <BreadcrumbSeparator className="mt-1 text-[8px] text-[#64748B]" />
                                 <BreadcrumbItem>
-                                  <BreadcrumbPage className="text-[#64748B] text-[8px] mt-1">
+                                  <BreadcrumbPage className="text-[#64748B] text-[10px] mt-1">
                                     Create
                                   </BreadcrumbPage>
                                 </BreadcrumbItem>

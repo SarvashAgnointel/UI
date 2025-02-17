@@ -30,6 +30,7 @@ import {
   setCloseAddWorkspaceDialog,
   setPermissions,
   setUser_Role_Name,
+  setWorkspace_List,
 } from "../../State/slices/AdvertiserAccountSlice";
 import {
   setworkspace,
@@ -114,7 +115,10 @@ export function DropdownMenuDemo({
   const [open, setOpen] = useState(false);
   const [workspaceList, setWorkspaceList] = useState<Workspace[]>([]);
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    GetMultipleWorkspacesByEmail();
+    setOpen(false)
+  };
   const dispatch = useDispatch();
   const [apiAutUrl, setApiAutUrl] = useState('');
   const email = useSelector(
@@ -131,6 +135,10 @@ export function DropdownMenuDemo({
 
   const workspaceId = useSelector(
     (state: RootState) => state.authentication.workspace_id
+  );
+
+  const workspaceName = useSelector(
+    (state: RootState) => state.authentication.workspaceName
   );
 
   const ImpersonatorData = useSelector(
@@ -165,22 +173,25 @@ export function DropdownMenuDemo({
   // const seturl=async()=>{
   //   await setApiUrlAdvAcc(config.ApiUrlAdvAcc);
   // }
-  useEffect(() => {
-    // seturl();
-    try {
-      const GetMultipleWorkspacesByEmail = async () => {
-        const response = await axios.get(
-          `${apiUrl}/GetMultipleWorkspacesByEmail?EmailId=` + email
-        );
-        if (response.data.status == "Success") {
-          console.log(response.data.workspaceList);
-          setWorkspaceList(response.data.workspaceList);
+  const GetMultipleWorkspacesByEmail = async () => {
+    try{
+      const response = await axios.get(
+        `${apiUrl}/GetMultipleWorkspacesByEmail?EmailId=` + email
+      );
+      if (response.data.status === "Success") {
+        console.log(response.data.workspaceList);
+        setWorkspaceList(response.data.workspaceList);
+        if(response.data.workspaceList){
+          dispatch(setWorkspace_List(response.data.workspaceList)); // Use correct Redux action
         }
-      };
-      GetMultipleWorkspacesByEmail();
-    } catch (error) {
+      }
+    }catch (error) {
       console.error("Network error: ", error);
     }
+  };
+
+  useEffect(() => {
+      GetMultipleWorkspacesByEmail();
   }, []);
 
   useEffect(() => {
@@ -201,7 +212,8 @@ export function DropdownMenuDemo({
                 className="h-[25px] w-[25px] rounded-full mt-2"
               />
               <AvatarFallback className="mt-1">
-                {email ? email[0].toUpperCase() : "TA"}
+                {/* {email ? email[0].toUpperCase() : "TA"} */}
+                {workspaceName? workspaceName[0].toUpperCase() : "TA"}
               </AvatarFallback>
             </Avatar>
             <span
@@ -216,7 +228,7 @@ export function DropdownMenuDemo({
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56 cursor-pointer">
-          <DropdownMenuGroup>
+          <DropdownMenuGroup className="overflow-y-auto max-h-[calc(40vh)]">
             {workspaceList &&
               workspaceList.map((workspace) => (
                 <TooltipProvider key={workspace.workspace_id}>
@@ -275,6 +287,9 @@ export function DropdownMenuDemo({
                   </Tooltip>
                 </TooltipProvider>
               ))}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
             {["Primary Owner", "Primary Advertiser"].includes(userRoleName) && (
               <DropdownMenuItem
                 onClick={() => {
@@ -288,11 +303,11 @@ export function DropdownMenuDemo({
               >
                 <Plus className="mr-2 h-4 w-4" />
                 <span className="font-normal text-[#020617] text-[14px]">
-                  Add New Workspace
+                  Add new workspace
                 </span>
               </DropdownMenuItem>
             )}
-          </DropdownMenuGroup>
+            </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             {ImpersonatorData?.ImpersonationState && (
@@ -373,7 +388,7 @@ export function DropdownMenuDemo({
               >
                 <Settings className="mr-2 h-4 w-4" />
                 <span className="font-normal text-[#020617] text-[14px]">
-                  Workspace Settings
+                  Workspace settings
                 </span>
               </DropdownMenuItem>
             )}

@@ -1,6 +1,7 @@
 import { Button } from "../Components/ui/button";
 import { Card } from "../Components/ui/card";
 import { Label } from "../Components/ui/label";
+import Default_WhatsApp_background from "../Assets/Default_WhatsApp_background.jpeg";
 import {
   Select,
   SelectItem,
@@ -235,6 +236,7 @@ export default function OperatorCampaignReview() {
   );
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
   const [adminapiUrlAdvAcc, setAdminApiUrlAdvAcc] = useState("");
+  const [operatorapiUrl,setOperatorApiUrl]=useState("")
   const [isStartCalendarOpen, setStartCalendarOpen] = useState(false);
   const [isFStartCalendarOpen, setFStartCalendarOpen] = useState(false);
   const [isEndCalendarOpen, setEndCalendarOpen] = useState(false);
@@ -412,6 +414,7 @@ export default function OperatorCampaignReview() {
         console.log("Config loaded:", config); // Debugging log
         setApiUrlAdvAcc(config.ApiUrlAdvAcc);
         setAdminApiUrlAdvAcc(config.ApiUrlAdminAcc); // Set API URL from config
+        setOperatorApiUrl(config.OperatorUrl)
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -864,22 +867,31 @@ export default function OperatorCampaignReview() {
       rows.length === 0;
 
     return (
-      <div className="flex flex-col justify-between w-full h-full">
-        {noContentSelected ? (
-          <div className="flex w-full justify-center">
-            <div className="flex-col justify-center text-left mt-[250px] items-center">
-              <div>{textAreaIcon()}</div>
-              <div className="mt-[30px]">
-                <p className="text-xl font-semibold">Mobile screen</p>
-              </div>
-              <div
-                className="w-[140px] mt-[10px]"
-                style={{ fontWeight: 500, fontSize: "14px" }}
-              >
-                <p className="">Preview varies based on platform selection</p>
-              </div>
-            </div>
-          </div>
+      <div
+      className="flex rounded-[20px] flex-col justify-between w-full max-h-fit bottom-0"
+      style={{
+        backgroundImage: `url(${Default_WhatsApp_background})`,
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+      }}
+    >
+      {noContentSelected ? (
+        <div className="flex w-full h-[calc(100vh-200px)] items-center justify-center">
+<div className="text-center">
+  <div>{textAreaIcon()}</div>
+  <div className="mt-6">
+    <p className="text-xl font-semibold">Mobile screen</p>
+  </div>
+  <div
+    className="w-[125px] mt-2"
+    style={{ fontWeight: 500, fontSize: "14px" }}
+  >
+    <p>Preview varies based on platform selection</p>
+  </div>
+</div>
+</div>
+
         ) : (
           <>
             {/* Image, Video, or Document Preview */}
@@ -1017,7 +1029,7 @@ export default function OperatorCampaignReview() {
       };
 
       const response = await axios.put(
-        `http://localhost:5008/Operator/api/UpdateCampaignStatus`,
+        `${operatorapiUrl}/UpdateCampaignStatus`,
         data
       );
       debugger;
@@ -1571,7 +1583,7 @@ export default function OperatorCampaignReview() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:5008/Operator/api/GetOperatorApprovalStatus?WorkspaceId=${workspaceId}&CampaignId=${campaignId}`
+        `${operatorapiUrl}/GetOperatorApprovalStatus?WorkspaceId=${workspaceId}&CampaignId=${campaignId}`
       );
       if (response.data.IsApproved) {
         setCampaignApprovalStatus(response.data.isApproved);
@@ -1809,7 +1821,7 @@ export default function OperatorCampaignReview() {
                   </Label>
                   <MultiSelect
                     disabled
-                    className="text-[#64748B] text-sm font-normal mt-1"
+                    className="text-[#64748B] text-sm font-normal mt-1 overflow-hidden"
                     options={targetCountryList.map((country) => ({
                       label: country.country_name,
                       value: country.country_id.toString(), // Convert ID to string

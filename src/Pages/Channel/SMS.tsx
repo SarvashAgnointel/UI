@@ -206,7 +206,7 @@ export const AddPhone: FC<AddPhoneProps> = ({
           <Input
             id="phone-number"
             type="text"
-            placeholder="Add your host..."
+            placeholder="Add your number..."
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
             className="text-[14px] font-normal placeholder:text-[#64748B]"

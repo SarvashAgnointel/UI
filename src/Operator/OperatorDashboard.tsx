@@ -508,7 +508,7 @@ const OperatorDashboard: FC = () => {
   const [chartData, setChartData] = useState<any>();
   const [apiUrl, setApiUrl] = useState("");
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
-  const [campaignCount, setCampaignCount] = useState(0);
+  const [campaignCount, setCampaignCount] = useState<number | 0>(0);
   const [isWeek, setIsWeek] = useState(false);
   const [isMonth, setIsMonth] = useState(false);
   const [timeRange, setTimeRange] = React.useState("90d");
@@ -601,7 +601,7 @@ const OperatorDashboard: FC = () => {
           const response = await axios.get(
             `${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
-          console.log("Updated chartData:", response.data);
+          console.log("Updated chartData:", response.data.chartDetails);
           if (
             response.data.status === "Success" &&
             response.data.chartDetails.length > 0
@@ -707,20 +707,20 @@ const OperatorDashboard: FC = () => {
           title="Campaigns"
           value={chartData?.campaignDetails[0]?.totalCampaigns || "0"}
           change="+20.1 from last month"
-          icon={<PaperPlaneIcon />}
+          icon={<PaperPlaneIcon className="text-[#64748B] size-4" />}
         />
 
         <CardComponent
           title="Roamers"
           value={chartData?.recipientCount[0]?.recipients || "0"}
           change="-15.6 from last month"
-          icon={<Users className="text-[#64748B]" size={20} />}
+          icon={<Users className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Sent"
           value={chartData?.messagesSentDetails[0]?.totalSent || 0}
           change="+30.2 from last month"
-          icon={<Check className="text-[#64748B]" size={20} />}
+          icon={<Check className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Delivery rate"
@@ -732,7 +732,7 @@ const OperatorDashboard: FC = () => {
             ) + "%"
           }
           change="+2.1 from last month"
-          icon={<Activity className="text-[#64748B]" size={20} />}
+          icon={<Activity className="text-[#64748B]" size={16} />}
         />
       </div>
       {/* <DashChart data={chartData?.chartDetails} isWeek={isWeek} /> */}

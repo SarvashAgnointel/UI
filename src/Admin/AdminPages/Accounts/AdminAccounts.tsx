@@ -80,6 +80,7 @@ const Accounts: React.FC = () => {
   const apiUrlAdvAcc = useSelector((state: RootState) => state.authentication.apiURL);
   const workspaceId = useSelector((state: RootState) => state.authentication.workspace_id);
   const workspaceName = useSelector((state: RootState) => state.authentication.workspaceName);
+  const ImpersonatorData = useSelector((state: RootState) => state.admin.Impersonator);  
   const navigate = useNavigate();
 
 
@@ -156,6 +157,9 @@ const Accounts: React.FC = () => {
       } catch (error) {
         console.error("Error loading config:", error);
       }
+
+      console.log("Impersonate data :"+ roleId)
+
     };
 
     fetchConfig();
@@ -377,7 +381,13 @@ const Accounts: React.FC = () => {
             const role_name = response2.data.roleDetails.roleName;
             dispatch(setPermissions(permissions));
             dispatch(setUser_Role_Name(role_name));
-             navigate("/navbar/dashboard",{state:{path:response.wName}});
+            if(response.rId >= 11){
+              navigate("/operatorNavbar/dashboard",{state:{path:response.wName}});
+            }
+            else{
+              navigate("/navbar/dashboard",{state:{path:response.wName}});
+            }
+            
         } else {
             console.log("GetPermissionsByRoleId API error");
         }

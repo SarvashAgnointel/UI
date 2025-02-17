@@ -266,7 +266,7 @@ const AdminCampaignList: React.FC = () => {
   const [apiUrlAdminAcc, setapiUrlAdminAcc] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [filterData, setFilterData] = useState({
-    filter: "",
+    filter: "None",
     subFilter: "",
   });
   const [hasCampaigns, setHasCampaigns] = useState(false);
@@ -399,8 +399,8 @@ const handlePageChange = (newPage: number) => {
 
   // Use useEffect to avoid re-render loop
   useEffect(() => {
-    if (filterData.filter === "none") {
-      setFilterData({ filter: "none", subFilter: "" });
+    if (filterData.filter === "None") {
+      setFilterData({ filter: "None", subFilter: "" });
     }
   }, [filterData.filter]);
 

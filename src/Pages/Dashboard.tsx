@@ -61,6 +61,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../State/store";
 import { stat } from "fs";
 import CircularProgress from "@mui/material/CircularProgress";
+import { setPermissions, setUser_Role_Name, setSentCount } from "../State/slices/AdvertiserAccountSlice";
 
 interface DatePickerWithRangeProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -68,15 +69,15 @@ interface DatePickerWithRangeProps
   setChartData: (data: any) => void; // Prop that accepts a function with a number
   fetchData: () => void;
 }
-
+ 
 export function DatePickerWithRange({
   className,
   setChartData,
   fetchData,
 }: DatePickerWithRangeProps) {
   const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(), // Current date
-    to: addDays(new Date(), 20), // Current date + 20 days
+    from: undefined, // Current date
+    to: undefined, // Current date + 20 days
   });
   const dispatch = useDispatch();
   const toast = useToast();
@@ -121,7 +122,7 @@ export function DatePickerWithRange({
             setChartData(response.data);
           } else {
             // setChartData(response.data);
-            fetchData();
+            // fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -221,6 +222,8 @@ interface DashChartProps {
   timeRange: string;
   isWeek: boolean;
 }
+
+
 
 const DashChart: FC<DashChartProps> = ({
   Data,
@@ -544,8 +547,9 @@ const Dashboard: FC = () => {
   const isInvited = useSelector(
     (state: RootState) => state.authentication.isInvited
   );
+  const roleId = useSelector((state: RootState) => state.authentication.role_id);
   console.log(Workspace_Id);
-
+  const dispatch=useDispatch();
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -561,6 +565,28 @@ const Dashboard: FC = () => {
     loadConfig();
   }, [Workspace_Id]);
 
+  useEffect(() => {
+    if (apiUrlAdvAcc) {
+      // GetCampaingCount();
+      fetchData();
+      GetPermissionsByRoleId();
+    }
+  }, [apiUrlAdvAcc, Workspace_Id]);
+
+  const GetPermissionsByRoleId = async() => {
+
+    const response2 = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${roleId}`);
+    if (response2.data.status === "Success") {
+        const permissions = JSON.parse(response2.data.roleDetails.permissions);
+        const role_name = response2.data.roleDetails.roleName;
+        dispatch(setPermissions(permissions));
+        dispatch(setUser_Role_Name(role_name));
+
+        
+    } else {
+        console.log("GetPermissionsByRoleId API error");
+      }
+  }
   const fetchData = async () => {
     setIsLoading(true);
     if (apiUrlAdvAcc) {
@@ -590,6 +616,7 @@ const Dashboard: FC = () => {
         setIsLoading(false);
         console.log("API Response:", response.data); // Check the response
         setChartData(response.data);
+        dispatch(setSentCount(response.data.messagesSentDetails[0]?.totalSent));
       } catch (error) {
         console.error("Error fetching the statistics:", error);
         setIsLoading(false);
@@ -607,6 +634,7 @@ const Dashboard: FC = () => {
           const response = await axios.get(
             `${apiUrlAdvAcc}/GetCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
+          console.log("ByWeek API Response:", response.data);
           if (
             response.data.status === "Success" &&
             response.data.chartDetails.length > 0
@@ -623,6 +651,7 @@ const Dashboard: FC = () => {
       };
 
       ChartDateRange();
+      
     }
   };
 
@@ -636,14 +665,16 @@ const Dashboard: FC = () => {
           const response = await axios.get(
             `${apiUrlAdvAcc}/GetCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
+          console.log("ByMonth API Response:", response.data.chartDetails);
           if (
             response.data.status === "Success" &&
             response.data.chartDetails.length > 0
           ) {
             setChartData(response.data);
+            // fetchData();
           } else {
             // setChartData(response.data);
-            fetchData();
+            // fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -664,6 +695,7 @@ const Dashboard: FC = () => {
 
   return chartData ? (
     <div className="flex-col w-full">
+      <Toaster/>
       <div className="flex mt-[-15px] justify-end gap-2">
         <div>
           <DatePickerWithRange
@@ -752,20 +784,20 @@ const Dashboard: FC = () => {
           title="Campaigns"
           value={chartData?.campaignDetails[0]?.totalCampaigns || "0"}
           change="+20.1 from last month"
-          icon={<PaperPlaneIcon />}
+          icon={<PaperPlaneIcon className="text-[#64748B] size-4"/>}
         />
 
         <CardComponent
           title="Recipients"
           value={chartData?.recipientCount[0]?.recipients || "0"}
           change="-15.6 from last month"
-          icon={<Users className="text-[#64748B]" size={20} />}
+          icon={<Users className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Sent"
           value={chartData?.messagesSentDetails[0]?.totalSent || 0}
           change="+30.2 from last month"
-          icon={<Check className="text-[#64748B]" size={20} />}
+          icon={<Check className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Delivery rate"
@@ -777,12 +809,13 @@ const Dashboard: FC = () => {
             ) + "%"
           }
           change="+2.1 from last month"
-          icon={<Activity className="text-[#64748B]" size={20} />}
+          icon={<Activity className="text-[#64748B]" size={16} />}
         />
       </div>
       {/* <DashChart data={chartData?.chartDetails} isWeek={isWeek} /> */}
+      
       <DashChart
-        Data={chartData?.chartDetails}
+        Data={chartData.chartDetails}
         setTimeRange={setTimeRange}
         timeRange={timeRange}
         isWeek={isWeek}

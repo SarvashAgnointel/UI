@@ -2277,7 +2277,7 @@ const CreateTemplate: React.FC = () => {
                         )
                         .map((channel) => (
                           <SelectItem
-                            className="text-gray-500"
+                            className="text-gray-500 cursor-pointer"
                             key={channel.channel_id}
                             value={channel.channel_id as any}
                           >
@@ -2336,7 +2336,7 @@ const CreateTemplate: React.FC = () => {
                         <SelectContent>
                           {languageList.map((type) => (
                             <SelectItem
-                              className="text-gray-500"
+                              className="text-gray-500 cursor-pointer"
                               key={type.language_id}
                               value={type.language_code}
                             >
@@ -2416,7 +2416,7 @@ const CreateTemplate: React.FC = () => {
                             placeholder={templateId ? updateHeaderType : " "}
                           />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="cursor-pointer">
                           <SelectItem value="image">Image</SelectItem>
                           <SelectItem value="text">Text</SelectItem>
                           <SelectItem value="document">Document</SelectItem>
@@ -2759,7 +2759,7 @@ const CreateTemplate: React.FC = () => {
             <SelectTrigger className="w-[125px] h-[36px]">
               <SelectValue placeholder="Select Type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="cursor-pointer">
               <SelectItem value="View Website">View Website</SelectItem>
               <SelectItem value="Call Phone Number">Call Phone Number</SelectItem>
               <SelectItem value="Copy Offer Code">Copy Offer Code</SelectItem>

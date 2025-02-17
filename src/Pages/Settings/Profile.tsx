@@ -260,14 +260,18 @@ const Profile: React.FC = () => {
     try {
       const response = await axios.get(`${apiUrlAdvAcc}/DeleteAccountByEmail?email=${mailId}`);
       if (response.status === 200) {
-        navigate("/");
+        setIsLoading(false);
         toast.toast({
           title: "Success",
           description: "Profile Deleted Successfully",
-          duration: 3000,
+          duration: 1000,
         });
+        setTimeout(()=>{
+          navigate("/");
+        },1000);
       }
     } catch (error) {
+      setIsLoading(false);
       toast.toast({
         title: "Failed",
         description: "Error in Deletion",
@@ -797,7 +801,7 @@ const Profile: React.FC = () => {
           </div>
           {/* disabled={isLoading} */}
           <Button onClick={handleUpdateImage} disabled={isLoading} className="py-1 px-3 text-sm w-[128px] mt-1" style={{ fontWeight: 400, fontSize: '14px' }}>
-            {isLoading ? 'Updating...' : 'Update Image'}
+            {isLoading ? 'Updating...' : 'Update image'}
           </Button>
         </Card>
 
@@ -909,15 +913,18 @@ const Profile: React.FC = () => {
 
           >
             <DialogContent className="max-w-xl ">
-              <span className="max-w-xl" >
-                If you delete your account, you are the owner of the workspace, so the workspace will also be deleted. Do you want to proceed?
-              </span >
+                <DialogTitle className="text-18px font-semibold text-[#09090B]">
+                    Delete Account
+                </DialogTitle>
+                <DialogDescription className="text-14px font-medium text-[#71717A] mt-1">
+                    If you delete your account, you are the owner of the workspace, so the workspace will also be deleted. Do you want to proceed?
+                </DialogDescription>
               <div className="flex justify-end gap-4">
-                <Button variant="outline" className="w-24" onClick={handleClose}>
+                <Button disabled={isLoading} variant="outline" className="px-4 py-2 w-24" onClick={handleClose}>
                   Cancel
                 </Button>
-                <Button className="w-24" onClick={confirmDelete} autoFocus>
-                  OK
+                <Button className="px-4 py-2 w-24" onClick={confirmDelete} autoFocus>
+                  {isLoading?"Deleting...":"OK"}
                 </Button>
               </div>
             </DialogContent>

@@ -301,9 +301,6 @@ const Audience: React.FC = () => {
           case "ByAudienceName":
             sortByField("listname", "string");
             break;
-          case "ByAudienceStatus":
-            sortByField("status", "string");
-            break;
           case "ByAudienceUpdatedAt":
             sortByField("created_date", "date");
             break;
@@ -322,19 +319,14 @@ const Audience: React.FC = () => {
     useEffect(() => {
       setHasAudiences(audienceList.length > 0);
     }, [audienceList]);
-  
-    const handleView = (audienceId: number) => {
-      console.log(`View audience with ID: ${audienceId}`);
-    };
 
     const handleExportButtonClick = () => {
       // Filter columns to include only the desired fields
-      const filteredData = filteredAudiences.map(({ list_id, listname, created_date, total_people, status }) => ({
+      const filteredData = filteredAudiences.map(({ list_id, listname, created_date, total_people }) => ({
         list_id,
         listname,
         created_date,
         total_people,
-        status,
       }));
       // Create a worksheet
       const worksheet = XLSX.utils.json_to_sheet(filteredData);
@@ -563,7 +555,6 @@ const Audience: React.FC = () => {
                 <TableBody className="text-left text-[14px] font-normal text-[#020617]">
                   {currentAudiences.map((audience) => {
                     console.log(audience.list_id);
-                    console.log(audience.status);
                     let isSelected;
                     audienceList.map((Audiences) => {
                       isSelected = checkboxSelectedRows.includes(Audiences.list_id);

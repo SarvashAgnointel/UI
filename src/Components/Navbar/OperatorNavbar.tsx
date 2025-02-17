@@ -201,6 +201,9 @@ const Navbar: FC<{
     (state: RootState) => state.authentication.apiURL
   );
 
+  const OpAccUrl = useSelector(
+    (state: RootState) => state.authentication.operatorUrl
+  );
   // const workspace = location.state?.path || "Admin";
   const workspace = useSelector(
     (state: RootState) => state.authentication.workspaceName
@@ -216,6 +219,8 @@ const Navbar: FC<{
     const workspaceId=useSelector(
       (state: RootState) => state.authentication.workspace_id
     );
+
+    
 
       useEffect(() => {
         console.log("Role Name :" , userRoleName);
@@ -241,7 +246,7 @@ const Navbar: FC<{
     const fetchProfileImage = async () => {
       try {
         const response = await axios.get(
-          `${AdvAccUrl}/GetProfileImage`,
+          `${OpAccUrl}/GetOperatorProfileImage`,
           {
             params: { EmailId: emailId },
           }
@@ -354,8 +359,8 @@ const Navbar: FC<{
                               to="#"
                               className={
                                 selectedLabel == "Dashboard"
-                                  ? "text-[#64748B] font-normal text-[8px] ml-4"
-                                  : "text-[#020617] font-normal text-[8px] ml-4"
+                                  ? "text-[#64748B] font-normal text-[10px] ml-4"
+                                  : "text-[#020617] font-normal text-[10px] ml-4"
                               }
                             >
                               {workspaceName}
@@ -374,8 +379,8 @@ const Navbar: FC<{
                               <BreadcrumbPage
                                 className={
                                   breadCrumbStatus
-                                    ? "text-[#020617] font-normal text-[8px] mt-1"
-                                    : "text-[#64748B] font-normal text-[8px] mt-1"
+                                    ? "text-[#020617] font-normal text-[10px] mt-1"
+                                    : "text-[#64748B] font-normal text-[10px] mt-1"
                                 }
                               >
                                 {selectedLabel}

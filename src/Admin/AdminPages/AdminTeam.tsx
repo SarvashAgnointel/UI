@@ -76,49 +76,22 @@ interface Roles {
 }
 
 const Team: React.FC = () => {
-  const initialMembers: Member[] = [
-    {
-      name: "Sebastian",
-      email: "sebastian@sibiatech.com",
-      role: "Owner",
-      joinedDate: "2024-10-11T10:30:00Z",
-      wId: 0,
-    },
-    {
-      name: "Nour",
-      email: "nour@sibiatech.com",
-      role: "Super Admin",
-      joinedDate: "2024-09-25T09:15:00Z",
-      wId: 0,
-    },
-  ];
-
-  const inviteMembersList: InviteMember[] = [
-    {
-      name: "malek@sibiatech.com",
-      role: "Owner",
-      invitedAt: "03/01/2024",
-      expiresAt: "03/03/2024",
-      status: "Active",
-    },
-  ];
-
   const [open, setOpen] = useState(false);
   const [openMenuRowId, setOpenMenuRowId] = useState<number | null>(null);
-  const [currentMembers, setCurrentMembers] =
-    useState<Member[]>(initialMembers);
-  const [originalMembers, setOriginalMembers] =
-    useState<Member[]>(initialMembers);
+  const [currentMembers, setCurrentMembers] = useState<Member[]>([]);
+  const [originalMembers, setOriginalMembers] = useState<Member[]>([]);
   const [isSorted, setIsSorted] = useState(false);
 
   const [currentAdmins, setCurrentAdmins] = useState<Admin[]>([]);
   const [originalAdmins, setOriginalAdmins] = useState<Admin[]>([]);
   const [imageSrc, setImageSrc] = useState<any | null>(null);
 
-  const [inviteCurrentMembers, setInviteCurrentMembers] =
-    useState<InviteMember[]>(inviteMembersList);
-  const [inviteOriginalMembers, setInviteOriginalMembers] =
-    useState<InviteMember[]>(inviteMembersList);
+  const [inviteCurrentMembers, setInviteCurrentMembers] = useState<
+    InviteMember[]
+  >([]);
+  const [inviteOriginalMembers, setInviteOriginalMembers] = useState<
+    InviteMember[]
+  >([]);
   const [isInviteSorted, setIsInviteSorted] = useState(false);
   const [apiUrlAdmin, setApiUrlAdmin] = useState("");
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
@@ -134,6 +107,9 @@ const Team: React.FC = () => {
     { email: "", role: "", name: "fazil", wId: workspaceId },
   ]);
   const [roles, setRoles] = useState<Roles[]>([]);
+
+  // New state for search query
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -176,19 +152,15 @@ const Team: React.FC = () => {
         `${apiUrlAdmin}/GetAdminsList?workspaceId=${workspaceId}`
       );
 
-      debugger;
       if (response.data.status == "Success") {
         setCurrentAdmins(response.data.adminsList);
         setOriginalAdmins(response.data.adminsList);
-        console.log("Pending Member's List:" + response.data.adminsList);
+        console.log("Admins List:" + response.data.adminsList);
       } else {
-        console.log("No pending members");
+        console.log("No admins found");
       }
-
-      debugger;
     } catch (err) {
-      //setError("Failed to fetch members. Please try again later.");
-      console.error("Error fetching members:", err);
+      console.error("Error fetching admins:", err);
     }
   };
 
@@ -202,13 +174,13 @@ const Team: React.FC = () => {
         getAdminsList(); // Re-fetch admins
         toast.toast({
           title: "Success",
-          description: "The Admin access revoked successfully",
+          description: "The Admin access was revoked successfully",
         });
       } else {
         console.log("Error in revoking admin access");
         toast.toast({
           title: "Error",
-          description: "Something error in revoking admin access",
+          description: "Something went wrong revoking admin access",
         });
       }
     } catch (error) {
@@ -217,7 +189,6 @@ const Team: React.FC = () => {
   };
 
   const fetchProfileImage = async () => {
-    debugger;
     try {
       const response = await axios.get(`${apiUrlAdvAcc}/GetProfileImage`, {
         params: { EmailId: personalemail },
@@ -239,50 +210,61 @@ const Team: React.FC = () => {
     }
   };
 
-  const sortByField = (
-    field: keyof Member,
-    type: "string" | "number" | "date" = "string"
+  const sortAdminByField = (
+    field: "name" | "email" | "createdAt",
+    type: "string" | "date" = "string"
   ) => {
-    const sortedMembers = [...currentMembers].sort((a, b) => {
-      if (type === "number") {
-        return Number(a[field]) - Number(b[field]);
-      } else if (type === "date") {
-        return Date.parse(a[field] as string) - Date.parse(b[field] as string);
-      } else {
-        return String(a[field]).localeCompare(String(b[field]));
+    const sortedAdmins = [...currentAdmins].sort((a, b) => {
+      let aValue: string | number, bValue: string | number;
+  
+      if (field === "name") {
+        aValue = `${a.first_name} ${a.last_name}`.toLowerCase();
+        bValue = `${b.first_name} ${b.last_name}`.toLowerCase();
+        return aValue.localeCompare(bValue);
       }
+  
+      if (field === "email") {
+        aValue = a.email.toLowerCase();
+        bValue = b.email.toLowerCase();
+        return aValue.localeCompare(bValue);
+      }
+  
+      if (field === "createdAt") {
+        aValue = new Date(a.createdAt).getTime();
+        bValue = new Date(b.createdAt).getTime();
+        return aValue - bValue;
+      }
+  
+      return 0; // Default return to avoid function errors
     });
-    setOriginalMembers(currentMembers); // Save original state
-    setCurrentMembers(sortedMembers); // Set sorted members
+  
+    setOriginalAdmins([...currentAdmins]); // Store original state
+    setCurrentAdmins(sortedAdmins); // Update state with sorted data
   };
-
-  // Function to handle sorting based on column clicked
-  const sorting = (tableHeader: string) => {
+  
+  const sortingAdmins = (tableHeader: any) => {
     if (isSorted) {
-      // Reset to original list if already sorted
-      setCurrentMembers(originalMembers);
+      // Reset to the original list if already sorted
+      setCurrentAdmins(originalAdmins);
     } else {
       switch (tableHeader) {
         case "ByAdminsName":
-          sortByField("name", "string");
+          sortAdminByField("name", "string");
           break;
         case "ByAdminsEmail":
-          sortByField("email", "string");
-          break;
-        case "ByAdminsPermissions":
-          sortByField("role", "string");
+          sortAdminByField("email", "string");
           break;
         case "ByAdminsJoinDate":
-          sortByField("joinedDate", "string");
+          sortAdminByField("createdAt", "date");
           break;
         default:
           console.warn("Unknown table header");
       }
     }
-
-    setIsSorted(!isSorted); // Toggle sorting state
-    console.log("Sorted members:", currentMembers); // Debugging
+    setIsSorted(!isSorted);
   };
+
+  // Filter admins based on search term (first_name + last_name)
 
   const sortInviteByField = (
     field: keyof InviteMember,
@@ -301,10 +283,9 @@ const Team: React.FC = () => {
     setInviteCurrentMembers(sortedMembers); // Set sorted members
   };
 
-  // Function to handle sorting based on column clicked
+  // Function to handle sorting based on column clicked for invites
   const sortInviteMembers = (tableHeader: string) => {
-    if (isSorted) {
-      // Reset to original list if already sorted
+    if (isInviteSorted) {
       setInviteCurrentMembers(inviteOriginalMembers);
     } else {
       switch (tableHeader) {
@@ -327,7 +308,7 @@ const Team: React.FC = () => {
           console.warn("Unknown table header");
       }
     }
-    setIsSorted(!isSorted);
+    setIsInviteSorted(!isInviteSorted);
   };
 
   const handleOpen = () => {
@@ -340,6 +321,12 @@ const Team: React.FC = () => {
   const handleMenuToggle = (rowId: number) => {
     setOpenMenuRowId(openMenuRowId === rowId ? null : rowId);
   };
+
+  // Filter currentAdmins based on search term (first_name and last_name)
+  const filteredAdmins = currentAdmins.filter((admin) => {
+    const fullName = `${admin.first_name} ${admin.last_name}`.toLowerCase();
+    return fullName.includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="flex-col gap-6 h-full overflow-y-auto no-scrollbar">
@@ -356,13 +343,18 @@ const Team: React.FC = () => {
           </div>
         </CardHeader>
         <div className="pr-6 pl-6">
-          <Input placeholder="Search admins" />
+          {/* Update the search input to update searchTerm */}
+          <Input
+            placeholder="Search admins"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <CardContent>
           <div className="rounded-md border mt-4">
             <div className="max-h-[50vh] overflow-y-auto">
               <Table
-                className="rounded-xl whitespace-nowrap border-gray-200 "
+                className="rounded-xl whitespace-nowrap border-gray-200"
                 style={{ color: "#020202", fontSize: "15px" }}
               >
                 <TableHeader className="text-center">
@@ -371,7 +363,7 @@ const Team: React.FC = () => {
                       <div className="flex items-center gap-2 justify-start cursor-pointer">
                         Name{" "}
                         <CaretSortIcon
-                          onClick={() => sorting("ByAdminsName")}
+                          onClick={() => sortingAdmins("ByAdminsName")}
                           className="cursor-pointer"
                         />
                       </div>
@@ -380,7 +372,7 @@ const Team: React.FC = () => {
                       <div className="flex items-center gap-2 justify-start">
                         Email{" "}
                         <CaretSortIcon
-                          onClick={() => sorting("ByAdminsEmail")}
+                          onClick={() => sortingAdmins("ByAdminsEmail")}
                           className="cursor-pointer"
                         />
                       </div>
@@ -389,7 +381,7 @@ const Team: React.FC = () => {
                       <div className="flex items-center gap-2 justify-start">
                         Permissions{" "}
                         <CaretSortIcon
-                          onClick={() => sorting("ByAdminsPermissions")}
+                          onClick={() => sortingAdmins("ByAdminsPermissions")}
                           className="cursor-pointer"
                         />
                       </div>
@@ -398,7 +390,7 @@ const Team: React.FC = () => {
                       <div className="flex items-center gap-2 justify-start">
                         Joined at{" "}
                         <CaretSortIcon
-                          onClick={() => sorting("ByAdminsJoinDate")}
+                          onClick={() => sortingAdmins("ByAdminsJoinDate")}
                           className="cursor-pointer"
                         />
                       </div>
@@ -406,74 +398,75 @@ const Team: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentAdmins.map((admin, index) => (
-                    <>
-                      <TableRow key={index}>
-                        <TableCell className="flex items-center space-x-2 py-4">
-                          <Avatar>
-                            <AvatarImage src={imageSrc} />
-                            <AvatarFallback className="mt-1">
-                              {admin.first_name?.[0].toUpperCase() || "N/A"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>
-                            {admin.first_name + " " + admin.last_name}
-                          </span>
-                          {admin.email === personalemail && (
-                            <Badge className="ml-2 bg-blue-500 text-white">
-                              You
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-left">
-                          {admin.email}
-                        </TableCell>
-                        <TableCell className="text-left">
-                          <Badge
-                            className="text-white"
-                            style={{
-                              backgroundColor: "#000000",
-                            }}
-                          >
-                            {"Super Admin"}
+                  {filteredAdmins.map((admin, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="flex items-center space-x-2 py-4">
+                        <Avatar>
+                          <AvatarImage src={imageSrc} />
+                          <AvatarFallback className="mt-1">
+                            {admin.first_name?.[0].toUpperCase() || "N/A"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{admin.first_name + " " + admin.last_name}</span>
+                        {admin.email === personalemail && (
+                          <Badge className="ml-2 bg-blue-500 text-white">
+                            You
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-left">
-                          {admin.createdAt}
-                        </TableCell>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-left">{admin.email}</TableCell>
+                      <TableCell className="text-left">
+                        <Badge
+                          className="text-white"
+                          style={{ backgroundColor: "#000000" }}
+                        >
+                          {"Super Admin"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-left">
+                        {admin.createdAt
+                          ? new Date(admin.createdAt).toLocaleString("en-US", {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })
+                          : "N/A"}
+                      </TableCell>
 
-                        <TableCell className="text-left">
-                          {personalemail === "fazil@agnointel.ai" &&
-                            admin.email !== "fazil@agnointel.ai" && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  className="ml-2 cursor-pointer"
-                                  onClick={() =>
-                                    console.log("Dropdown triggered")
-                                  }
+                      <TableCell className="text-left">
+                        {personalemail === "nour@sibiatech.com" &&
+                          admin.email !== "nour@sibiatech.com" && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                className="ml-2 cursor-pointer"
+                                onClick={() =>
+                                  console.log("Dropdown triggered")
+                                }
+                              >
+                                <DotsHorizontalIcon className="cursor-pointer w-6 h-6" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-24 bg-gray-200"
+                              >
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    console.log(
+                                      `Revoke Access clicked for Admin ID: ${admin.id}`
+                                    );
+                                    DeleteAdminAccess(admin.id);
+                                  }}
                                 >
-                                  <DotsHorizontalIcon className="cursor-pointer w-6 h-6" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="w-24 bg-gray-200"
-                                >
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      console.log(
-                                        `Revoke Access clicked for Admin ID: ${admin.id}`
-                                      );
-                                      DeleteAdminAccess(admin.id);
-                                    }}
-                                  >
-                                    Revoke Access
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                        </TableCell>
-                      </TableRow>
-                    </>
+                                  Revoke Access
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                      </TableCell>
+                    </TableRow>
                   ))}
                 </TableBody>
               </Table>

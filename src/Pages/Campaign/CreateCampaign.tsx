@@ -209,6 +209,7 @@ export default function CreateCampaign() {
   const [campaignNameError, setCampaignNameError] = useState<string | null>( null);
   const [channelError, setChannelError] = useState<string | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
+  const [PhoneNUmberError, setPhoneNumberError] = useState<string | null>(null);
   const [AudienceError, setAudienceError] = useState<string | null>(null);
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [FbudgetError, setFBudgetError] = useState<string | null>(null);
@@ -301,9 +302,6 @@ export default function CreateCampaign() {
   const [deliveryEndTime, setDeliveryEndTime] = useState<string>("");
   const [tempSelectedCountries, setTempSelectedCountries] = useState<string[]>([]); 
   
-  const selectedRecipients = 1240;
-  const totalRecipients = 3448;
-  const percentage = Math.round((selectedRecipients / totalRecipients) * 100);
   const [walletAmount,setWalletAmount]=useState<string>("");
   const [totalRecepientsdFromAud , setTotalRecepientsFromAud] = useState<string>("");
   const [SelectedRecipientsFromAud, setSelectedRecipientsFromAud] = useState<number>(0);
@@ -340,8 +338,23 @@ export default function CreateCampaign() {
     maxRecipients: null,
   });
   
- 
-  
+
+ // const selectedRecipients = 1240;
+  // const totalRecipients = 3448;
+  // const percentage = Math.round((selectedRecipients / totalRecipients) * 100);
+  const SelectedRecipientsFromAud1 = 56;
+  const totalRecepientsdFromAud1 = 266;
+
+const selectedRecipients = Number(
+  audience !== 0 ? SelectedRecipientsFromAud1 : SelectedRecipientsFromOP
+);
+const totalRecipients = Number(
+  audience !== 0 ? totalRecepientsdFromAud1 : totalRecipientsFromOP
+);
+
+const percentage =
+  totalRecipients > 0 ? Math.round((selectedRecipients / totalRecipients) * 100) : 0;
+
   const [showDialog, setShowDialog] = useState(false);
   const handleDiscard = () => {
     dispatch(setCreateBreadCrumb(false));
@@ -913,6 +926,15 @@ export default function CreateCampaign() {
       return false;
     }
     setTemplateError(null);
+    return true;
+  };
+
+  const validatePhoneNumber = (value: string): boolean => {
+    if (!value) {
+      setPhoneNumberError("Please select a PhoneNumber");
+      return false;
+    }
+    setPhoneNumberError(null);
     return true;
   };
 
@@ -1810,7 +1832,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         dailyRecipientLimit: dailyRecipientLimit, 
         deliveryStartTime: convertToISO8601(deliveryStartTime), 
         deliveryEndTime: convertToISO8601(deliveryEndTime),
-        sms_number: selectedPhoneNumber,
+        smsNumber: selectedPhoneNumber,
       };
       
       // debugger;
@@ -1847,7 +1869,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         //toast.("An error occurred while saving the campaign details");
         setTimeout(() => {
           /* wait for 1 second */
-        }, 1000);
+        }, 6000);
       }
     } catch (e) {
       console.log("Error in submitting form");
@@ -1980,7 +2002,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         ? updateRoamingCountryId // Use the array of IDs
         : reachPeopleIn.map((id) => id.trim());
   
-        debugger;
+      
         console.log("Targ Count:" , );
         console.log("logs:" , Array.isArray(TargetCountry) ? TargetCountry : [TargetCountry]);
        // dispatch(setTargetCountry(Array.isArray(TargetCountry) ? TargetCountry : [TargetCountry]));
@@ -2013,23 +2035,24 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
 
     try {
       const data = {
-        CampaignId: campaignId,
+        CampaignId: campaignId ? Number(campaignId) : 0,
         CampaignName: campaignName,
         CampaignBudget: campaignBudget,
-        ChannelType: updateChannelId ? updateChannelId : channel,
-        TargetCountry:
-          reachPeopleFrom.length === 0
-            ? TargetCountry
-            : JSON.stringify(reachPeopleFrom),
-        RoamingCountry:
-          reachPeopleIn.length === 0
-            ? RoamingCountry
-            : JSON.stringify(reachPeopleIn),
+        ChannelType: updateChannelId ? Number(updateChannelId) : Number(channel),
+        // TargetCountry:
+        //   reachPeopleFrom.length === 0
+        //     ? JSON.parse(updateCountryId) // Ensure it's a JSON array
+        //     : reachPeopleFrom,
+        // RoamingCountry:
+        //   reachPeopleIn.length === 0
+        //     ? JSON.parse(updateRoamingCountryId) // Ensure it's a JSON array
+        //     : reachPeopleIn,
+
+        TargetCountry: JSON.stringify(reachPeopleFrom.length === 0 ? updateCountryId : reachPeopleFrom),
+        RoamingCountry: JSON.stringify(reachPeopleIn.length === 0 ? updateRoamingCountryId : reachPeopleIn),
         StartDateTime: formatingDate(campaignStartDate),
         EndDateTime: formatingDate(campaignEndDate),
-        // FStartDateTime: formatingDate(FcampaignStartDate),
-        // FEndDateTime: formatingDate(FcampaignEndDate),
-        TemplateName: template == "" ? updateTemplateId : template,
+        TemplateName: template === "" ? updateTemplateId : template,
         status: "In review",
         CreatedBy: 1,
         CreatedDate: "2025-01-03T06:55:17.555Z",
@@ -2037,33 +2060,34 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         UpdatedDate: "2025-01-03T06:55:17.555Z",
         WorkspaceId: workspaceId,
         ListId: audience == 0 ? updateAudienceId : Number(audience),
-        device_id: updateDeviceId ? updateDeviceId : device,
+        device_id: updateDeviceId ? Number(updateDeviceId) : Number(device),
         Delivered: "Delivered",
         ReadCampaign: "ReadCampaign",
         CTR: "CTR",
         DeliveryRate: "DeliveryRate",
         ButtonClick: "ButtonClick",
-        Age: updateAgeId ? updateAgeId : age,
-        Gender: updateGenderId ? updateGenderId : gender,
-        IncomeLevel: updateIncomeLevelId ? updateIncomeLevelId : incomeLevel,
-        Location: updateLocationId ? updateLocationId : locationcity,
-        interests: updateInterestId ? updateInterestId : interest,
-        behaviours: updateBehaviourId ? updateBehaviourId : behaviour,
-        OSDevice: updateOsDeviceId ? updateOsDeviceId : osDevice,
+        Age: updateAgeId ? Number(updateAgeId) : Number(age),
+        Gender: updateGenderId ? Number(updateGenderId) : Number(gender),
+        IncomeLevel: updateIncomeLevelId ? Number(updateIncomeLevelId) : Number(incomeLevel),
+        Location: updateLocationId ? Number(updateLocationId) : Number(locationcity),
+        interests: updateInterestId ? Number(updateInterestId) : Number(interest),
+        behaviours: updateBehaviourId ? Number(updateBehaviourId) : Number(behaviour),
+        OSDevice: updateOsDeviceId ? Number(updateOsDeviceId) : Number(osDevice),
         FCampaignBudget: "FCampaignBudget",
         fStartDateTime: "2025-01-02T05:37:38.105Z",
         fEndDateTime: "2025-01-02T05:37:38.105Z",
-
-        isAdminApproved: "NULL", 
-        isOperatorApproved: "NULL", 
+        isAdminApproved: null, 
+        isOperatorApproved: null, 
         budgetAndSchedule: budgetType, 
         messageFrequency: messageFrequency, 
         sequentialDelivery: "Enabled", 
         preventDuplicateMessages: "Disabled", 
         dailyRecipientLimit: dailyRecipientLimit, 
         deliveryStartTime: convertToISO8601(deliveryStartTime), 
-        deliveryEndTime: convertToISO8601(deliveryEndTime)
+        deliveryEndTime: convertToISO8601(deliveryEndTime),
+        smsNumber: selectedPhoneNumber
       };
+  
       // debugger;
       console.log(data);
       // debugger;
@@ -2339,25 +2363,25 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                   >
                      Phone Number
                   </Label>
-      <Select
-        value={selectedPhoneName}
-        onValueChange={(value) => {
-          const selectedPhone = phoneNumberList.find((phone) => phone.phone_name === value);
-          if (selectedPhone) {
-            setSelectedPhoneName(selectedPhone.phone_name);
-            setSelectedPhoneNumber(selectedPhone.phone_number);
-            console.log("Selected Phone Name:", selectedPhone.phone_name);
-            console.log("Selected Phone Number:", selectedPhone.phone_number);
-          }
-        }}
-      >
-      <SelectTrigger className="text-gray-500 mt-2 cursor-pointer">
-     <SelectValue
-           className="text-[#64748B] text-sm font-normal cursor-pointer"
-           placeholder="Select Phone Name" />
-        </SelectTrigger>
-        <SelectContent>
-          {phoneNumberList.length > 0 ? (
+          <Select
+            value={selectedPhoneName}
+            onValueChange={(value) => {
+              const selectedPhone = phoneNumberList.find((phone) => phone.phone_name === value);
+              if (selectedPhone) {
+                setSelectedPhoneName(selectedPhone.phone_name);
+                setSelectedPhoneNumber(selectedPhone.phone_number);
+                console.log("Selected Phone Name:", selectedPhone.phone_name);
+                console.log("Selected Phone Number:", selectedPhone.phone_number);
+              }
+            }}
+          >
+          <SelectTrigger className="text-gray-500 mt-2 cursor-pointer">
+        <SelectValue
+              className="text-[#64748B] text-sm font-normal cursor-pointer"
+              placeholder="Select Phone Name" />
+            </SelectTrigger>
+            <SelectContent>
+              {phoneNumberList.length > 0 ? (
             phoneNumberList.map((phone) => (
               <SelectItem key={phone.id} value={phone.phone_name} className="text-sm text-[#64748B]">
                 {phone.phone_name}
@@ -2368,7 +2392,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
           )}
         </SelectContent>
       </Select>
-    </div>
+               </div>
 
                 <div className="mt-4 mb-4">
                   <Label
@@ -2423,7 +2447,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                   
                
                 {templateError && (
-                    <p className="text-red-500 text-sm mt-1">{templateError}</p>
+                    <p className="text-red-500 text-sm mt-2">{templateError}</p>
                   )}
                 {/* Add small gray text below */}
                 <p className="text-gray-500 text-xs mt-1">

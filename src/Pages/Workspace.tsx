@@ -503,19 +503,16 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
 
   return (
     <>
-      {loading && (
-        
-    
-        <div className="loading-overlay">
-              <CircularProgress color="primary" />
-        </div>
-      
-          
-      )}
       {
         (!addWorkspaceFromDropdown ? (
           <>
-            <Container maxWidth="xs" sx={{ padding: 2 }}>
+          {loading && (
+            <div className="loading-overlay flex items-center justify-center h-screen">
+              <CircularProgress color="primary" />
+            </div>
+          )}
+          
+          <Container maxWidth="xs" sx={{ padding: 2 }}>
               <Toaster />
               <Box
                 component="form"
@@ -733,11 +730,16 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                   {isButtonDisabled ? "Processing..." : "Complete"}
                 </Button>
               </Box>
-            </Container>
+          </Container> 
           </>
         ) : (
           <>
-            <Toaster />
+
+      {loading ? (
+            <div className="flex items-center justify-center">
+              <CircularProgress color="primary" />
+            </div>
+          ) : (
             <Box
               component="form"
               onSubmit={handleAddWorkspaceFromDropdown}
@@ -939,6 +941,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                 {isButtonDisabled ? "Processing..." : "Complete"}              
                 </Button>
             </Box>
+          )}
           </>
         ))}
     </>

@@ -98,15 +98,89 @@ interface DatePickerWithRangeProps {
   initialcampaign: boolean; 
   
 }
+
 const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
-  className,
+  className,setCampaignList,getCampaignList,setCurrentCampaigns,  setInitialCampaign , initialcampaign 
 }) => {
+  const [currentData, setCurrentData] = useState<Campaign[]>([]);
+  const [fromDate, setfromDate] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiUrlAdminAcc, setapiUrlAdminAcc] = useState("");
+  const [operatorapiUrl,setOperatorApiUrl]=useState("")
+  const workspaceId = useSelector((state: RootState) => state.authentication.workspace_id);
   const [date, setDate] = useState<DateRange | undefined>({
     from: undefined,
     to:  undefined
   });
 
 
+
+    useEffect(() => {
+      const fetchConfig = async () => {
+        try {
+          const response = await fetch("/config.json");
+          const config = await response.json();
+          setapiUrlAdminAcc(config.ApiUrlAdminAcc);
+          setOperatorApiUrl(config.OperatorUrl);
+          console.log("apiUrlAdminAcc:" , apiUrlAdminAcc);
+        } catch (error) {
+          console.error("Error loading config:", error);
+        }
+      };
+  
+      fetchConfig();
+    }, []);
+
+
+  useEffect(() => {
+
+    if (date && date.from && date.to) {
+
+      const date_to = format(date.to, "yyyy-MM-dd");
+
+      const date_from = format(date.from, "yyyy-MM-dd"); 
+
+      const ChartDateRange = async () => {
+        debugger
+        try {
+          const response = await axios.get(
+            `${operatorapiUrl}/GetCampainListOperatorbyDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}&workspaceId=${workspaceId}`
+          );
+      
+         
+          if (
+            response.data.status === "Success" &&
+            response.data.campaignCount > 0
+          ) {
+           
+            setCampaignList(response.data.campaignList);
+
+          } else {
+            // setChartData(response.data);
+           // getCampaignList();
+          // setCurrentData([]);
+          // setCurrentCampaigns([]);
+          // setInitialCampaign(false);
+          // setCampaignList([]);
+            console.error("chart details not found");
+          }
+        } catch (error) {
+          console.error("error in fetching chart details: ", error);
+        }
+      };
+
+      ChartDateRange();
+    } else {
+      console.log("No date selected");
+    }
+  },[date])
+
+  useEffect(() => {
+    if (initialcampaign === false) {
+      setCampaignList([]);  // This will run after initialcampaign is set to false
+    }
+  }, [initialcampaign]);  // Dependency on initialcampaign state
+  
   return (
     <div className={className}>
       <Popover>
@@ -189,6 +263,7 @@ const OperatorCampaignList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState<number>(5); // Default 5 rows per page
   const [searchTerm, setSearchTerm] = useState("");
   const [apiUrlAdminAcc, setapiUrlAdminAcc] = useState("");
+  const [operatorapiUrl,setOperatorApiUrl]=useState("")
   const [isLoading, setIsLoading] = useState(true);
   const [filterData, setFilterData] = useState({
     filter: "",
@@ -201,6 +276,10 @@ const OperatorCampaignList: React.FC = () => {
   const OperatorUrl = useSelector((state:RootState)=>state.authentication.operatorUrl);
   //For Date Filter
   const [dateList, setDateList] = useState<string[]>([]);
+    const [date, setDate] = useState<DateRange | undefined>({
+      from: undefined,
+      to:  undefined
+    });
 
   const handleCheckboxRowSelect = (id: number) => {
     setCheckboxSelectedRows((prev) => {
@@ -230,6 +309,7 @@ const OperatorCampaignList: React.FC = () => {
         const response = await fetch("/config.json");
         const config = await response.json();
         setapiUrlAdminAcc(config.ApiUrlAdminAcc);
+        setOperatorApiUrl(config.OperatorUrl);
       } catch (error) {
         console.error("Error loading config:", error);
       }
@@ -249,6 +329,48 @@ const OperatorCampaignList: React.FC = () => {
       setDateListFunction();
     }
   }, [campaignList]); // Dependency on campaignList
+
+  useEffect(() => {
+
+    if (date && date.from && date.to) {
+
+      const date_to = format(date.to, "yyyy-MM-dd");
+
+      const date_from = format(date.from, "yyyy-MM-dd"); 
+
+      const ChartDateRange = async () => {
+        try {
+          const response = await axios.get(
+            `${operatorapiUrl}/GetCampainListOperatorbyDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}&workspaceId=${workspaceId}}`
+          );
+      
+         
+          if (
+            response.data.status === "Success" &&
+            response.data.campaignList.length > 0
+          ) {
+           
+            setCampaignList(response.data.campaignList);
+
+          } else {
+            // setChartData(response.data);
+           // getCampaignList();
+          // setCurrentData([]);
+          // setCurrentCampaigns([]);
+          setInitialCampaign(false);
+          setCampaignList([]);
+            console.error("chart details not found");
+          }
+        } catch (error) {
+          console.error("error in fetching chart details: ", error);
+        }
+      };
+
+      ChartDateRange();
+    } else {
+      console.log("No date selected");
+    }
+  },[date])
 
   // Filter the campaigns by the search term and subFilter
   const filteredCampaigns = campaignList.filter((campaign) => {

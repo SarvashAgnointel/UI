@@ -35,7 +35,7 @@ import {
   SelectContent,
   SelectValue,
 } from "../../Components/ui/select";
-import { setworkspace } from "../../State/slices/AuthenticationSlice";
+import { setworkspace, setWorkspaceId } from "../../State/slices/AuthenticationSlice";
 interface Country {
   country_id: number,
   country_name: string
@@ -85,6 +85,10 @@ const Workspace_settings: FC = () => {
 
   //const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState<string | undefined>(undefined); // Initialize with `undefined` or an empty string
   const apiUrlAdvAcc = useSelector((state: RootState) => state.authentication.apiURL);
+
+  const workspace_list = useSelector((state: RootState) => state.advertiserAccount.workspace_list);
+
+  const wid = useSelector((state: RootState) => state.authentication.workspace_id);
 
   // useEffect(() => {
   //   setIsLoading(true);
@@ -785,36 +789,6 @@ const Workspace_settings: FC = () => {
   }
 
 
-  // const handleAccountDeletion = () => {
-  //   toast.toast({
-  //     title: "Error",
-  //     description: "Your account has been deleted!",
-  //   })
-
-  // };
-
-  // const [apiUrlAdminAcc, setApiUrlAdminAcc] = useState("");
-  // useEffect(() => {
-  //   const fetchConfig = async () => {
-  //     try {
-
-  //       const response = await fetch("/config.json");
-  //       console.log("fetch config::", response);
-  //       const config = await response.json();
-
-  //       console.log("Config loaded:", config);
-  //       setApiUrlAdminAcc(config.ApiUrlAdminAcc);
-  //       // setApiUrlAdvAcc(config.ApiUrlAdvAcc);
-  //       console.log(apiUrlAdvAcc);
-
-  //     } catch (error) {
-  //       console.error("Error loading config:", error);
-  //     }
-  //   };
-
-  //   fetchConfig();
-  // }, []);
-
   const handleOpen = () => {
     setIsAlertOpen(true);
   };
@@ -823,27 +797,26 @@ const Workspace_settings: FC = () => {
     setIsAlertOpen(false);
   };
 
-
-  // const token = localStorage.getItem('token');
-  //     const handleAccountDeletion =  async () => {
-
-  //         const response = await axios.get(
-  //           `${apiUrlAdvAcc}/deleteworkspce?workspaceid=` + workspace_id, {
-  //             headers: {
-  //                 Authorization: `Bearer ${token}`, // Include the token here
-  //             },
-  //         }
-  //         );
-  //         dispatch(setworkspace(name));
-  //         toast.toast({
-  //           title: "Success",
-  //           description: "Your Workspace has been deleted!",
-  //         })      
-  //       };
-
   const token = localStorage.getItem('token');
 
   const handleAccountDeletion = async () => {
+    setIsLoading(true);
+    console.log("Workspace List :" , workspace_list);
+    console.log("OLD workspace ID :" , wid);
+    
+    // Get the next available workspace_id (other than the given one)
+    const nextWorkspace = workspace_list.find((ws) => ws.workspace_id !== wid);
+    let newwid:number ;
+    let newworkspaceName:string ;
+    if (nextWorkspace) {
+      newwid = nextWorkspace.workspace_id;
+      newworkspaceName = nextWorkspace.workspace_name;
+      
+      console.log("New Workspace ID:", newwid);
+      console.log("New Workspace Name:", newworkspaceName);
+    } else {
+      console.log("No other workspace found.");
+    } 
     try {
       const response = await axios.get(
         `${apiUrlAdvAcc}/deleteworkspce?workspaceid=${workspace_id}`,
@@ -855,14 +828,20 @@ const Workspace_settings: FC = () => {
       );
 
       if (response.status === 200) {
-        dispatch(setworkspace(name));
+        setIsLoading(false);
         toast.toast({
           title: "Success",
           description: "Your Workspace has been deleted!",
-          duration: 3000,
+          duration: 1000,
         });
+        setTimeout(()=>{
+          dispatch(setWorkspaceId(newwid?newwid:0));
+          dispatch(setworkspace(newworkspaceName?newworkspaceName:""));
+          navigate("/navbar/dashboard/");        
+        },1000);
       }
     } catch (error) {
+      setIsLoading(false);
       toast.toast({
         title: "Failed",
         description: "Error in Deletion",
@@ -879,20 +858,6 @@ const Workspace_settings: FC = () => {
   };
 
 
-  // const countryList = [
-  //   { country_id: "United States", country_name: "United States" },
-  //   { country_id: "Canada", country_name: "Canada" },
-  //   { country_id: "United Kingdom", country_name: "United Kingdom" },
-  //   { country_id: "India", country_name: "India" },
-  //   { country_id: "Australia", country_name: "Australia" },
-  //   { country_id: "United Arab Emirates", country_name: "United Arab Emirates"}
-  // ];
-
-  // const industryList = [
-  //   { industry_id: "IT", industry_name: "IT" },
-  //   { industry_id: "Health", industry_name: "Health" },
-  //   { industry_id: "Finance", industry_name: "Finance" }
-  // ];
 
   return (
     <div className="flex h-screen">
@@ -931,31 +896,12 @@ const Workspace_settings: FC = () => {
           >
             Update your team's logo to make it easier to identify
           </Typography>
-          {/* <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleImageUpload} 
-            className="mb-4"
-          />
-          {imagePreview && (
-            <div className="mb-4 w-32 border border-black overflow-hidden rounded"> 
-              <img 
-                src={imagePreview} 
-                alt="Profile Preview" 
-                className="w-full h-auto max-h-32 object-contain" 
-              />
-            </div>
-          )} */}
+
           <div
             className="flex items-center gap-2 mt-4 cursor-pointer"
             onClick={() => document.getElementById("file-upload")?.click()}
           >
-            {/* <div>
-              {(!imagePreview && <Image className="h-[24px] w-[24px]" />) ||
-                (imagePreview && (
-                  <img src={imagePreview} className="h-[24px]" />
-                ))}
-            </div> */}
+
             <div className="flex-col">
               <div className='flex gap-2'>
                 <Input
@@ -1007,7 +953,7 @@ const Workspace_settings: FC = () => {
             />
           </div>
           <Button onClick={handleUpdateImage} disabled={isLoading} className="py-1 px-3 text-sm w-[128px] mt-1" style={{ fontWeight: 400, fontSize: '14px' }}>
-            {isLoading ? 'Updating...' : 'Update Image'}
+            {isLoading ? 'Updating...' : 'Update image'}
           </Button>
         </Card>
 
@@ -1018,7 +964,7 @@ const Workspace_settings: FC = () => {
             className="mb-4"
             style={{ fontWeight: 600, fontSize: "14px", paddingBottom: "6px", color: "#020617" }}
           >
-            <b>Company Name</b>
+            <b>Company name</b>
           </Typography>
           <Typography
             component="p"
@@ -1054,7 +1000,7 @@ const Workspace_settings: FC = () => {
             className="mb-4"
             style={{ fontWeight: 600, fontSize: "14px", paddingBottom: "6px", color: "#020617" }}
           >
-            <b>Company Address</b>
+            <b>Company address</b>
           </Typography>
           <Typography
             component="p"
@@ -1125,35 +1071,24 @@ const Workspace_settings: FC = () => {
           {StateError && (
             <p className="text-red-500 text-xs mt-1 mb-2">{StateError}</p>
           )}
-          <Select
-            value={Country}
-            onValueChange={(value) => {
-              console.log("Selected Country ID:", value);
-              setcountry(value);
-            }}
-          >
-            <SelectTrigger className="text-gray-500 mt-4 text-left w-full p-2 border border-gray-300 rounded ">
-              <SelectValue
-                className="text-gray-500 text-[14px] font-normal"
-                placeholder="Select Country"
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {countrylist.length > 0 ? (
-                countrylist.map((country) => (
-                  <SelectItem
-                    className="text-gray-500"
-                    key={country.country_id}
-                    value={country.country_name}
-                  >
-                    {country.country_name}
-                  </SelectItem>
-                ))
-              ) : (
-                <div>No countries available</div>
-              )}
-            </SelectContent>
-          </Select>
+<Select value={Country} onValueChange={(value) => setcountry(value)}>
+  <SelectTrigger className="text-gray-500 mt-4 text-left w-full p-2 border border-gray-300 rounded">
+    <SelectValue className="text-gray-500 text-[14px] font-normal" placeholder="Select Country" />
+  </SelectTrigger>
+  <SelectContent className="overflow-y-auto max-h-[200px]">
+    {countrylist.length > 0 ? (
+      countrylist.map((country) => (
+        <SelectItem className="cursor-pointer" key={country.country_id} value={country.country_name}>
+          {country.country_name}
+        </SelectItem>
+      ))
+    ) : (
+      <div>No countries available</div>
+    )}
+  </SelectContent>
+</Select>
+
+
           {CountryError && (
             <Typography className="text-red-500 mb-4">{CountryError}</Typography>
           )}
@@ -1172,7 +1107,7 @@ const Workspace_settings: FC = () => {
             className="mb-4"
             style={{ fontWeight: 600, fontSize: "14px", paddingBottom: "6px", color: "#020617" }}
           >
-            <b>Company Industry</b>
+            <b>Company industry</b>
           </Typography>
           <Typography
             component="p"
@@ -1199,7 +1134,7 @@ const Workspace_settings: FC = () => {
             <SelectContent>
               {industrylist.map((industry) => (
                 <SelectItem
-                  className="text-gray-500"
+                  className="cursor-pointer"
                   key={industry.industry_id}
                   value={industry.industry_name}
                 >
@@ -1292,7 +1227,7 @@ const Workspace_settings: FC = () => {
             // onClick={handleAccountDeletion}
             className="bg-[#EF4444] text-white py-2 px-4 text-sm hover:bg-red-700 w-[167px]"
           >
-            <span style={{ fontWeight: 500, fontSize: '14px', color: "#F8FCFC" }}>   Delete your Workspace </span>
+            <span style={{ fontWeight: 500, fontSize: '14px', color: "#F8FCFC" }}>   Delete your workspace </span>
           </Button>
 
 
@@ -1305,15 +1240,20 @@ const Workspace_settings: FC = () => {
 
           >
             <DialogContent className="max-w-xl ">
-              <span className="max-w-xl" >
+              <DialogHeader>
+               <DialogTitle className="text-18px font-semibold text-[#09090B] mb-2">
+                Delete Account
+                </DialogTitle>
+                <DialogDescription className="text-14px font-medium text-[#71717A]">
                 If you delete your Workspace, the associated data will also be deleted. Do you want to proceed?
-              </span >
+                </DialogDescription>
+              </DialogHeader>
               <div className="flex justify-end gap-4">
-                <Button variant="outline" className="w-24" onClick={handleClose}>
+                <Button disabled={isLoading} variant="outline" className="px-4 py-2 w-24" onClick={handleClose}>
                   Cancel
                 </Button>
-                <Button className="w-24" onClick={confirmDelete} autoFocus>
-                  OK
+                <Button className="px-4 py-2 w-24" onClick={confirmDelete} autoFocus>
+                  {isLoading?"Deleting...":"OK"}
                 </Button>
               </div>
             </DialogContent>

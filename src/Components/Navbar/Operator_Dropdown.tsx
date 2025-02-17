@@ -123,6 +123,10 @@ export function DropdownMenuDemo({
   const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
   const userRoleName = useSelector((state: RootState) => state.advertiserAccount.user_role_name);
 
+  const showAdminDropdown =
+  isAdmin && (!ImpersonatorData?.ImpersonationState);
+
+
   // const seturl=async()=>{
   //   await setApiUrlAdvAcc(config.ApiUrlAdvAcc);
   // }
@@ -254,7 +258,7 @@ export function DropdownMenuDemo({
                   Stop Impersonation
                 </span>
               </DropdownMenuItem> }
-          {isAdmin && <DropdownMenuItem
+          {showAdminDropdown && <DropdownMenuItem
                 onClick={() => navigate("/adminNavbar/home",{state:{route:"Home"}})}
                 className="flex items-center cursor-pointer"
               >

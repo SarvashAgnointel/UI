@@ -241,20 +241,24 @@ const AdminPlans: React.FC = () => {
 
 
   const handleStatusToggle = (billingId: number, currentStatus: string) => {
-    const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
-
+    // const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+    const newStatus = currentStatus;
     // Update the status in the backend
     axios
-      .post(`${apiUrlAdvAcc}/UpdatePlanStatus`, {
+      .post(`${apiUrlAdvAcc}/ChangeStatusToggle`, {
         billingId,
         status: newStatus,
       })
       .then((response) => {
         if (response.status === 200) {
           // Update the status locally in the state
+          console.log(billingId, newStatus); // Log the values
+
           setCurrentPlans((prevPlans) =>
             prevPlans.map((plan) =>
               plan.billingId === billingId ? { ...plan, status: newStatus } : plan
+
+           
             )
           );
         }
@@ -412,19 +416,20 @@ const AdminPlans: React.FC = () => {
                           checked={plan.status === "Active"}
                           onCheckedChange={(checked) => {
                             // Update the UI state locally
-                            setCurrentPlans((prevPlans) =>
-                              prevPlans.map((p) =>
-                                p.billingId === plan.billingId
-                                  ? { ...p, status: checked ? "Active" : "Inactive" }
-                                  : p
-                              )
-                            );
+                            // setCurrentPlans((prevPlans) =>
+                            //   prevPlans.map((p) =>
+                            //     p.billingId === plan.billingId
+                            //       ? { ...p, status: checked ? "Active" : "Inactive" }
+                            //       : p
+                            //   )
+                            // );
 
                             // Optional: Call the API if needed
-                            // handleStatusToggle(plan.billingId, checked ? "Active" : "Inactive");
+                            handleStatusToggle(plan.billingId, checked ? "Active" : "Inactive");
                           }}
                           className="bg-gray-200"
                         />
+                        
                       </div>
                     </TableCell>
 

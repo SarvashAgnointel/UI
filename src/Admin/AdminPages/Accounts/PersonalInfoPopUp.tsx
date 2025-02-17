@@ -20,6 +20,7 @@ const PersonalInfoPopup: React.FC<ViewAccountPopupProps> = ({
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState<string>("");
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
+  const [workspaceType,setWorkspaceType]=useState<string>("");
 
 
   // Load configuration on mount
@@ -49,6 +50,7 @@ const PersonalInfoPopup: React.FC<ViewAccountPopupProps> = ({
           const user = response.data.personalInfoList[0];
           setFirstName(user.firstName);
           setLastName(user.lastName);
+          setWorkspaceType(user.workspace_type);
         } else {
           console.log("No personal info found for the given email.");
         }
@@ -93,6 +95,10 @@ const PersonalInfoPopup: React.FC<ViewAccountPopupProps> = ({
 
       <span className="text-14px font-medium text-[#020617]">Last Name</span>
       <span className="text-[14px] font-normal">: {lastName || "Loading..."}</span>
+
+      <span className="text-14px font-medium text-[#020617]">Workspace Type</span>
+      <span className="text-[14px] font-normal">: {workspaceType || "Loading..."}</span>
+
     </div>
     <div className="flex justify-center flex-wrap">
         <Button className="py-1 w-full bg-[#3A85F7] text-[14px] font-medium text-[#FAFAFA]"  onClick={handleDialogChange}>

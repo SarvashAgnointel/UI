@@ -685,6 +685,15 @@ export default function AdminCampaignReview() {
         // setUpdateChannel(templateDetailslocal.channel_type);
         // setUpdateLanguage(templateDetailslocal.language);
 
+        if (templateDetailslocal.channel_id === 2) {
+          const body = components.find(
+            (item: { type: string }) => item.type === "BODY"
+          );
+          if (body) {
+            setBodyText(body.text);
+            console.log("Body Text :" + body.text);
+          }
+        }
         const header = components.find(
           (item: { type: string }) => item.type === "HEADER"
         );
@@ -886,20 +895,20 @@ export default function AdminCampaignReview() {
       }}
       >
         {noContentSelected ? (
-          <div className="flex w-full justify-center">
-            <div className="flex-col justify-center text-left mt-[250px] items-center">
-              <div>{textAreaIcon()}</div>
-              <div className="mt-[30px]">
-                <p className="text-xl font-semibold">Mobile screen</p>
-              </div>
-              <div
-                className="w-[140px] mt-[10px]"
-                style={{ fontWeight: 500, fontSize: "14px" }}
-              >
-                <p className="">Preview varies based on platform selection</p>
-              </div>
+          <div className="flex w-full h-[calc(100vh-200px)] items-center justify-center">
+          <div className="text-center">
+            <div>{textAreaIcon()}</div>
+            <div className="mt-6">
+              <p className="text-xl font-semibold">Mobile screen</p>
+            </div>
+            <div
+              className="w-[125px] mt-2"
+              style={{ fontWeight: 500, fontSize: "14px" }}
+            >
+              <p>Preview varies based on platform selection</p>
             </div>
           </div>
+        </div>
         ) : (
           <>
             {/* Image, Video, or Document Preview */}
@@ -1619,7 +1628,7 @@ export default function AdminCampaignReview() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:5008/Admin/api/GetAdminApprovalStatus?CampaignId=${campaignId}`
+        `${adminapiUrlAdvAcc}/GetAdminApprovalStatus?CampaignId=${campaignId}`
       );
       if (response.data.IsApproved) {
         setCampaignApprovalStatus(response.data.isApproved);
@@ -1922,7 +1931,7 @@ export default function AdminCampaignReview() {
                   </div>
                 )}
 
-                <div className="mt-4">
+<div className="mt-4">
                   <Label
                     htmlFor="reachPeopleFrom"
                     className="mt-2 text-sm font-medium text-[#020617]"
@@ -1931,7 +1940,7 @@ export default function AdminCampaignReview() {
                   </Label>
                   <MultiSelect
                     disabled
-                    className="text-[#64748B] text-sm font-normal mt-1"
+                    className="text-[#64748B] text-sm font-normal mt-1 overflow-hidden"
                     options={targetCountryList.map((country) => ({
                       label: country.country_name,
                       value: country.country_id.toString(), // Convert ID to string

@@ -61,6 +61,8 @@ import OperatorMembers from "../Operator/OperatorMembers";
 import ProtectedRoute from "./ProtectedRoute";
 import ProtectedRouteWithPermissions from "./ProtectedRouteWithPermissions";
 import SMS from "../Pages/Channel/SMS";
+import AdminWhatsapp from "../Admin/AdminPages/Channels/AdminWhatsapp";
+import UnderDev from "../Pages/UnderDev";
 
 const RoutesComponent: FC = () => {
   const [userEmailId, setUserEmailId] = useState("");
@@ -115,6 +117,9 @@ const RoutesComponent: FC = () => {
             <Route path="audiences" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Audience_View"><Audience /></ProtectedRouteWithPermissions>} />
             <Route path="whatsapp" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_Edit"><Whatsapp /></ProtectedRouteWithPermissions>} />
             <Route path="sms" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_Edit"><SMS /></ProtectedRouteWithPermissions>}/>
+            <Route path="push notifications" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_Edit"><UnderDev /></ProtectedRouteWithPermissions>}/>
+            <Route path="travelad" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_Edit"><UnderDev /></ProtectedRouteWithPermissions>}/>
+            <Route path="indosat" element={<ProtectedRouteWithPermissions permissions={userPermissions} requiredPermission="ADV_Channels_Edit"><UnderDev /></ProtectedRouteWithPermissions>}/>
           </Route>
 
           {/* Admin Routes */}
@@ -130,6 +135,11 @@ const RoutesComponent: FC = () => {
             <Route path="advertiser" element={<Advertiser />} />
             <Route path="createplans" element={<CreatePlans />} />
             <Route path="sms" element={<AdminSMS />} />
+            <Route path="whatsapp" element={<AdminWhatsapp />} />
+            <Route path="push notifications" element={<UnderDev />} />
+            <Route path="wechat" element={<UnderDev />} />
+            <Route path="travelad(whatsapp)" element={<UnderDev />} />
+            <Route path="indosat(whatsapp)" element={<UnderDev />} />
           </Route>
 
         {/* Operator Routes */}

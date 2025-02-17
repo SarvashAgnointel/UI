@@ -181,12 +181,49 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
     }
   };
 
+  // const validateCSVOrTXTFile = (
+  //   file: File,
+  //   requiredColumns: string[]
+  // ): Promise<void> => {
+  //   return new Promise<void>((resolve, reject) => {
+  //     const reader = new FileReader();
+  //     reader.onload = (event) => {
+  //       const fileContent = event.target?.result as string;
+  //       const delimiter = fileContent.includes("|") ? "|" : ","; // Determine delimiter
+  //       const headers = fileContent
+  //         .split("\n")[0]
+  //         .split(delimiter)
+  //         .map((header) => header.trim().toLowerCase());
+
+  //       // Check for missing columns
+  //       const missingColumns = requiredColumns.filter(
+  //         (col) => !headers.includes(col)
+  //       );
+  //       if (missingColumns.length > 0) {
+  //         reject(
+  //           new Error(`Missing necessary columns: ${missingColumns.join(", ")}`)
+  //         );
+  //       } else {
+  //         resolve();
+  //       }
+  //     };
+
+  //     reader.onerror = () => {
+  //       reject(new Error("Failed to read the file."));
+  //     };
+
+  //     reader.readAsText(file);
+  //   });
+  // };
+
+
   const validateCSVOrTXTFile = (
     file: File,
     requiredColumns: string[]
   ): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
       const reader = new FileReader();
+  
       reader.onload = (event) => {
         const fileContent = event.target?.result as string;
         const delimiter = fileContent.includes("|") ? "|" : ","; // Determine delimiter
@@ -194,7 +231,7 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
           .split("\n")[0]
           .split(delimiter)
           .map((header) => header.trim().toLowerCase());
-
+  
         // Check for missing columns
         const missingColumns = requiredColumns.filter(
           (col) => !headers.includes(col)
@@ -203,18 +240,31 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
           reject(
             new Error(`Missing necessary columns: ${missingColumns.join(", ")}`)
           );
-        } else {
-          resolve();
+          return;
         }
+  
+        // Check for correct column order
+        const isCorrectOrder = requiredColumns.every(
+          (col, index) => headers[index] === col
+        );
+  
+        if (!isCorrectOrder) {
+          reject(new Error("Ensure your coulmn order, 'firstname','lastname','phoneno','location'."));
+          return;
+        }
+  
+        resolve();
       };
-
+  
       reader.onerror = () => {
         reject(new Error("Failed to read the file."));
       };
-
+  
       reader.readAsText(file);
     });
   };
+  
+
 
   const validateXLSXFile = (
     file: File,
@@ -437,7 +487,10 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
         const response_data = response.data[0];
         console.log(response_data.Status);
         if (response_data.Status === "Success") {
-          alert("File uploaded successfully.");
+          toast.toast({
+            title: "Success",
+            description: "File Uploaded Successfully."
+          })
           onOpenChange(false);
         } else {
           setFileError(

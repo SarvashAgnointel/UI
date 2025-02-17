@@ -35,12 +35,31 @@ import { RootState } from "@/src/State/store";
 // Define the menu items with routes as content
 const menuItems = [
   { label: "Profile", icon: User, path: "Profile", requiredPermission: null }, // No permission needed
-  { label: "Notifications", icon: Bell, path: "Notification", requiredPermission: "ADV_Notification_View" },
-  { label: "Workspace", icon: Briefcase, path: "Workspace", requiredPermission: "ADV_Workspace_View" },
-  { label: "Members", icon: Users, path: "Members", requiredPermission: "ADV_Member_View" },
-  { label: "Billing", icon: CreditCard, path: "Billing", requiredPermission: "ADV_Billings_View" },
+  {
+    label: "Notifications",
+    icon: Bell,
+    path: "Notification",
+    requiredPermission: "ADV_Notification_View",
+  },
+  {
+    label: "Workspace",
+    icon: Briefcase,
+    path: "Workspace",
+    requiredPermission: "ADV_Workspace_View",
+  },
+  {
+    label: "Members",
+    icon: Users,
+    path: "Members",
+    requiredPermission: "ADV_Member_View",
+  },
+  {
+    label: "Billing",
+    icon: CreditCard,
+    path: "Billing",
+    requiredPermission: "ADV_Billings_View",
+  },
 ];
-
 
 const NavItem = ({
   icon: Icon,
@@ -66,13 +85,17 @@ const NavItem = ({
   >
     <Icon
       className={cn(
-        select === label ? "text-[#020617] font-medium" : "text-[#64748B] font-medium"
+        select === label
+          ? "text-[#020617] font-medium"
+          : "text-[#64748B] font-medium"
       )}
-      style={{ width: '16px', height: '16px' }} // Explicitly set icon size
+      style={{ width: "16px", height: "16px" }} // Explicitly set icon size
     />
     <span
       className={cn(
-        select === label ? "text-[#020617] font-medium" : "text-[#64748B] font-medium",
+        select === label
+          ? "text-[#020617] font-medium"
+          : "text-[#64748B] font-medium",
         "text-[14px]"
       )}
     >
@@ -81,44 +104,57 @@ const NavItem = ({
   </Link>
 );
 
-
-
 const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
   onSelect,
   selected,
 }) => {
-  const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
+  const sampleTotalMessageCount = 10000;
+  const userPermissions = useSelector(
+    (state: RootState) => state.advertiserAccount.permissions
+  );
+  const sentCount = useSelector(
+    (state: RootState) => state.advertiserAccount.sent_count_sidenav
+  );
   return (
     <div className="h-full bg-[#FBFBFB]">
-    <nav className="w-[calc(100%-20px)] ml-[10px] h-full flex flex-col bg-[#FBFBFB]">
-      <div className="flex-1 overflow-y-auto py-4">
-        {menuItems
-        .filter(item => !item.requiredPermission || userPermissions?.includes(item.requiredPermission as string)) 
-        .map((item, index) => (
-          <NavItem
-            key={index}
-            icon={item.icon}
-            label={item.label}
-            path={item.path}
-            onClick={() => onSelect(item.label)}
-            select={selected}
-          />
-        ))}
-        
-      </div>
-      <div className="sticky bottom-0 p-4 bg-white w-full mb-[80px]">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-gray-500 text-left">
-            7,328/10,000 Messages
-          </span>
-          <Progress value={73} className="" />
+      <nav className="w-[calc(100%-20px)] ml-[10px] h-full flex flex-col bg-[#FBFBFB]">
+        <div className="flex-1 overflow-y-auto py-4">
+          {menuItems
+            .filter(
+              (item) =>
+                !item.requiredPermission ||
+                userPermissions?.includes(item.requiredPermission as string)
+            )
+            .map((item, index) => (
+              <NavItem
+                key={index}
+                icon={item.icon}
+                label={item.label}
+                path={item.path}
+                onClick={() => onSelect(item.label)}
+                select={selected}
+              />
+            ))}
         </div>
-      </div>
-    </nav>
-  </div>
+        <div className="sticky bottom-0 p-4 bg-white w-full mb-[80px]">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm text-[#020617] text-left font-[400px] flex gap-1">
+              <span>{sentCount || 0}</span>
+              <span className="text-[#64748B]">/</span>
+              <span>{sampleTotalMessageCount||10000}</span>
+              <span>Messages</span>
+            </span>
+            <Progress
+              value={(sentCount/sampleTotalMessageCount)*100}
+              className="w-[218px] h-[6px]"
+              color="#3A85F7"
+            />
+          </div>
+        </div>
+      </nav>
+    </div>
   );
-}
-
+};
 
 const Layout: FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -140,9 +176,9 @@ const Layout: FC = () => {
     }
   }, [workspace]);
 
-  useEffect(()=>{
+  useEffect(() => {
     setSelectedLabel(route);
-  },[])
+  }, []);
 
   return (
     <div className="h-screen">
@@ -183,7 +219,7 @@ const Layout: FC = () => {
                 "px-2"
               )}
             >
-            <span
+              <span
                 className="flex w-full justify-start items-center gap-2 border-transparent p-2 font-bold"
                 onClick={() =>
                   navigate("/navbar/dashboard", {
@@ -191,8 +227,13 @@ const Layout: FC = () => {
                   })
                 }
               >
-                <ChevronLeft size={17} className="ml-[-2px] mr-[1px] text-[#020617] cursor-pointer" />
-                <div className="text-[14px] font-semibold text-[#000000] leading-[24px] cursor-pointer">Settings</div>
+                <ChevronLeft
+                  size={17}
+                  className="ml-[-2px] mr-[1px] text-[#020617] cursor-pointer"
+                />
+                <div className="text-[14px] font-semibold text-[#000000] leading-[24px] cursor-pointer">
+                  Settings
+                </div>
               </span>
             </div>
 

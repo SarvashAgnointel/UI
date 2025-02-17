@@ -60,7 +60,6 @@ const DropdownMenuDemo: FC<{
     fetchConfig();
   }, []); // Runs only once on mount
 
-  // Watch for apiUrlAdvAcc to change and fetch data
   
   useEffect(() => {
     const fetchData = async () => {
@@ -114,7 +113,7 @@ const DropdownMenuDemo: FC<{
       setSelectedSubFilter(""); // Reset subfilter
   
       if (filter === "Status") {
-        setFilterData({ filter, subFilter: "Updated" });
+        setFilterData({ filter, subFilter: "Live" });
       } else if (filter === "StartedAt") {
         setFilterData({ filter, subFilter: dateList[0] || "" });
       } else if (filter === "Channel") {
@@ -122,7 +121,6 @@ const DropdownMenuDemo: FC<{
       } else {
         setFilterData({ filter: "None", subFilter: "" });
       }
-  
   };
 
   const handleSelectSubChange = (value: string) => {

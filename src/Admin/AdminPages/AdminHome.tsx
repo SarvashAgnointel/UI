@@ -225,17 +225,17 @@ export function DatePickerWithRange({
 interface AdChartData {
   week: string;
   sms: number;
-  whatsapp: number;
+  whatsApp: number;
 }
 
 const fallbackData: AdChartData[] = [
-  { week: "Sunday", sms: 214, whatsapp: 140 },
-  { week: "Monday", sms: 186, whatsapp: 80 },
-  { week: "Tuesday", sms: 305, whatsapp: 200 },
-  { week: "Wednesday", sms: 237, whatsapp: 120 },
-  { week: "Thursday", sms: 73, whatsapp: 190 },
-  { week: "Friday", sms: 209, whatsapp: 130 },
-  { week: "Saturday", sms: 214, whatsapp: 140 },
+  { week: "Sunday", sms: 214, whatsApp: 140 },
+  { week: "Monday", sms: 186, whatsApp: 80 },
+  { week: "Tuesday", sms: 305, whatsApp: 200 },
+  { week: "Wednesday", sms: 237, whatsApp: 120 },
+  { week: "Thursday", sms: 73, whatsApp: 190 },
+  { week: "Friday", sms: 209, whatsApp: 130 },
+  { week: "Saturday", sms: 214, whatsApp: 140 },
 ];
 
 interface ChartData {
@@ -464,7 +464,7 @@ const DashChart: FC<AdDashChartProps> = ({ data=fallbackData, setTimeRange, time
       label: "sms",
       color: "hsl(var(--chart-4))",
     },
-    whatsapp: {
+    whatsApp: {
       label: "whatsapp",
       color: "hsl(var(--chart-2))",
     },
@@ -510,9 +510,9 @@ const DashChart: FC<AdDashChartProps> = ({ data=fallbackData, setTimeRange, time
             <Area
               dataKey="whatsApp"
               type="natural"
-              fill={chartConfig.whatsapp.color}
+              fill={chartConfig.whatsApp.color}
               fillOpacity={0.4}
-              stroke={chartConfig.whatsapp.color}
+              stroke={chartConfig.whatsApp.color}
               stackId="a"
             />
             <ChartLegend content={<ChartLegendContent />} />
@@ -643,7 +643,7 @@ const SkeletonCard: FC = () => {
 };
 
 const SkeletonChart: FC = () => {
-  return (
+  return ( 
     <Card className="mt-[20px] w-full md:w-[400px] lg:w-[500px] xl:w-[1000px] h-fit relative">
       <CardHeader className="text-left">
         <CardTitle>

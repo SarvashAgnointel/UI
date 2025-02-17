@@ -1089,8 +1089,8 @@ const Members: React.FC = () => {
                       className="flex items-center gap-4  overflow-y-auto max-h-[300px] "
                     >
                       {/* Email Container */}
-                      <div className="flex flex-col w-72">
-                        <Label>Email</Label>
+                      <div className="flex flex-col w-72 ">
+                        <Label className="mb-2">Email</Label>
                         <Input
                           type="email"
                           value={member.email}
@@ -1099,16 +1099,10 @@ const Members: React.FC = () => {
                             isValidEmail(e.target.value)}
                           }
                           // onBlur={(e) => handleBlur(index, e.target.value)}
-                          className="w-full"
+                          className="w-full ml-1"
                           disabled={isUpdating} // Disable editing of the email field when updating
                         />
-                        {/* Error message for email */}
-                        {/* {errors[index]?.emailError && (
-                          <p className="text-red-500 text-sm mt-1 self-start">
-                            {errors[index].emailError}
-                          </p>
-                        )} */}
-                         <div className="min-h-[20px] mt-1">
+                        <div className="min-h-[20px] mt-1">
                         {emailErrors && (
                           <p className="text-red-500 text-sm mt-1 self-start">
                             {emailErrors}
@@ -1119,7 +1113,7 @@ const Members: React.FC = () => {
 
                       {/* Role Container */}
                       <div className="flex flex-col mb-[-4]">
-                        <Label>Role</Label>
+                        <Label className="mb-2">Role</Label>
                         <Select
                           value={member.role}
                           onValueChange={(value) => {
@@ -1128,7 +1122,7 @@ const Members: React.FC = () => {
                             handleRoleChange(index , value);
                           }}
                         >
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-32 ml-1">
                             <SelectValue
                               className="text-[#64748B]"
                               placeholder="Select Role"
@@ -1137,6 +1131,7 @@ const Members: React.FC = () => {
                           <SelectContent>
                             {roles.map((role) => (
                               <SelectItem
+                                className="cursor-pointer"
                                 key={role.role_id}
                                 value={role.role_id.toString()}
                               >
@@ -1151,9 +1146,9 @@ const Members: React.FC = () => {
                           <p className="text-red-500 text-sm  self-start">
                             {errors[index].roleError}
                           </p>
-                   
                         )}
-                           </div>
+                        </div>
+                        
                       </div>
 
                       {invitedMembers.length > 1 && (
@@ -1168,26 +1163,18 @@ const Members: React.FC = () => {
                     </div>
                   ))}
                 </div>
-
-                {/* <Button
-                  variant="link"
-                  onClick={handleAddMember}
-                  className="mt-2 justify-start"
-                >
-                  + Add another one
-                </Button> */}
                 {!isUpdating && (
                   <Button
                     variant="link"
                     onClick={handleAddMember}
-                    className="mt-2 justify-start"
+                    className="mt-2 justify-start text-[#09090B] text-[16px]"
                   >
                     + Add another one
                   </Button>
                 )}
 
                 <Button
-                  className="w-[465px] text-white mt-2"
+                  className="w-[465px] text-white mt-1"
                   onClick={() => {
                     if (isUserEdit) {
                       UpdateUserRole(selectedRoleId, selectedUserMail);

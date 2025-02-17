@@ -1,5 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+interface Workspace {
+    workspace_id: number;
+    workspace_name: string;
+    workspace_image: string;
+  }
+
 interface AdvAccState{
     createBreadCrumb:boolean,
     addWorkspaceFromDropdown: boolean,
@@ -13,6 +19,8 @@ interface AdvAccState{
     permissions: string[],
     user_role_name: string,
     from_Admin: boolean,
+    workspace_list: Workspace[];
+    sent_count_sidenav: number
 }
 
 const initialState:AdvAccState={
@@ -28,6 +36,8 @@ const initialState:AdvAccState={
     permissions: [],
     user_role_name: '',
     from_Admin: false,
+    workspace_list: [],
+    sent_count_sidenav: 0,
 }
 
 const AdvertiserAccountSlice = createSlice({
@@ -73,7 +83,13 @@ const AdvertiserAccountSlice = createSlice({
         } , 
         setUser_Role_Name:(state,action: PayloadAction<string>) => {
             state.user_role_name = action.payload;
-        }
+        },
+        setWorkspace_List:(state,action: PayloadAction<Workspace[]>) => {
+            state.workspace_list = action.payload;
+        },
+        setSentCount:(state,action: PayloadAction<number>) => {
+            state.sent_count_sidenav = action.payload;
+        },
         
         
     }
@@ -90,6 +106,8 @@ export const {
     setPermissions,
     setUser_Role_Name,
     setFromAdmin,
+    setWorkspace_List,
+    setSentCount,
 } = AdvertiserAccountSlice.actions;
 
 export default AdvertiserAccountSlice.reducer;
