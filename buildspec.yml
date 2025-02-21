@@ -3,17 +3,27 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: latest
+      nodejs: 18
     commands:
+      - echo "Installing dependencies..."
       - npm install
+
   build:
     commands:
+      - echo "Building the React app..."
       - npm run build
+
   post_build:
     commands:
-      - zip -r build.zip * # Archive the build output
-      - aws s3 cp build.zip s3://react-app-artifacts-21-02-2025/build.zip
+      - echo "Packaging application..."
+      - mkdir deploy
+      - cp -r build deploy/
+      - cp appspec.yml deploy/
+      - cp -r scripts deploy/
+      - cd deploy && zip -r build.zip . && cd ..
+      - echo "Uploading to S3..."
+      - aws s3 cp deploy/build.zip s3://react-app-artifacts-21-02-2025/build.zip
 
 artifacts:
   files:
-    - '**/*'
+    - deploy/build.zip
