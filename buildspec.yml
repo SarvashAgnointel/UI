@@ -2,20 +2,18 @@ version: 0.2
 
 phases:
   install:
+    runtime-versions:
+      nodejs: latest
     commands:
-      - echo "Installing dependencies..."
       - npm install
   build:
     commands:
-      - echo "Building React application..."
       - npm run build
   post_build:
     commands:
-      - echo "Build completed. Uploading artifacts to S3..."
+      - zip -r build.zip * # Archive the build output
+      - aws s3 cp build.zip s3://react-app-artifacts-21-02-2025/build.zip
 
 artifacts:
   files:
     - '**/*'
-  base-directory: build
-  discard-paths: no
-  name: react-build-$(date +%Y-%m-%d).zip
