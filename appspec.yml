@@ -4,9 +4,6 @@ os: linux
 files:
   - source: /
     destination: /var/app/current/
-    
-  - source: scripts/
-    destination: /var/app/current/scripts/
 
 permissions:
   - object: /var/app/current/
@@ -16,21 +13,21 @@ permissions:
 
 hooks:
   BeforeInstall:
-    - location: scripts/before_install.sh  # Remove absolute path
+    - location: scripts/before_install.sh
       timeout: 300
       runas: root
 
   AfterInstall:
-    - location: scripts/after_install.sh  # Remove absolute path
+    - location: scripts/after_install.sh
       timeout: 300
       runas: root
 
   ApplicationStart:
-    - location: scripts/start_application.sh  # Remove absolute path
+    - location: scripts/start_application.sh
       timeout: 300
       runas: root
 
   ApplicationStop:
-    - location: scripts/stop_application.sh  # Remove absolute path
+    - location: scripts/stop_application.sh
       timeout: 300
       runas: root
