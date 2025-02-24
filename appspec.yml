@@ -13,21 +13,51 @@ permissions:
 
 hooks:
   BeforeInstall:
-    - location: scripts/before_install.sh
+    - runas: root
       timeout: 300
-      runas: root
+      commands:
+        - echo "Stopping existing application..."
+        - pkill -f "node" || true
+        - echo "Cleaning up old deployment..."
+        - rm -rf /var/app/current/*
+        - mkdir -p /var/app/current/
+        - echo "Downloading latest build from S3..."
+        - aws s3 cp s3://react-app-artifacts-21-02-2025/build.zip /var/app/current/ || { echo "S3 Download failed"; exit 1; }
+        - echo "Installing unzip if needed..."
+        - yum install -y unzip
+        - echo "Extracting build.zip..."
+        - unzip -o /var/app/current/build.zip -d /var/app/current/
+        - echo "Setting permissions..."
+        - useradd -m webapp || true
+        - chown -R webapp:webapp /var/app/current/
+        - chmod -R 755 /var/app/current/
+        - echo "Before install steps completed!"
 
   AfterInstall:
-    - location: scripts/after_install.sh
+    - runas: root
       timeout: 300
-      runas: root
+      commands:
+        - echo "Installing npm dependencies..."
+        - cd /var/app/current/
+        - npm install
+        - if ! command -v pm2 &> /dev/null; then echo "PM2 not found. Installing..."; npm install -g pm2; else echo "PM2 already installed."; fi
+        - echo "After install steps completed!"
 
   ApplicationStart:
-    - location: scripts/start_application.sh
+    - runas: root
       timeout: 300
-      runas: root
+      commands:
+        - echo "Starting the React application with PM2..."
+        - cd /var/app/current/
+        - pm2 stop all || true
+        - pm2 start npm --name "react-app" -- start
+        - pm2 save
+        - echo "Application started successfully!"
 
   ApplicationStop:
-    - location: scripts/stop_application.sh
+    - runas: root
       timeout: 300
-      runas: root
+      commands:
+        - echo "Stopping the application..."
+        - pm2 stop all || true
+        - echo "Application stopped!"
