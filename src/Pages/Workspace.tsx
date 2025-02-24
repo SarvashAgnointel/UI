@@ -1,0 +1,1050 @@
+import React, {
+  FC,
+  useState,
+  useRef,
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+} from "react";
+import "./CSS/LoginPage.css";
+import Logo from "../Assets/Logo.svg";
+import LoginImage from "./../Assets/LoginBackground.png";
+import loginVideo from "../Assets/loginVideo.mp4";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Container, Typography, Box, CircularProgress } from "@mui/material";
+import { Input } from "../Components/ui/input";
+import { Button } from "../Components/ui/button";
+import { Label } from "../Components/ui/label";
+// import { ToastContainer, toast } from "react-toastify";
+import config from "../config.json";
+import { ArrowLeftIcon, CheckIcon } from "@radix-ui/react-icons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../Components/ui/select";
+import "../Styles/globals.css";
+import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { UseSelector } from "react-redux";
+import {
+  setAuthProfileBack,
+  setworkspace,
+  setWorkspaceData,
+  setWorkspaceId,
+} from "../State/slices/AuthenticationSlice";
+import {
+  setCloseAddWorkspaceDialog,
+  setPermissions,
+  setUser_Role_Name,
+} from "../State/slices/AdvertiserAccountSlice";
+import { RootState } from "../State/store";
+import { useToast } from "../Components/ui/use-toast";
+import { Toaster } from "../Components/ui/toaster";
+import { Weight } from "lucide-react";
+import { error } from "console";
+
+interface CustomWorkspaceControlProps {
+  setNext: React.Dispatch<React.SetStateAction<boolean>>; // Type for setNext
+  setAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
+  setNext,
+  setAuthenticated,
+}) => {
+  const [companyName, setCompanyName] = useState("");
+  const [CompanyNameError, setFirstNameError] = useState<string | null>(null);
+
+  const [billingCountry, setBillingCountry] = useState("United Arab Emirates"); // Default is "United Arab Emirates"
+
+  const [selectedIndustry, setSelectedIndustry] = useState("Tourism");
+
+  const [selectedWorkspaceType, setSelectedWorkspaceType] =
+    useState("Advertiser"); //Default to "Advertiser"
+
+  const [fileName, setFileName] = useState("");
+  const [base64Image, setBase64Image] = useState("");
+  const location = useLocation();
+  const email = location.state?.email || "";
+  const [apiUrl, setApiUrl] = useState("");
+  const [authapiUrl, setAuthApiUrl] = useState("");
+
+  const [countries, setCountries] = useState<{ id: number; label: string }[]>(
+    []
+  );
+  const [industries, setIndustries] = useState<{ id: number; label: string }[]>(
+    []
+  );
+  const [workspace_types, SetWorkspaceTypes] = useState<
+    { id: number; label: string }[]
+  >([]);
+
+  const emailId = useSelector(
+    (state: RootState) => state.authentication.userEmail
+  );
+
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // State to track button disable status
+
+  //
+  const [loading, setLoading] = useState(true);
+  const [OperatorType, setOperatorType] = useState(false);
+
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dispatch = useDispatch();
+  const signupData = useSelector(
+    (state: RootState) => state.authentication.signupData
+  );
+  const personalData = useSelector(
+    (state: RootState) => state.authentication.userData
+  );
+  const addWorkspaceFromDropdown = useSelector(
+    (state: RootState) => state.advertiserAccount.addWorkspaceFromDropdown
+  );
+
+  const [ baseBillingCountry , setBaseBillingCountry ] = useState("");
+  const baseworkspace_id = useSelector((state: RootState) => state.authentication.workspace_id);
+  const advUrl  = useSelector((state: RootState) => state.authentication.apiURL);
+  const baseBillingCountryCode = useSelector((state: RootState) => state.authentication.workspaceData?.billingCountry);
+
+
+  const isAdmin = useSelector(
+    (state: RootState) => state.authentication.isAdmin
+  );
+  console.log(isAdmin);
+  const toast = useToast();
+
+  useEffect(() => {
+    setLoading(true);
+    GetWorkspaceDetailsByID();
+    fetch("/config.json")
+      .then((response) => response.json())
+      .then((config) => {
+        //console.log("config :", config);
+        setApiUrl(config.API_URL); // Set the API URL from config
+        setAuthApiUrl(config.API_URL); // set the Auth URL from config
+      })
+      .catch((error) => {
+        console.error("Error loading config:", error);
+        toast.toast({
+          title: "Error",
+          description: "Something went wrong, please try again.",
+        });
+      });
+  }, []);
+
+  // Fetch domain list from API
+  useEffect(() => {
+    if (apiUrl) {
+      fetchData();
+    }
+  }, [apiUrl]);
+
+  const fetchData = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      // Fetch countries
+      const countriesPromise = axios.get(`${apiUrl}/GetCountryList`);
+      const industriesPromise = axios.get(`${apiUrl}/GetIndustryList`);
+      const workspacePromise = axios.get(`${apiUrl}/GetWorkspaceTypesList`);
+
+      // Wait for all promises to resolve
+      const [countriesResponse, industriesResponse, workspaceResponse] =
+        await Promise.all([
+          countriesPromise,
+          industriesPromise,
+          workspacePromise,
+        ]);
+
+      // Transform and set countries
+      if (countriesResponse.data?.countryList) {
+        const countries = countriesResponse.data.countryList.map(
+          (country: { country_id: number; country_name: string }) => ({
+            id: country.country_id,
+            label: country.country_name,
+          })
+        );
+        setCountries(countries);
+      } else {
+        console.log("No countries available in response.");
+      }
+
+      // Transform and set industries
+      if (industriesResponse.data?.industryList) {
+        const industries = industriesResponse.data.industryList.map(
+          (industry: { industry_id: number; industry_name: string }) => ({
+            id: industry.industry_id,
+            label: industry.industry_name,
+          })
+        );
+        setIndustries(industries);
+      } else {
+        console.log("No industries available in response.");
+      }
+
+      // Transform and set workspace types
+      if (workspaceResponse.data?.workspaceTypes) {
+        const workspaceTypes = workspaceResponse.data.workspaceTypes.map(
+          (workspace: { workspace_id: number; workspace_name: string }) => ({
+            id: workspace.workspace_id,
+            label: workspace.workspace_name,
+          })
+        );
+        SetWorkspaceTypes(workspaceTypes);
+      } else {
+        console.log("No workspace types available in response.");
+      }
+    } catch (error) {
+      console.error("Error fetching list data:", error);
+      toast.toast({
+        title: "Error",
+        description: "Something went wrong, Please try again",
+      });
+    } finally {
+      setLoading(false); // Ensure loading is stopped in all cases
+    }
+  };
+
+  const checkOperatorType = (value: any) => {
+    debugger;
+    if (value === "2") {
+      setOperatorType(true);
+    } else {
+      setOperatorType(false);
+    }
+  };
+
+  const validateCompanyName = (value: string): boolean => {
+    const regex = /^(?![0-9_@ ])([a-zA-Z0-9 _@]*[a-zA-Z0-9])?$/;
+
+    if (value.length === 0) {
+      setFirstNameError("Company name cannot be empty.");
+      return false;
+    }
+
+    if (
+      value.startsWith("_") ||
+      value.startsWith("@") ||
+      value.startsWith(" ")
+    ) {
+      setFirstNameError("Company name cannot start with '_', '@', or a space.");
+      return false;
+    }
+
+    if (value.endsWith("_") || value.endsWith("@") || value.endsWith(" ")) {
+      setFirstNameError("Company name cannot end with '_', '@', or a space.");
+      return false;
+    }
+
+    if (/^[0-9]/.test(value)) {
+      setFirstNameError("Company name cannot start with a number.");
+      return false;
+    }
+
+    if (!regex.test(value)) {
+      setFirstNameError(
+        "Company name contains invalid characters or invalid placement."
+      );
+      return false;
+    }
+
+    setCompanyName(value);
+    setFirstNameError(null);
+    return true;
+  };
+
+  const handleFirstNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (validateCompanyName(value)) {
+      console.log("Company Name is correct");
+    } else {
+      console.log("Company Name is incorrect");
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      setFileName("");
+      return;
+    }
+
+    const validFileTypes = ["image/jpeg", "image/png"];
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+    // Check file type
+    if (!validFileTypes.includes(file.type)) {
+      toast.toast({
+        title: "Error",
+        description: "Please select a valid image (PNG or JPEG).",
+      });
+      setFileName("");
+      return;
+    }
+
+    // Check file size
+    if (file.size > maxFileSize) {
+      toast.toast({
+        title: "Error",
+        description: "File size should not exceed 5MB.",
+      });
+      setFileName("");
+      return;
+    }
+
+    // Check image dimensions
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width < 400 || img.height < 400) {
+          toast.toast({
+            title: "Error",
+            description: "Image dimensions must be at least 400x400 pixels.",
+          });
+          setFileName("");
+        } else {
+          // Valid image
+
+          setFileName(file.name);
+
+          // Convert image to Base64
+          const base64String = reader.result?.toString().split(",")[1]; // Remove metadata
+          setBase64Image(base64String || "");
+        }
+      };
+      img.onerror = () => {
+        toast.toast({
+          title: "Error",
+          description: "Invalid image file.",
+        });
+        setFileName("");
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddWorkspaceFromDropdown = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (CompanyNameError) return;
+    if (!baseBillingCountry){
+      toast.toast({
+        title: "Something went wrong , please try again."
+      })
+      console.log("Billing country not set");
+      return;
+    }
+    setIsButtonDisabled(true); // Disable the button
+    console.log("BILLING :" , baseBillingCountry);
+    const payload = {
+      email: emailId,
+      workspaceName: companyName,
+      billingCountry: baseBillingCountryCode ? baseBillingCountryCode : "0",
+      workspaceIndustry: selectedIndustry === "Tourism" ? "11" : selectedIndustry,
+      workspaceType: selectedWorkspaceType === "Advertiser" ? "1" : selectedWorkspaceType,
+      status: "active",
+      createdBy: 1,
+      createdDate: new Date().toISOString(),
+      updatedBy: 1,
+      updatedDate: new Date().toISOString(),
+      mappingId: 0,
+      base64Image,
+    };
+  
+    console.log("Dialog data:", JSON.stringify(payload, null, 2));
+  
+    try {
+      const workspaceId = await createWorkspace(payload);
+      if (!workspaceId) throw new Error("Failed to retrieve workspace ID");
+  
+      await assignUserRoleDropdown(emailId); // Uses your existing function
+      await insertbillingstatus(workspaceId);
+
+  
+      // Update Redux state
+      dispatch(setworkspace(companyName));
+      dispatch(setWorkspaceId(workspaceId));
+      setAuthenticated(true);
+      dispatch(setCloseAddWorkspaceDialog(true));
+
+  
+      setTimeout(() => {
+        toast.toast({
+          title: "Success",
+          description: "Created Workspace",
+        });
+        navigate("/navbar/dashboard", {
+          state: { path: companyName, email: emailId },
+        });
+      }, 1000);
+    } catch (error) {
+      handleError(error); // Uses your existing error handler
+    } finally {
+      setIsButtonDisabled(false);
+    }
+  };
+  
+
+  useEffect(() => {
+    console.log("addworkspace: " + addWorkspaceFromDropdown);
+  });
+
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+  
+    if (CompanyNameError) return;
+  
+    setIsButtonDisabled(true); // Disable the button when clicked
+    setLoading(true);
+  
+    const payload = {
+      email,
+      workspaceName: companyName,
+      billingCountry: billingCountry === "United Arab Emirates" ? "14" : billingCountry,
+      workspaceIndustry: selectedIndustry === "Tourism" ? "11" : selectedIndustry,
+      workspaceType: selectedWorkspaceType === "Advertiser" ? "1" : selectedWorkspaceType,
+      status: "active",
+      createdBy: 1,
+      createdDate: new Date().toISOString(),
+      updatedBy: 1,
+      updatedDate: new Date().toISOString(),
+      mappingId: 0,
+      base64Image,
+    };
+  
+    dispatch(setworkspace(companyName));
+    dispatch(setWorkspaceData(payload))
+  
+    try {
+      await registerUser();
+      await insertPersonalInfo();
+      const workspaceId = await createWorkspace(payload);
+      if (!workspaceId) throw new Error("Failed to retrieve workspace ID");
+  
+      dispatch(setWorkspaceId(workspaceId));
+      const selectedMode = (selectedWorkspaceType === "2"? "InsertOperator" : "InsertAdmin");
+      await assignUserRole(email , selectedMode);
+      const { path, workspaceType } = await fetchWorkspaceDetails(email);
+      const selected_role_id = (selectedWorkspaceType === "2")? 11 : isAdmin? 1 : 2 ; 
+      await fetchAndStorePermissions(selected_role_id);
+      await insertbillingstatus(workspaceId);
+
+      toast.toast({
+        title: "SignUp Successful",
+        description: "You have successfully signed up for our platform.",
+      });
+  
+      setTimeout(() => {
+        navigate(workspaceType === "Telecom Operator" ? "/operatorNavbar/dashboard" : "/navbar/dashboard", { state: { path, email } });
+        setNext(true);
+      }, 2000);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsButtonDisabled(false);
+      setLoading(false);
+    }
+  };
+  
+  // API Helper Functions
+  const registerUser = async () => {
+    const response = await axios.post(`${apiUrl}/UserRegister`, signupData);
+    if (response.data[0].Status !== "Success") throw new Error("User registration failed");
+  };
+  
+  const insertPersonalInfo = async () => {
+    const response = await axios.post(`${apiUrl}/InsertUserPersonalInfo`, personalData);
+    if (response.data.status !== "Success") throw new Error("Failed to insert personal data");
+  };
+  
+  const createWorkspace = async (payload: any) => {
+    const response = await axios.post(`${apiUrl}/InsertWorkspaceInfo`, payload);
+    if (response.data.status !== "Success") throw new Error("Failed to create workspace");
+    return response.data.workspaceId;
+  };
+  
+  const assignUserRole = async (email: string , selectedMode: string) => {
+    const response = await axios.post(`${apiUrl}/InsertUserWorkspaceRole`, { Mode: selectedMode, EmailId: email });
+    if (response.status !== 200 || response.data.status !== "Success") throw new Error("Failed to assign user role");
+  };
+
+  const assignUserRoleDropdown = async (email: string) => {
+    const response = await axios.post(`${apiUrl}/InsertUserWorkspaceRole`, { Mode: "InsertAdmin", EmailId: email });
+    if (response.status !== 200 || response.data.status !== "Success") throw new Error("Failed to assign user role");
+  };
+  
+  const fetchWorkspaceDetails = async (email: string) => {
+    const response = await axios.get(`${apiUrl}/GetWorkspaceNameByEmail?EmailId=${email}`);
+    if (response.status !== 200 || response.data.status !== "Success") throw new Error("Failed to fetch workspace details");
+    
+    return {
+      path: response.data.workspaceName.workspace_name || "Admin",
+      workspaceId: response.data.workspaceName.workspace_id,
+      workspaceType: response.data.workspaceName.workspace_type,
+    };
+  };
+
+  const insertbillingstatus = async (workpaceid: number) => {
+    const response = await axios.post(`${apiUrl}/InsertWorkspaceBillingStatus?workspaceid=${workpaceid}`);
+    if (response.data.status !== "Success") throw new Error(response.data.status_description || "Failed to insert billing details");
+    setAuthenticated(true);
+  };
+  
+  const fetchAndStorePermissions = async (roleId: number) => {
+    const response = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${roleId}`);
+    if (response.data.status !== "Success") throw new Error(response.data.status_description || "Failed to fetch permissions");
+  
+    const permissions = JSON.parse(response.data.roleDetails.permissions);
+    const role_name = response.data.roleDetails.roleName;
+    dispatch(setPermissions(permissions));
+    dispatch(setUser_Role_Name(role_name));
+  };
+  
+  const handleError = (error: any) => {
+    console.error("Error:", error);
+    toast.toast({
+      title: "Error",
+      description: error.message || "An unexpected error occurred. Please try again.",
+    });
+  };
+
+  const GetWorkspaceDetailsByID = async () => {
+    axios
+      .post(`${advUrl}/GetWorkspaceDetailsByWorkspaceID`, {
+        workspaceId: baseworkspace_id, // Email ID for the user
+      })
+      .then((response) => {
+        console.log("response:", response);
+
+        if (response.data.length > 0 && response.data[0].Status === "Success") {
+          const Billing_Country = response.data[0].Billing_Country;
+          console.log("Billing_Country:", Billing_Country);
+          // Parse and update address details
+          if (Billing_Country) {
+            try {
+              console.log("Address details:", Billing_Country);
+              setBaseBillingCountry(Billing_Country);
+            } catch (error) {
+              console.error("Error parsing address:", error);
+            }
+          }
+        } else {
+          console.error(
+            "Failed to get user details:",
+            response.data[0]?.Status_Description
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error in submitting form:", error);
+      });
+  };
+  
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleBackButton = () => {
+    dispatch(setAuthProfileBack(true));
+    setNext(false);
+  };
+
+  return (
+    <>
+      {
+        (!addWorkspaceFromDropdown ? (
+          <>
+          {loading && (
+            <div className="loading-overlay flex items-center justify-center h-screen">
+              <CircularProgress color="primary" />
+            </div>
+          )}
+          
+          <Container maxWidth="xs" sx={{ padding: 2 }}>
+              <Toaster />
+              <Box
+                component="form"
+                onSubmit={handleSubmit}
+                sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+              >
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="pageprogress"
+                    className="whitespace-nowrap text-left"
+                    style={{
+                      fontSize: "14px",
+                      color: "#71717A",
+                      fontWeight: 400,
+                    }}
+                  >
+                    2/2
+                  </Label>
+                  <ArrowLeftIcon
+                    onClick={handleBackButton}
+                    className="cursor-pointer"
+                  />
+                </div>
+
+                <span
+                  style={{ textAlign: "left" }}
+                  className="text-[24px] text-[#09090B] font-semibold mb-0"
+                >
+                  Create your workspace
+                </span>
+
+                <div className="grid w-full max-w-md items-start gap-1.5 mt-1">
+                  <Label
+                    htmlFor="companyLogo"
+                    className="whitespace-nowrap text-left font-medium text-[14px] text-[#020617] mb-1 "
+                    style={{ marginTop: "2rem" }}
+                  >
+                    Company logo
+                  </Label>
+                  <div className="flex w-full items-center gap-2">
+                    <Input
+                      type="text"
+                      value={fileName}
+                      readOnly
+                      className="flex-grow w-[80%] border-[#E2E8F0] placeholder-[#64748B]"
+                      placeholder="Choose File   No file chosen"
+                      style={{ fontWeight: 500 }}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleUploadClick}
+                      className="font-medium text-[14px] bg-[#F1F5F9] w-[30%] text-[#0F172A] hover:bg-gray-300 focus:ring-[#F1F5F9]  mt--1"
+                      style={{
+                        height: "2.2rem",
+                        padding: "0 0.5rem",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      Upload image
+                    </Button>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    id="companyLogo"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleFileChange}
+                  />
+                  <p
+                    className="text-sm text-gray-500 mt-0"
+                    style={{
+                      textAlign: "left",
+                      fontSize: "13px",
+                      color: "#64748B",
+                    }}
+                  >
+                    * .png, * .jpeg files up to 5MB at least 400px by 400px
+                  </p>
+                </div>
+
+                <div className="grid w-full max-w-md items-start gap-1.5">
+                  <Label
+                    htmlFor="companyname"
+                    className="whitespace-nowrap text-left font-medium text-[14px] text-[#020617] mb-1 "
+                    style={{ marginTop: "0.6rem" }}
+                  >
+                    Company name
+                  </Label>
+                  <Input
+                    required
+                    id="companyname"
+                    placeholder="Enter your company name.."
+                    className="w-full border-gray-200 placeholder:font-normal placeholder:text-[#64748B] rounded-[7px] custom-placeholder"
+                    onChange={handleFirstNameChange}
+                  />
+                  {CompanyNameError && (
+                    <p className="text-red-500 text-sm">{CompanyNameError}</p>
+                  )}
+                </div>
+
+                <div className="grid w-full max-w-md items-start gap-1.5">
+                  <Label
+                    htmlFor="workspacetype"
+                    className="whitespace-nowrap text-left font-medium text-[14px] text-[#020617] mb-1 "
+                    style={{ marginTop: "0.6rem" }}
+                  >
+                    Workspace type
+                  </Label>
+                  <Select
+                    onValueChange={(value) => {
+                      console.log("Raw Value from Dropdown:", value); // Log the raw value
+                      setSelectedWorkspaceType(value); // Update state
+                      checkOperatorType(value);
+                    }}
+                  >
+                    <SelectTrigger className="w-full border-gray-200 relative">
+                      <SelectValue placeholder={selectedWorkspaceType} />
+                    </SelectTrigger>
+                    <SelectContent className="absolute z-50 top-full max-h-60 overflow-auto">
+                      {workspace_types.map((data) => (
+                        <SelectItem className="cursor-pointer" key={data.id} value={data.id.toString()}>
+                          {/* Added flex container for alignment */}
+                          <div className="flex items-center w-full">
+                            <span>{data.label}</span>
+                            {selectedWorkspaceType === data.label && (
+                              <CheckIcon className="ml-2" />
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid w-full max-w-md items-start gap-1.5">
+                  <Label
+                    htmlFor="companyindustry"
+                    className="whitespace-nowrap text-left font-medium text-[14px] text-[#020617] mb-1 "
+                    style={{ marginTop: "0.6rem" }}
+                  >
+                    Company industry
+                  </Label>
+                  <Select
+                    onValueChange={(value) => {
+                      console.log("Raw Value from Dropdown:", value); // Log the raw value
+                      setSelectedIndustry(value); // Update state
+                    }}
+                  >
+                    <SelectTrigger className="w-full border-gray-200 relative">
+                      <SelectValue placeholder={selectedIndustry} />
+                    </SelectTrigger>
+                    <SelectContent className="absolute z-50 top-full max-h-40 overflow-auto">
+                      {industries.map((data) => (
+                        <SelectItem className="cursor-pointer" key={data.id} value={data.id.toString()}>
+                          {/* Added flex container for alignment */}
+                          <div className="flex items-center w-full">
+                            <span className="cursor-pointer">{data.label}</span>
+                            {selectedIndustry === data.label && (
+                              <CheckIcon className="ml-2" />
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid w-full max-w-md items-start gap-1.5">
+                  <Label
+                    htmlFor="billingcountry"
+                    className="whitespace-nowrap text-left font-medium text-[14px] text-[#020617] mb-1 "
+                    style={{ marginTop: "0.6rem" }}
+                  >
+                    {OperatorType ? "Country" : "Billing Country"}
+                  </Label>
+                  <Select
+                    onValueChange={(value) => {
+                      console.log("Raw Value from Dropdown:", value); // Log the raw value
+                      setBillingCountry(value); // Update state
+                    }}
+                  >
+                    <SelectTrigger className="w-full border-gray-200 relative">
+                      <SelectValue placeholder={billingCountry} />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 max-h-[120px] overflow-auto">
+                      {countries.map((country) => (
+                        <SelectItem
+                          className="cursor-pointer"
+                          key={country.id}
+                          value={country.id.toString()}
+                        >
+                          {/* Added flex container for alignment */}
+                          <div className="flex items-center w-full">
+                            <span className="cursor-pointer">{country.label}</span>
+                            {billingCountry === country.label && (
+                              <CheckIcon className="ml-2" />
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full mt-4 bg-[#007AFF] text-[#FAFAFA] font-medium text-[14px]"
+                  style={{
+                    padding: "0.4rem",
+                    height: "2rem",
+                  }}
+                  disabled={isButtonDisabled} // Disable the button
+                >
+                  {isButtonDisabled ? "Processing..." : "Complete"}
+                </Button>
+              </Box>
+          </Container> 
+          </>
+        ) : (
+          <>
+
+      {loading ? (
+            <div className="flex items-center justify-center">
+              <CircularProgress color="primary" />
+            </div>
+          ) : (
+            <Box
+              component="form"
+              onSubmit={handleAddWorkspaceFromDropdown}
+              sx={{ display: "flex", flexDirection: "column" }}
+              className="space-y-3"
+            >
+              <div className="grid w-full items-start gap-1.5">
+                <Label
+                  htmlFor="companyLogo"
+                  className="whitespace-nowrap text-left"
+                  style={{
+                    fontSize: "14px",
+                    color: "#020617",
+                    fontWeight: 500,
+                  }}
+                >
+                  Company logo
+                </Label>
+                <div className="flex w-full items-center gap-2">
+                  <Input
+                    type="text"
+                    value={fileName}
+                    readOnly
+                    className="flex-grow w-[80%] border-gray-400"
+                    placeholder="Choose File   No file chosen"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleUploadClick}
+                    className="bg-gray-200 w-[30%] text-gray-700 hover:bg-gray-300 focus:ring-gray-400 h-8.1 mt--1"
+                  >
+                    Upload image
+                  </Button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  id="companyLogo"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleFileChange}
+                />
+                <p
+                  className="text-sm text-gray-500"
+                  style={{ fontSize: "0.78rem", marginTop: "0.2rem" }}
+                >
+                  *.png, *.jpeg files up to 5MB at least 400px by 400px
+                </p>
+              </div>
+
+              <div className="grid w-full items-start gap-1.5 mt-2">
+                <Label
+                  htmlFor="companyname"
+                  className="whitespace-nowrap text-left"
+                  style={{
+                    fontSize: "14px",
+                    marginTop: "0.9rem",
+                    color: "#020617",
+                    fontWeight: 500,
+                  }}
+                >
+                  Company name
+                </Label>
+                <Input
+                  required
+                  id="companyname"
+                  placeholder="Enter your company name.."
+                  className="w-full border-gray-400 rounded-[7px] custom-placeholder"
+                  onChange={handleFirstNameChange}
+                />
+                {CompanyNameError && (
+                  <p className="text-red-500 text-sm">{CompanyNameError}</p>
+                )}
+              </div>
+
+              <div className="grid w-full items-start gap-1.5 mt-2">
+                <Label
+                  htmlFor="billingcountry"
+                  className="whitespace-nowrap text-left"
+                  style={{
+                    fontSize: "14px",
+                    marginTop: "0.9rem",
+                    color: "#020617",
+                    fontWeight: 500,
+                  }}
+                >
+                  Billing country
+                </Label>
+                <Input
+                  required
+                  id="billingcountry"
+                  placeholder={baseBillingCountry}
+                  className="w-full border-gray-400 rounded-[7px] custom-placeholder"
+                  disabled
+                />
+
+
+              </div>
+
+              <div className="grid w-full items-start gap-1.5 mt-2">
+                <Label
+                  htmlFor="companyindustry"
+                  className="whitespace-nowrap text-left"
+                  style={{
+                    fontSize: "14px",
+                    marginTop: "0.9rem",
+                    color: "#020617",
+                    fontWeight: 500,
+                  }}
+                >
+                  Company industry
+                </Label>
+                <Select
+                  onValueChange={(value) => {
+                    console.log("Raw Value from Dropdown:", value); // Log the raw value
+                    setSelectedIndustry(value); // Update state
+                  }}
+                >
+                  <SelectTrigger className="w-full border-gray-200 relative">
+                    <SelectValue placeholder={selectedIndustry} />
+                  </SelectTrigger>
+                  <SelectContent className="absolute z-50 top-full max-h-40 overflow-auto">
+                    {industries.map((data) => (
+                      <SelectItem key={data.id} value={data.id.toString()}>
+                        {/* Added flex container for alignment */}
+                        <div className="flex items-center w-full">
+                          <span>{data.label}</span>
+                          {selectedIndustry === data.label && (
+                            <CheckIcon className="ml-2" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid w-full items-start gap-1.5 mt-2">
+                <Label
+                  htmlFor="workspacetype"
+                  className="whitespace-nowrap text-left"
+                  style={{
+                    fontSize: "14px",
+                    marginTop: "0.9rem",
+                    color: "#020617",
+                    fontWeight: 500,
+                  }}
+                >
+                  Workspace type
+                </Label>
+                <Select
+                  onValueChange={(value) => {
+                    console.log("Raw Value from Dropdown:", value); // Log the raw value
+                    setSelectedWorkspaceType(value); // Update state
+                  }}
+                >
+                  <SelectTrigger className="w-full border-gray-200">
+                    <SelectValue placeholder={selectedWorkspaceType} />
+                  </SelectTrigger>
+                  <SelectContent className="absolute z-50 top-full max-h-20 overflow-auto">
+                    {workspace_types
+                      .filter((data) => data.label !== "Telecom Operator") // Exclude Telecom Operator
+                      .map((data) => (
+                        <SelectItem key={data.id} value={data.id.toString()}>
+                          <div className="flex items-center w-full">
+                            <span>{data.label}</span>
+                            {selectedWorkspaceType === data.label && (
+                              <CheckIcon className="ml-2" />
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full mt-2 bg-[#007AFF] text-[14px] font-medium"
+                  disabled={isButtonDisabled} // Disable the button
+                >
+                {isButtonDisabled ? "Processing..." : "Complete"}              
+                </Button>
+            </Box>
+          )}
+          </>
+        ))}
+    </>
+  );
+};
+
+const Workspace: FC = () => {
+  return (
+    <div className="login-page" style={{ display: "flex", height: "100vh" }}>
+      <div
+        style={{
+          position: "fixed",
+          top: "30px",
+          left: "30px",
+          zIndex: 20,
+        }}
+      >
+        <img src={Logo} alt="Logo" style={{ width: "170px", height: "auto" }} />
+      </div>
+      <div
+        className="left-pane"
+        style={{
+          flex: "1",
+          // backgroundImage: url(${figmaPageImage}),
+          // backgroundSize: 'cover',
+          backgroundPosition: "center",
+          height: "100vh",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="background-video"
+          style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            objectFit: "fill",
+          }}
+        >
+          <source src={loginVideo} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <div
+        className="right-pane"
+        style={{
+          flex: "1",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          className="LoginMatCard"
+          style={{ width: "90%", maxWidth: "400px" }}
+        >
+          {/* <CustomWorkspaceControl /> */}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Workspace;
