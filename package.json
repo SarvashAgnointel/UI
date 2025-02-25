@@ -81,11 +81,11 @@
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
-  "scripts": {
-    "start": "node server.js",
-    "build": "craco build",
-    "postinstall": "npm run build"
-  },
+ "scripts": {
+  "start": "serve -s build",
+  "build": "craco build",
+  "postinstall": "npm run build"
+ },
   "eslintConfig": {
     "extends": [
       "react-app",
