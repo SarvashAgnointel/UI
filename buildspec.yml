@@ -1,21 +1,19 @@
 version: 0.2
+
 phases:
   install:
     runtime-versions:
       nodejs: latest
     commands:
-      - echo Installing dependencies...
+      - echo "Installing dependencies..."
       - npm install
+
   build:
     commands:
-      - echo Building React application...
+      - echo "Building the React application..."
       - npm run build
-  post_build:
-    commands:
-      - echo Packaging application...
-      - zip -r build.zip build/
-      - echo Uploading build artifacts...
-      - aws s3 cp build.zip s3://react-app-build-artifacts/
+
 artifacts:
   files:
-    - build.zip
+    - '**/*'
+  base-directory: build
