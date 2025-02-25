@@ -3,17 +3,21 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 18  # Adjust this to match your Node.js version
+      nodejs: 18
     commands:
+      - echo Installing dependencies...
       - npm install
   build:
     commands:
+      - echo Building the React app...
       - npm run build
+      - echo Packaging application...
+      - zip -r deploy.zip build/ Procfile server.js package.json package-lock.json
   post_build:
     commands:
-      - echo "Build completed successfully"
+      - echo Build completed successfully.
 
 artifacts:
   files:
-    - '**/*'
-  base-directory: build  # Ensuring only the build folder is deployed
+    - deploy.zip
+  discard-paths: yes
