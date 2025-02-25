@@ -12,6 +12,7 @@ phases:
     commands:
       - echo Building the React app...
       - npm run build
+      - aws s3 cp build/ s3://react-app-artifacts-21-02-2025/ --recursive
       - echo Packaging application...
       - zip -r deploy.zip build/ Procfile package.json package-lock.json
   post_build:
