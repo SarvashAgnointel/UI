@@ -3,23 +3,31 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 18
+      nodejs: 18  # Adjust if needed
     commands:
-      - echo Installing dependencies...
+      - echo "Installing dependencies..."
       - npm install
-      - npm install -g serve   # Ensure "serve" is installed globally
   build:
     commands:
-      - echo Building the React app...
+      - echo "Building React app..."
       - npm run build
-      - aws s3 cp build/ s3://react-app-artifacts-21-02-2025/ --recursive
-      - echo Packaging application...
-      - zip -r deploy.zip build/ Procfile package.json package-lock.json
   post_build:
     commands:
-      - echo Build completed successfully.
+      - echo "Zipping build files..."
+      - cd build && zip -r ../deploy.zip .
+      - cd ..
+      - echo "Uploading to S3..."
+      - aws s3 cp deploy.zip s3://react-app-artifacts-21-02-2025/deploy.zip
+      - echo "Creating a new Beanstalk application version..."
+      - aws elasticbeanstalk create-application-version \
+          --application-name TravelAd-Frontend \
+          --version-label build-$(date +%Y%m%d%H%M%S) \
+          --source-bundle S3Bucket="react-app-artifacts-21-02-2025",S3Key="deploy.zip"
+      - echo "Updating Beanstalk environment with new version..."
+      - aws elasticbeanstalk update-environment \
+          --environment-name TravelAd-Frontend-env \
+          --version-label build-$(date +%Y%m%d%H%M%S)
 
 artifacts:
   files:
     - deploy.zip
-  discard-paths: yes
