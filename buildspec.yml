@@ -9,14 +9,13 @@ phases:
       - npm run build
   post_build:
     commands:
-      - TIMESTAMP=$(date +%Y%m%d%H%M%S)  # Move to the top
       - zip -r deploy.zip build
       - aws s3 cp deploy.zip s3://react-app-artifacts-21-02-2025/deploy.zip
       - aws s3 ls s3://react-app-artifacts-21-02-2025/deploy.zip  # Debugging step
       - aws elasticbeanstalk create-application-version \
           --application-name "TravelAd-Frontend" \
-          --version-label "build-$TIMESTAMP" \
-          --source-bundle "S3Bucket=react-app-artifacts-21-02-2025,S3Key=deploy.zip"
+          --version-label "latest-build" \
+          --source-bundle S3Bucket=react-app-artifacts-21-02-2025,S3Key=deploy.zip
       - aws elasticbeanstalk update-environment \
           --environment-name "TravelAd-Frontend-env" \
-          --version-label "build-$TIMESTAMP"
+          --version-label "latest-build"
