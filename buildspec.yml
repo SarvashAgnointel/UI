@@ -11,11 +11,11 @@ phases:
     commands:
       - zip -r deploy.zip build
       - aws s3 cp deploy.zip s3://react-app-artifacts-21-02-2025/deploy.zip
-      - aws s3 ls s3://react-app-artifacts-21-02-2025/deploy.zip  # Debugging step
+      - aws s3 ls s3://react-app-artifacts-21-02-2025/  # Debugging step
       - aws elasticbeanstalk create-application-version \
-          --application-name "TravelAd-Frontend" \
-          --version-label "latest-build" \
+          --application-name TravelAd-Frontend \
+          --version-label latest-build \
           --source-bundle S3Bucket=react-app-artifacts-21-02-2025,S3Key=deploy.zip
       - aws elasticbeanstalk update-environment \
-          --environment-name "TravelAd-Frontend-env" \
-          --version-label "latest-build"
+          --environment-name TravelAd-Frontend-env \
+          --version-label latest-build
