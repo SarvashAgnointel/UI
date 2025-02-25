@@ -1,8 +1,9 @@
 version: 0.2
+
 phases:
   install:
     runtime-versions:
-      nodejs: 18  # Adjust based on your Node.js version
+      nodejs: 18  # Adjust this to match your Node.js version
     commands:
       - npm install
   build:
@@ -10,7 +11,9 @@ phases:
       - npm run build
   post_build:
     commands:
-      - echo "Build completed"
+      - echo "Build completed successfully"
+
 artifacts:
   files:
     - '**/*'
+  base-directory: build  # Ensuring only the build folder is deployed
