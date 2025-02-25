@@ -3,19 +3,28 @@ version: 0.2
 phases:
   install:
     commands:
+      - echo "Installing dependencies..."
       - npm install
+      
   build:
     commands:
+      - echo "Building React app..."
       - npm run build
+      
   post_build:
     commands:
+      - echo "Zipping build files..."
       - zip -r deploy.zip build
+      - echo "Uploading to S3..."
       - aws s3 cp deploy.zip s3://react-app-artifacts-21-02-2025/deploy.zip
-      - aws s3 ls s3://react-app-artifacts-21-02-2025/  # Debugging step
-      - aws elasticbeanstalk create-application-version \
-          --application-name TravelAd-Frontend \
-          --version-label latest-build \
-          --source-bundle S3Bucket=react-app-artifacts-21-02-2025,S3Key=deploy.zip
-      - aws elasticbeanstalk update-environment \
-          --environment-name TravelAd-Frontend-env \
-          --version-label latest-build
+      - echo "Ensuring file is uploaded..."
+      - aws s3 ls s3://react-app-artifacts-21-02-2025/deploy.zip || exit 1
+      - echo "Creating new Elastic Beanstalk app version..."
+      - aws elasticbeanstalk create-application-version --application-name "TravelAd-Frontend" --version-label "latest-build" --source-bundle S3Bucket=react-app-artifacts-21-02-2025,S3Key=deploy.zip
+      - echo "Updating environment with new version..."
+      - aws elasticbeanstalk update-environment --environment-name "TravelAd-Frontend-env" --version-label "latest-build"
+
+artifacts:
+  files:
+    - deploy.zip
+  discard-paths: yes
