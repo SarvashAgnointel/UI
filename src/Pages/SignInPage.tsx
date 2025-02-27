@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useState } from "react";
-import loginVideo from "{`${process.env.PUBLIC_URL}/videos/loginVideo.mp4`}";
+const loginVideo = "https://mediafiles-travelad.s3.eu-central-1.amazonaws.com/loginVideo.mp4";
 import Logo from '../Assets/Logo.svg';
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from '../Components/ui/input';
