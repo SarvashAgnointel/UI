@@ -63,6 +63,7 @@ import ProtectedRouteWithPermissions from "./ProtectedRouteWithPermissions";
 import SMS from "../Pages/Channel/SMS";
 import AdminWhatsapp from "../Admin/AdminPages/Channels/AdminWhatsapp";
 import UnderDev from "../Pages/UnderDev";
+import SmsConnections from "../Admin/AdminPages/Channels/SmsConnections";
 
 const RoutesComponent: FC = () => {
   const [userEmailId, setUserEmailId] = useState("");
@@ -135,6 +136,7 @@ const RoutesComponent: FC = () => {
             <Route path="advertiser" element={<Advertiser />} />
             <Route path="createplans" element={<CreatePlans />} />
             <Route path="sms" element={<AdminSMS />} />
+            <Route path="smsConnections" element={<SmsConnections />} />
             <Route path="whatsapp" element={<AdminWhatsapp />} />
             <Route path="push notifications" element={<UnderDev />} />
             <Route path="wechat" element={<UnderDev />} />

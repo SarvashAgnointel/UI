@@ -310,6 +310,8 @@ export default function CreateCampaign() {
   const [SelectedLocation, setSelectedLocation] = useState<string[]>([]);
   const [selectedcampaignBudget, setSelectedCampaignBudget] = useState<number>(0);  //Maha
   const [SelectedRecipientsFromBudget, setSelectedRecipientsFromBudget] = useState<number>(0);
+  const [initialSelectedRecipients] = useState(0);
+  const [initialTotalRecipients] = useState(0);
   
   const [recipientsData, setRecipientsData] = useState<{
     campaignBudget: number | null;
@@ -691,7 +693,8 @@ const percentage =
       setAudience(0); // Re-enable "Predefined Audience" if both fields are empty
     }
   };
-  
+
+  const displayAudience = updateAudience || (audienceList.length === 0 ? "Select Audience" : "Audience");
   const handleAudienceChange = async (value: string) => {
     if (value === "none") {
       setAudience(0); 
@@ -1895,30 +1898,53 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         smsNumber: selectedPhoneNumber,
       };
       
-      // debugger;
-      console.log(data);
-      //debugger;
-      const response = await axios.post(`${apiUrlAdvAcc}/CreateCampaign`, data);
+    
+      console.log("Submitting campaign data:", data);
 
+      const response = await axios.post(`${apiUrlAdvAcc}/CreateCampaign`, data);
+  
       if (response.data.status === "Success") {
+        const campaignId = response.data.campaign_id;
+  
         try {
-          const response2 = await axios.get(
-            `${apiUrlAdvAcc}/Getcampaigncontacts?CampaignId=${response.data.campaign_id}`
-          );
-          if (response2.data.status === "Success") {
-            console.log("Campaign Contact loaded successfully");
-          } else {
-            console.log("Api could not fetch campaign contacts for workspace");
+          let response2;
+  
+          if (audience !== 0) {
+            // If audience is selected, call Getcampaigncontacts
+            response2 = await axios.get(
+              `${apiUrlAdvAcc}/Getcampaigncontacts?CampaignId=${campaignId}`
+            );
+          } else if (reachPeopleFrom.length > 0 || reachPeopleIn.length > 0) {
+            // If reach people from/to is selected, call GetOperatorsAndInsertCampaignContacts
+            response2 = await axios.get(
+              `${apiUrlAdvAcc}/GetOperatorsAndInsertCampaignContacts`,
+              {
+                params: {
+                  CountryJson: JSON.stringify(reachPeopleFrom),
+                  ToCountryJson: JSON.stringify(reachPeopleIn),
+                  CampaignId: campaignId,
+                },
+              }
+            );
           }
-        } 
-		catch (error) {
-          console.log("Error in capaign contact api: ", error);
+  
+          if (response2?.data.status === "Success") {
+            console.log("Campaign contacts loaded successfully.");
+          } else {
+            console.log(
+              "API could not fetch campaign contacts for workspace:",
+              response2?.data.Status_Description
+            );
+          }
+        } catch (error) {
+          console.log("Error in campaign contact API:", error);
         } finally {
           resetForm();
           toast.toast({
             title: "Success.",
             description: "Campaign Created Successfully.",
           });
+  
           setTimeout(() => {
             dispatch(setCreateBreadCrumb(false));
             dispatch(setCreateCampaign(true));
@@ -1927,13 +1953,9 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         }
       } else {
         console.error("Upload failed:", response.data.Status_Description);
-        //toast.("An error occurred while saving the campaign details");
-        setTimeout(() => {
-          /* wait for 1 second */
-        }, 6000);
       }
     } catch (e) {
-      console.log("Error in submitting form");
+      console.log("Error in submitting form", e);
     }
   };
 
@@ -2105,15 +2127,17 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
       
         ChannelType: updateChannelId ? Number(updateChannelId) : Number(channel),
       
-        // ✅ Fix: Ensure proper JSON formatting for `TargetCountry`
         TargetCountry: reachPeopleFrom.length === 0 
           ? updateCountryId 
           : JSON.stringify(reachPeopleFrom.map(String)),
       
-        // ✅ Fix: Ensure proper JSON formatting for `RoamingCountry`
         RoamingCountry: reachPeopleIn.length === 0 
           ? updateRoamingCountryId 
           : JSON.stringify(reachPeopleIn.map(String)),
+      
+        // TargetCountry: JSON.stringify(reachPeopleFrom.map(String)),
+      
+        // RoamingCountry: JSON.stringify(reachPeopleIn.map(String)),
       
         StartDateTime: formatingDate(campaignStartDate),
         EndDateTime: formatingDate(campaignEndDate),
@@ -2147,8 +2171,8 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         fEndDateTime: "2025-01-02T05:37:38.105Z",
       
         // ✅ Fix: Ensure these fields have values
-        isAdminApproved: isAdminApproved || "Pending",
-        isOperatorApproved: isOperatorApproved || "Pending",
+        isAdminApproved: "Pending",
+        isOperatorApproved:"Pending",
       
         budgetAndSchedule: budgetType,
         messageFrequency: messageFrequency,
@@ -2376,7 +2400,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     className="mt-2 text-[#64748B] text-sm font-normal"
                   />
                   {campaignNameError && (
-                    <p className="text-red-500 text-sm">{campaignNameError}</p>
+                    <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{campaignNameError}</p>
                   )}
                 </div>
 
@@ -2429,7 +2453,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                   onClick={(e) => {
                     e.stopPropagation(); // Prevent dropdown from closing immediately
                     console.log("Navigating to /navbar/CreateTemplate");
-                    navigate("/navbar/channels");
+                    navigate("/navbar/channels",{state: { route:"Channels" }});
                   }}
                 >
                   + Create new channel
@@ -2439,7 +2463,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
           </SelectContent>
                   </Select>
 
-                  {channelError && <p className="text-red-500 text-sm">{channelError}</p>}
+                  {channelError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{channelError}</p>}
                 </div>
 
                 {/* Conditionally render Phone Number dropdown only when SMS is selected */}
@@ -2450,7 +2474,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                       className="mt-2 font-medium text-[#020617]"
                       style={{ fontSize: "14px" }}
                     >
-                      Phone Number
+                      Sender ID
                     </Label>
                     <Select
                       value={selectedPhoneName}
@@ -2490,7 +2514,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                       </SelectContent>
                     </Select>
                     {phoneNumberError && (
-                      <p className="text-red-500 text-sm mt-2">{phoneNumberError}</p>
+                      <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{phoneNumberError}</p>
                     )}
                   </div>
                 )}
@@ -2548,13 +2572,9 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent dropdown from closing immediately
                   console.log("Navigating to /navbar/createCampaign");
-                  navigate("/navbar/CreateTemplate" );
-
-                  // navigate("/navbar/CreateTemplate", {
-                  //   state: { path: TemplateList, route: "Profile" },
-                  // })
-                }}
-              >
+                  //navigate("/navbar/CreateTemplate" );
+                  navigate("/navbar/CreateTemplate",{state: { route:"Templates" }});
+                }}>
                 + Create new template
               </button>
             </div>
@@ -2563,7 +2583,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
       </Select>
 
       {templateError && (
-        <p className="text-red-500 text-sm mt-2">{templateError}</p>
+        <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{templateError}</p>
       )}
 
       <p className="text-gray-500 text-xs mt-1">
@@ -2630,7 +2650,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                   />
 
                   {!isReachPeopleFromDisabled && targetCountryError && (
-                    <p className="text-red-500 text-sm">{targetCountryError}</p>
+                    <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{targetCountryError}</p>
                   )}
                 </div>
                 <div className="mt-4">
@@ -2660,7 +2680,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
 
                   />
                   { !isReachPeopleInDisabled && roamingCountryError && (
-                    <p className="text-red-500 text-sm">
+                    <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
                       {roamingCountryError}
                     </p>
                   )}
@@ -2673,7 +2693,6 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     Predefined audiences
                   </Label>
                   <Select
-                    // value={age.toString()}
                     value={audience !== 0 ? audience.toString() : "none"}
                     onValueChange={(value) => {
                       console.log("Selected audience ID:", value);
@@ -2685,8 +2704,8 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     <SelectTrigger className="text-gray-500 mt-2 cursor-pointer">
                       <SelectValue
                         className="text-[#64748B] text-sm font-normal cursor-pointer"
-                        // placeholder={age === 0 ? "Select Age" : age}
                         placeholder={campaignId ? updateAudience : "Audience"}
+                      // placeholder={campaignId ? (updateAudience?.trim() || "Select Audience") : "Audience"}
                       />
                     </SelectTrigger>
                     <SelectContent>
@@ -2708,11 +2727,11 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                             {audience.listname}
                           </SelectItem>
                         </>
-                      ))}
+                      )) }
                     </SelectContent>
                   </Select>
                   {!isAudienceDisabled && audience !== 0 && AudienceError && (
-                    <p className="text-red-500 text-sm">{AudienceError}</p>
+                    <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{AudienceError}</p>
                   )}
                 </div>
               </div>
@@ -3074,7 +3093,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                         <SelectItem value="Lifetime budget" className="cursor-pointer">Lifetime budget</SelectItem>
                       </SelectContent>
                     </Select>
-                     {budgetTypeError && <p className="text-red-500 text-sm mt-1">{budgetTypeError}</p>}
+                     {budgetTypeError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{budgetTypeError}</p>}
                   </div>
 
                   {/* Budget Amount Input */}
@@ -3106,7 +3125,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     </span>
                   </div>
                   {budgetError && (
-                    <p className="text-red-500 text-sm mt-1">{budgetError}</p>
+                    <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{budgetError}</p>
                   )}
                  </div>
                   </div>
@@ -3197,7 +3216,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                    
                   </div>
                   {startdateError && (
-                      <p className="text-red-500 text-sm mt-1">{startdateError}</p>
+                      <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{startdateError}</p>
                     )}
                 </div>
                 <div className="mt-4">
@@ -3270,7 +3289,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     </PopoverContent>
                   </Popover>
                   </div>
-                {enddateError && (<p className="text-red-500 text-sm mt-1 ">{enddateError}</p> )}
+                {enddateError && (<p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{enddateError}</p> )}
               </div>
               </div>
             </Card>
@@ -3303,7 +3322,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                       <span className="text-gray-500 text-sm">%</span>
                     </div>
                   </div>
-                  {dailyLimitError && <p className="text-red-500 text-sm mt-1">{dailyLimitError}</p>}
+                  {dailyLimitError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{dailyLimitError}</p>}
                   <p className="mt-1 text-sm text-gray-500">
                     Percentage of total recipients to message each day
                   </p>
@@ -3333,7 +3352,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                         <SelectItem value="Once a Month" className="cursor-pointer">Once a month</SelectItem>
                       </SelectContent>
                     </Select>
-                    {messageFrequencyError && <p className="text-red-500 text-sm mt-1">{messageFrequencyError}</p>}
+                    {messageFrequencyError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{messageFrequencyError}</p>}
                     <p className="mt-1 text-sm text-gray-500">
                       Define how often the campaign messages should be sent
                     </p>
@@ -3388,7 +3407,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                           <SelectItem value="11:00" className="cursor-pointer">11:00</SelectItem>
                         </SelectContent>
                       </Select>
-                      {startTimeError && <p className="text-red-500 text-sm">{startTimeError}</p>}
+                      {startTimeError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{startTimeError}</p>}
                     </div>
                     <div className="flex-1">
                        <Select value={deliveryEndTime} onValueChange={(value) => {
@@ -3403,7 +3422,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                           <SelectItem value="19:00" className="cursor-pointer">19:00</SelectItem>
                         </SelectContent>
                       </Select>
-                      {endTimeError && <p className="text-red-500 text-sm">{endTimeError}</p>}
+                      {endTimeError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{endTimeError}</p>}
                     </div>
                   </div>
                   <p className="mt-1 text-sm text-gray-500">
@@ -3420,21 +3439,18 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
               <h3 className="text-md text-[#020617] font-semibold text-left">
                 Audience size
               </h3>
-
-              {/* Circular Progress Bar */}
               <div className="mt-10 flex flex-col items-center justify-center">
                 <div className="w-[170px] h-[170px] relative flex items-center justify-center">
                   <CircularProgressbar
                     value={percentage}
                     styles={buildStyles({
                       textSize: "30px",
-                      pathColor: "#007bff", // Blue progress color
-                      textColor: "#1C2024", // Dark text color
-                      trailColor: "#f0f0f0", // Light gray trail
-                      strokeLinecap: "round", // Rounded progress bar edges
+                      pathColor: "#007bff", 
+                      textColor: "#1C2024", 
+                      trailColor: "#f0f0f0",
+                      strokeLinecap: "round", 
                     })}
                   />
-                  {/* Dynamic Content Inside Progress Bar */}
                   <div className="flex flex-col items-center justify-center absolute">
                     <span className="text-[30px] font-bold text-[#1C2024]">
                       {selectedRecipients.toLocaleString()}
@@ -3446,40 +3462,22 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                   </div>
                 </div>
               </div>
-
-              {/* Recipients Count */}
-              <div className="ml-4">
-              
-              
+              <div className="ml-4"> 
               <div className="mt-4 text-center text-[14px] space-x-8 text-[#1C2024] font-medium">
-            {/*  {audience !== 0
-                ? `${SelectedRecipientsFromAud.toLocaleString()} out of ${totalRecepientsdFromAud.toLocaleString()} total recipients`
-                : `${SelectedRecipientsFromOP.toLocaleString()} out of ${totalRecipientsFromOP.toLocaleString()} total recipients`}
-            */}
-
               {audience !== 0
                 ? `${(SelectedRecipientsFromAud ?? 0).toLocaleString()} out of ${(totalRecepientsdFromAud ?? 0).toLocaleString()} total recipients`
                 : reachPeopleFrom.length !== 0
                 ? `${(SelectedRecipientsFromOP ?? 0).toLocaleString()} out of ${(totalRecipientsFromOP ?? 0).toLocaleString()} total recipients`
-                : `${(SelectedRecipientsFromBudget ?? 0).toLocaleString()} out of ${(totalRecipientsFromOP ?? 0).toLocaleString()} total recipients`}
+                : `${(initialSelectedRecipients ?? 0).toLocaleString()} out of ${(initialTotalRecipients ?? 0).toLocaleString()} total recipients`}
+               </div>
 
-
-         
-            </div>
-
-                {/* Information Section */}
                 <div className="flex pl-16 pr-16 items-start mt-4 pt-2">
-                  {/* Icon */}
                   <FontAwesomeIcon
                     className="text-[#64748B] text-[10px] mt-[2px]"
-                    icon={faArrowTrendUp}
-                  />
-                  {/* Description */}
+                    icon={faArrowTrendUp} />
                   <p className="text-[10px] font-medium text-[#64748B] text-left leading-relaxed">
-                    The accuracy of estimates is based on factors such as past
-                    campaign data, the budget you entered, market data,
-                    targeting criteria, and channel numbers. These estimates are
-                    provided to give you an idea of performance for your budget,
+                    The accuracy of estimates is based on factors such as past campaign data, the budget you entered, market data,
+                    targeting criteria, and channel numbers. These estimates are provided to give you an idea of performance for your budget,
                     but are only estimates and don't guarantee results.
                   </p>
                 </div>

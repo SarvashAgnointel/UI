@@ -5,7 +5,7 @@
 //             appId            : '590306753515087',
 //             autoLogAppEvents : true,
 //             xfbml            : true,
-//             version          : 'v21.0'
+//             version          : 'v22.0'
 //           });
 //         resolve();
 //       };
@@ -27,7 +27,7 @@ export const initializeFacebookSDK = () => {
       appId: '590306753515087', // Your Facebook App ID
       autoLogAppEvents: true,
       xfbml: true,
-      version: 'v21.0', // Ensure this version is valid
+      version: 'v22.0', // Ensure this version is valid
     });
     console.log('Facebook SDK initialized.');
   };

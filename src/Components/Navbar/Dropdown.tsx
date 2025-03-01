@@ -38,6 +38,8 @@ import {
   setWorkspaceId,
   setmail,
   setRoleId,
+  setBaseBillingCountryAuth,
+  setAccountId,
 } from "../../State/slices/AuthenticationSlice";
 import { SetImpersonator } from "../../State/slices/AdminSlice";
 import config from "../../config.json";
@@ -50,6 +52,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../../Components/ui/tooltip";
+import { setWorkspace_Count } from "../../State/slices/AdvertiserAccountSlice"
+import CircularProgress from "@mui/material/CircularProgress/CircularProgress";
 // Define props interfaces
 interface DropdownMenuDemoProps {
   profileImage: any;
@@ -114,6 +118,9 @@ export function DropdownMenuDemo({
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [workspaceList, setWorkspaceList] = useState<Workspace[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isLoading , setIsLoading ] = useState(false);
+  
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     GetMultipleWorkspacesByEmail();
@@ -171,23 +178,27 @@ export function DropdownMenuDemo({
     }, []);
 
 
-  // const seturl=async()=>{
-  //   await setApiUrlAdvAcc(config.ApiUrlAdvAcc);
-  // }
   const GetMultipleWorkspacesByEmail = async () => {
+    setIsLoading(true);
     try{
       const response = await axios.get(
         `${apiUrl}/GetMultipleWorkspacesByEmail?EmailId=` + email
       );
       if (response.data.status === "Success") {
+      
         console.log(response.data.workspaceList);
         setWorkspaceList(response.data.workspaceList);
+
         if(response.data.workspaceList){
           dispatch(setWorkspace_List(response.data.workspaceList)); // Use correct Redux action
+          dispatch(setWorkspace_Count(response.data.workspaceList.length));
+          dispatch(setBaseBillingCountryAuth(response.data.workspaceList[0].billing_country));
         }
+        setIsLoading(false);
       }
     }catch (error) {
       console.error("Network error: ", error);
+      setIsLoading(false);
     }
   };
 
@@ -203,6 +214,11 @@ export function DropdownMenuDemo({
 
   return (
     <>
+    {loading && (
+                <div className="loading-overlay flex items-center justify-center h-screen">
+                  <CircularProgress color="primary" />
+                </div>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <span className="w-[calc(100%-25px)] text-left flex items-center mr-3 ml-0.5 text-gray-500 hover:text-black rounded-lg px-3 py-2 cursor-pointer">
@@ -229,66 +245,62 @@ export function DropdownMenuDemo({
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56 cursor-pointer">
-          <DropdownMenuGroup className="overflow-y-auto max-h-[calc(40vh)]">
-            {workspaceList &&
-              workspaceList.map((workspace) => (
-                <TooltipProvider key={workspace.workspace_id}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DropdownMenuItem
-                        className="cursor-pointer"
-                        onClick={() => {
-                          dispatch(setworkspace(workspace.workspace_name));
-                          dispatch(setWorkspaceId(workspace.workspace_id));
-                          navigate("/navbar/dashboard", {
-                            state: { path: workspace.workspace_name },
-                          });
-                        }}
-                      >
-                        <Avatar_custom className="mr-2 h-4 w-4">
-                          <AvatarImage_custom
-                            src={`data:image/jpeg;base64,${workspace.workspace_image}`}
-                            alt="Profile"
-                            className="h-5 w-5 rounded-full"
-                          />
-                          <AvatarFallback_custom className="">
-                            {workspace.workspace_name
-                              ? workspace.workspace_name[0].toUpperCase()
-                              : "W"}
-                          </AvatarFallback_custom>
-                        </Avatar_custom>
-                        <span
-                          className="font-normal text-[#020617] text-[14px]"
-                          key={workspace.workspace_id}
-                        >
-                          {workspace.workspace_name.length >= 17
-                            ? `${workspace.workspace_name.slice(0, 17)}...`
-                            : workspace.workspace_name}
-                        </span>
-                        {workspace.workspace_id === workspaceId ? (
-                          <>
-                            <div className=" flex flex-grow justify-end">
-                              <CircleCheck
-                                color="green"
-                                size={15}
-                                className="ml-2"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <></>
-                        )}
-                      </DropdownMenuItem>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="font-normal text-[#020617] text-[14px]">
-                        {workspace.workspace_name}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ))}
-            </DropdownMenuGroup>
+        <DropdownMenuGroup className="overflow-y-auto max-h-[calc(40vh)]">
+  {isLoading ? (
+    <DropdownMenuItem className="flex justify-center items-center">
+      Loading....
+    </DropdownMenuItem>
+  ) : (
+    workspaceList &&
+    workspaceList.map((workspace) => (
+      <TooltipProvider key={workspace.workspace_id}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => {
+                dispatch(setworkspace(workspace.workspace_name));
+                dispatch(setWorkspaceId(workspace.workspace_id));
+                navigate("/navbar/dashboard", {
+                  state: { path: workspace.workspace_name, route: "Dashboard" },
+                });
+              }}
+            >
+              <Avatar_custom className="mr-2 h-4 w-4">
+                <AvatarImage_custom
+                  src={`data:image/jpeg;base64,${workspace.workspace_image}`}
+                  alt="Profile"
+                  className="h-5 w-5 rounded-full"
+                />
+                <AvatarFallback_custom>
+                  {workspace.workspace_name
+                    ? workspace.workspace_name[0].toUpperCase()
+                    : "W"}
+                </AvatarFallback_custom>
+              </Avatar_custom>
+              <span className="font-normal text-[#020617] text-[14px]">
+                {workspace.workspace_name.length >= 17
+                  ? `${workspace.workspace_name.slice(0, 17)}...`
+                  : workspace.workspace_name}
+              </span>
+              {workspace.workspace_id === workspaceId ? (
+                <div className=" flex flex-grow justify-end">
+                  <CircleCheck color="green" size={15} className="ml-2" />
+                </div>
+              ) : null}
+            </DropdownMenuItem>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-normal text-[#020617] text-[14px]">
+              {workspace.workspace_name}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ))
+  )}
+</DropdownMenuGroup>
+
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
             {["Primary Owner", "Primary Advertiser"].includes(userRoleName) && (
@@ -308,12 +320,19 @@ export function DropdownMenuDemo({
                 </span>
               </DropdownMenuItem>
             )}
+         
             </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             {ImpersonatorData?.ImpersonationState && (
               <DropdownMenuItem
                 onClick={async () => {
+                  setLoading(true);
+                  dispatch(setmail(ImpersonatorData?.ImpersonatorEmail));
+                  dispatch(setworkspace(ImpersonatorData?.ImpersonatorWName));
+                  dispatch(setWorkspaceId(ImpersonatorData?.ImpersonatorWID));
+                  dispatch(setRoleId(ImpersonatorData?.ImpersonatorRID));
+                  dispatch(setAccountId(ImpersonatorData?.ImpersonatorAID));
                   dispatch(
                     SetImpersonator({
                       ImpersonationState: false,
@@ -321,12 +340,9 @@ export function DropdownMenuDemo({
                       ImpersonatorWName: "",
                       ImpersonatorWID: 0,
                       ImpersonatorRID: 0,
+                      ImpersonatorAID: 0,
                     })
                   );
-                  dispatch(setmail(ImpersonatorData?.ImpersonatorEmail));
-                  dispatch(setworkspace(ImpersonatorData?.ImpersonatorWName));
-                  dispatch(setWorkspaceId(ImpersonatorData?.ImpersonatorWID));
-                  dispatch(setRoleId(ImpersonatorData?.ImpersonatorRID));
                   const response2 = await axios.get(
                     `${apiAutUrl}/GetPermissionsByRoleId?RoleID=${ImpersonatorData?.ImpersonatorRID}`
                   );

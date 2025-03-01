@@ -124,9 +124,10 @@ export function DropdownMenuDemo({
             onClick={() => {
               backToWorkspace();
               setTimeout(()=>{
-                navigate("/navbar/dashboard");
-              },500);
-              
+                navigate("/navbar/dashboard",{
+                  state: { path: profileName, route: "Dashboard" },
+                });
+              },500);              
             }
 
             }

@@ -138,6 +138,7 @@ const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
     (state: RootState) => state.authentication.apiURL
   );
 
+
   const GetWorkspaceDetailsByID = async () => {
     axios
       .post(`${apiUrlAdvAcc}/GetWorkspaceDetailsByWorkspaceID`, {
@@ -297,11 +298,15 @@ const CampaignList: React.FC = () => {
   const [fromDate, setfromDate] = useState<Date | null>(null);
   const CurrentDate = new Date();
 
+  const WorkspaceCount = useSelector(
+    (state: RootState) => state.advertiserAccount.workspace_count
+  );
   const formatDate = (date: Date): string => {
     return date.toISOString().slice(0, 19); // Extract the "YYYY-MM-DDTHH:mm:ss" portion
   };
 
   const [toDate, setToDate] = useState<string | null>(formatDate(CurrentDate));
+
 
   useEffect(() => {
     console.log("Formatted ToDate:", toDate); // Verify the formatted date
@@ -320,11 +325,11 @@ const CampaignList: React.FC = () => {
   const [isAllSelected, setIsAllSelected] = useState(false);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10); // Default 5 rows per page
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10); 
   const [searchTerm, setSearchTerm] = useState("");
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [campaignLoading, setCampaignLoading] = useState(true); // For GetCampaignListbyWorkspaceId
+  const [campaignLoading, setCampaignLoading] = useState(true); 
   const [columnsLoading, setColumnsLoading] = useState(true);
  const [initialcampaign , setInitialCampaign] = useState(true);
   const [filterData, setFilterData] = useState({
@@ -413,6 +418,7 @@ const userPermissions = useSelector(
   useEffect(() => {
     if (apiUrlAdvAcc) {
       getCampaignList();
+      getWorkspaceBillingStatus();
     }
   }, [apiUrlAdvAcc]); // Runs when apiUrlAdvAcc is updated
 
@@ -452,8 +458,6 @@ const handlePageChange = (newPage: number) => {
   }
 };
 
-
-
   const handleEdit = (campaignId: any, channelType: any) => {
     //console.log("CampaignId : " + campaignId)
     navigate("/navbar/createCampaign", { state: { campaignId, channelType } });
@@ -470,7 +474,7 @@ const handlePageChange = (newPage: number) => {
   };
 
   useEffect(() => {
-    getWorkspaceBillingStatus();
+  //  getWorkspaceBillingStatus();
 
     console.log(
       "filter data: " +
@@ -521,16 +525,24 @@ const handlePageChange = (newPage: number) => {
   };
 
   const getWorkspaceBillingStatus = async () => {
-    setIsLoading(true); // Show the loader initially
+    setIsLoading(true); 
     setCampaignLoading(true);
     try {
+      
       const response = await axios.get(
-        `${apiUrlAdvAcc}/GetWorkspaceBillingStatus/${workspaceId}`
+        `${apiUrlAdvAcc}/GetWorkspaceBillingStatus/workspaceId=${workspaceId}`
       );
+      console.log("response::",response);
+      console.log("Raw Response:", response);
+      console.log("Data inside Response:", response.data);
+      console.log("Billing Status:", response.data?.billingStatus);
+
       if (response.data && response.data.billingStatus) {
+        console.log("Hloo1");
       
         setBillingStatus(response.data.billingStatus);
       } else {
+
         console.log("No Billing Status available in response.");
       }
     } catch (error) {
@@ -742,17 +754,21 @@ const handlePageChange = (newPage: number) => {
   };
 
   const handleCreateCampaign = () => {
-   // if (billingStatus.toLowerCase() === "paired") {
-      dispatch(setCreateBreadCrumb(true));
+    // console.log("BillingS:" , billingStatus);
+    //  if (WorkspaceCount === 1) {
+    //    dispatch(setCreateBreadCrumb(true));
+    //    navigate("/navbar/createcampaign");
+    //  } else if (billingStatus.toLowerCase() === "paired") {
+       dispatch(setCreateBreadCrumb(true));
       navigate("/navbar/createcampaign");
-    // } else {
-    //   toast.toast(
-    //     {
-    //     title: "Warning",
-    //     description: "Your workspace is not paired. You cannot create a campaign.",
-    //   });
-    // }
+    //  } else {
+    //    toast.toast({
+    //      title: "Warning",
+    //      description: "Your workspace is not paired. You cannot create a campaign.",
+    //    });
+    //  }
   };
+  
 
   return (
     <div>
@@ -775,7 +791,6 @@ const handlePageChange = (newPage: number) => {
         <>
           <div>
             <div className="flex flex-wrap items-center justify-between gap-4 -mt-6">
-              {/* Search Input */}
               <div className="flex-shrink-0 w-full md:w-auto">
                 <Input
                   placeholder="Search campaign by name..."

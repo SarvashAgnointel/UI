@@ -171,6 +171,16 @@ useEffect(() => {
   
     const validFileTypes = ["image/jpeg", "image/png"];
     const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+    const dotCount = (file.name.match(/\./g) || []).length;
+    if (dotCount > 1) {
+      toast.toast({
+        title: "Error",
+        description: "Invalid File name.",
+      });
+      setFileName('');
+      return;
+    }
   
     // Check file type
     if (!validFileTypes.includes(file.type)) {

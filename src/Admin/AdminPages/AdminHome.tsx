@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "src/Components/ui/select";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent,} from "../../Components/ui/chart";
+import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, } from "../../Components/ui/chart";
 import { CalendarIcon, PaperPlaneIcon } from "@radix-ui/react-icons";
 import { addDays, format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -30,9 +30,9 @@ interface DatePickerWithRangeProps
   // Prop that accepts a function with a number
   setChartData: (data: any) => void; // Prop that accepts a function with a number
   fetchData: () => void;
-  setUserCount:React.Dispatch<React.SetStateAction<number>>
-  setWorkspaceCount:React.Dispatch<React.SetStateAction<number>>
-  setCampaignCount:React.Dispatch<React.SetStateAction<number>>
+  setUserCount: React.Dispatch<React.SetStateAction<number>>
+  setWorkspaceCount: React.Dispatch<React.SetStateAction<number>>
+  setCampaignCount: React.Dispatch<React.SetStateAction<number>>
 }
 
 export function DatePickerWithRange({
@@ -98,51 +98,51 @@ export function DatePickerWithRange({
       const date_from = format(date.from, "yyyy-MM-dd"); // Split by space and take the first part
       const date_to = format(date.to, "yyyy-MM-dd");
 
-      const GetUserCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setUserCount(response.data.totalUserCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
+      const GetUserCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setUserCount(response.data.totalUserCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
         }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
-        }
-      }
-
-      const GetWorkspaceCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setWorkspaceCount(response.data.totalWorkspaceCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
-        }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
         }
       }
 
-      const GetCampaignsCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setCampaignCount(response.data.totalCampaignsCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
+      const GetWorkspaceCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setWorkspaceCount(response.data.totalWorkspaceCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
         }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
+        }
+      }
+
+      const GetCampaignsCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setCampaignCount(response.data.totalCampaignsCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
+        }
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
         }
       }
 
@@ -151,7 +151,7 @@ export function DatePickerWithRange({
           const response = await axios.get(
             `${apiUrlAdminAcc}/GetAdminDashboardChartDetailsByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
-          
+
           if (
             response.data.status === "Success" &&
             response.data.chartData.length > 0
@@ -185,7 +185,7 @@ export function DatePickerWithRange({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal",
+              "min-w-[150px] w-auto justify-start text-left font-normal",
               !date && "text-muted-foreground text-[#020617] border-red-500"
             )}
           >
@@ -297,7 +297,7 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
       month: "2-digit",
       day: "2-digit",
     });
-    
+
     return {
       ...item,
       date, // Replacing the full datetime with only the date part
@@ -324,9 +324,9 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
         <div className="grid flex-1 gap-1 text-center sm:text-left">
           <CardTitle>Sent messages</CardTitle>
           <CardDescription>
-          {isWeek
-            ? "Showing total messages sent per week"
-            : "Showing total messages sent per month"}
+            {isWeek
+              ? "Showing total messages sent per week"
+              : "Showing total messages sent per month"}
           </CardDescription>
         </div>
         {/* <Select value={timeRange} onValueChange={setTimeRange}>
@@ -355,7 +355,7 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
           className="aspect-auto h-[200px] w-full"
         >
           <AreaChart data={filteredData}>
-          <defs>
+            <defs>
               {/* Email Gradient */}
               <linearGradient id="fillEmail" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8} />
@@ -458,7 +458,7 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
   )
 }
 
-const DashChart: FC<AdDashChartProps> = ({ data=fallbackData, setTimeRange, timeRange, isWeek }) => {
+const DashChart: FC<AdDashChartProps> = ({ data = fallbackData, setTimeRange, timeRange, isWeek }) => {
   const chartConfig = {
     sms: {
       label: "sms",
@@ -643,7 +643,7 @@ const SkeletonCard: FC = () => {
 };
 
 const SkeletonChart: FC = () => {
-  return ( 
+  return (
     <Card className="mt-[20px] w-full md:w-[400px] lg:w-[500px] xl:w-[1000px] h-fit relative">
       <CardHeader className="text-left">
         <CardTitle>
@@ -672,7 +672,15 @@ const AdminHome: FC = () => {
 
   const [isWeek, setIsWeek] = useState(false);
   const [isMonth, setIsMonth] = useState(false);
-  const [timeRange, setTimeRange] = React.useState("90d");
+  const [timeRange, setTimeRange] = React.useState("30d");
+  const [last30DaysUsers, setLast30DaysUsers] = useState<number | 0>(0);
+  const [before30DaysUsers, setBefore30DaysUsers] = useState<number | 0>(0);
+
+  const [last30DaysWorkspaces, setLast30DaysWorkspaces] = useState<number | 0>(0);
+  const [before30DaysWorkspaces, setBefore30DaysWorkspaces] = useState<number | 0>(0);
+
+  const [last30DaysCampaigns, setLast30DaysCampaigns] = useState<number | 0>(0);
+  const [before30DaysCampaigns, setBefore30DaysCampaigns] = useState<number | 0>(0);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -688,6 +696,7 @@ const AdminHome: FC = () => {
   const apiUrlAdminAcc = useSelector(
     (state: RootState) => state.authentication.adminUrl
   );
+
 
 
   // useEffect(() => {
@@ -706,65 +715,65 @@ const AdminHome: FC = () => {
   //   fetchConfig();
   // }, []);
 
-  const byWeekData = async()=>{
+  const byWeekData = async () => {
     if (date_Week && date_Week.from && date_Week.to) {
       const date_from = format(date_Week.from, "yyyy-MM-dd"); // Split by space and take the first part
       const date_to = format(date_Week.to, "yyyy-MM-dd");
-  
-      const GetUserCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setUserCount(response.data.totalUserCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
+
+      const GetUserCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setUserCount(response.data.totalUserCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
         }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
-        }
-      }
-  
-      const GetWorkspaceCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setWorkspaceCount(response.data.totalWorkspaceCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
-        }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
         }
       }
-  
-      const GetCampaignsCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setCampaignsCount(response.data.totalCampaignsCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
+
+      const GetWorkspaceCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setWorkspaceCount(response.data.totalWorkspaceCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
         }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
         }
       }
-  
+
+      const GetCampaignsCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setCampaignsCount(response.data.totalCampaignsCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
+        }
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
+        }
+      }
+
       const ChartDateRange = async () => {
         try {
           const response = await axios.get(
             `${apiUrlAdminAcc}/GetAdminDashboardChartDetailsByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
-          
+
           if (
             response.data.status === "Success" &&
             response.data.chartData.length > 0
@@ -779,76 +788,76 @@ const AdminHome: FC = () => {
           console.error("error in fetching chart details: ", error);
         }
       };
-  
+
       ChartDateRange();
       GetCampaignsCountByDateRange();
       GetUserCountByDateRange();
       GetWorkspaceCountByDateRange();
-  
+
     } else {
       console.log("No date selected");
     }
   }
 
-  const byMonthData = async()=>{
+  const byMonthData = async () => {
     if (date_Month && date_Month.from && date_Month.to) {
       const date_from = format(date_Month.from, "yyyy-MM-dd"); // Split by space and take the first part
       const date_to = format(date_Month.to, "yyyy-MM-dd");
-  
-      const GetUserCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setUserCount(response.data.totalUserCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
+
+      const GetUserCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setUserCount(response.data.totalUserCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
         }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
-        }
-      }
-  
-      const GetWorkspaceCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setWorkspaceCount(response.data.totalWorkspaceCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
-        }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
         }
       }
-  
-      const GetCampaignsCountByDateRange = async()=>{
-        try{
-            const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
-            if(response.data.status==="Success"){
-                //setData
-                setCampaignsCount(response.data.totalCampaignsCount);
-            }
-            else{
-              console.error("Error fetching user count data");
-            }
+
+      const GetWorkspaceCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setWorkspaceCount(response.data.totalWorkspaceCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
         }
-        catch(error){
-          console.error("Error fetching user count data, due to:",error);
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
         }
       }
-  
+
+      const GetCampaignsCountByDateRange = async () => {
+        try {
+          const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`);
+          if (response.data.status === "Success") {
+            //setData
+            setCampaignsCount(response.data.totalCampaignsCount);
+          }
+          else {
+            console.error("Error fetching user count data");
+          }
+        }
+        catch (error) {
+          console.error("Error fetching user count data, due to:", error);
+        }
+      }
+
       const ChartDateRange = async () => {
         try {
           const response = await axios.get(
             `${apiUrlAdminAcc}/GetAdminDashboardChartDetailsByDateRange?from_date=${date_from.toString()}&to_date=${date_to.toString()}`
           );
-          
+
           if (
             response.data.status === "Success" &&
             response.data.chartData.length > 0
@@ -863,84 +872,84 @@ const AdminHome: FC = () => {
           console.error("error in fetching chart details: ", error);
         }
       };
-  
+
       ChartDateRange();
       GetCampaignsCountByDateRange();
       GetUserCountByDateRange();
       GetWorkspaceCountByDateRange();
-  
+
     } else {
       console.log("No date selected");
     }
   }
 
-    // Fetch user count
-    const getUserCount = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Fetching User Count...");
-        const response = await axios.get(`${apiUrlAdminAcc}/GetUserCount`);
-        console.log("User Count Response:", response.data);
-        if (response.data && response.data.totalUserCount !== undefined) {
-          setUserCount(response.data.totalUserCount);
-        } else {
-          console.log("No user count available in response.");
-        }
-      } catch (error) {
-        console.error("Error fetching user count:", error);
-      } finally {
-        setIsLoading(false);
+  // Fetch user count
+  const getUserCount = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Fetching User Count...");
+      const response = await axios.get(`${apiUrlAdminAcc}/GetUserCount`);
+      console.log("User Count Response:", response.data);
+      if (response.data && response.data.totalUserCount !== undefined) {
+        setUserCount(response.data.totalUserCount);
+      } else {
+        console.log("No user count available in response.");
       }
-    };
-  
-    // Fetch workspace count
-    const getWorkspaceCount = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Fetching Workspace Count...");
-        const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCount`);
-        console.log("Workspace Count Response:", response.data);
-        if (response.data && response.data.totalWorkspaceCount !== undefined) {
-          setWorkspaceCount(response.data.totalWorkspaceCount);
-        } else {
-          console.log("No workspace count available in response.");
-        }
-      } catch (error) {
-        console.error("Error fetching workspace count:", error);
-      } finally {
-        setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching user count:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch workspace count
+  const getWorkspaceCount = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Fetching Workspace Count...");
+      const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceCount`);
+      console.log("Workspace Count Response:", response.data);
+      if (response.data && response.data.totalWorkspaceCount !== undefined) {
+        setWorkspaceCount(response.data.totalWorkspaceCount);
+      } else {
+        console.log("No workspace count available in response.");
       }
-    };
-  
-    // Fetch campaigns count
-    const getCampaignsCount = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Fetching Campaigns Count...");
-        const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCount`);
-        console.log("Campaigns Count Response:", response.data);
-        if (response.data && response.data.totalCampaignsCount !== undefined) {
-          setCampaignsCount(response.data.totalCampaignsCount);
-        } else {
-          console.log("No campaigns count available in response.");
-        }
-      } catch (error) {
-        console.error("Error fetching campaigns count:", error);
-      } finally {
-        setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching workspace count:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch campaigns count
+  const getCampaignsCount = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Fetching Campaigns Count...");
+      const response = await axios.get(`${apiUrlAdminAcc}/GetCampaignsCount`);
+      console.log("Campaigns Count Response:", response.data);
+      if (response.data && response.data.totalCampaignsCount !== undefined) {
+        setCampaignsCount(response.data.totalCampaignsCount);
+      } else {
+        console.log("No campaigns count available in response.");
       }
-    };
-  
-    // Call all APIs on component mount
-    useEffect(() => {
-      if (apiUrlAdminAcc) {
-        fetchData();
-        getUserCount();
-        getWorkspaceCount();
-        getCampaignsCount();      
-      }
-    }, [apiUrlAdminAcc]);
-  
+    } catch (error) {
+      console.error("Error fetching campaigns count:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Call all APIs on component mount
+  useEffect(() => {
+    if (apiUrlAdminAcc) {
+      fetchData();
+      getUserCount();
+      getWorkspaceCount();
+      getCampaignsCount();
+    }
+  }, [apiUrlAdminAcc]);
+
 
 
   // const fetchData = async () => {
@@ -978,6 +987,103 @@ const AdminHome: FC = () => {
       }
     }
   };
+
+  const fetchPast7DaysData = async () => {
+    const past_from = format(subDays(new Date(), 7), "yyyy-MM-dd");
+    const past_to = format(new Date(), "yyyy-MM-dd");
+
+    const before7_from = format(new Date("2000-01-01"), "yyyy-MM-dd");
+    const before7_to = format(subDays(new Date(), 7), "yyyy-MM-dd");
+
+    try {
+      const [
+        last7Users, before7Users,
+        last7Workspaces, before7Workspaces,
+        last7Campaigns, before7Campaigns
+      ] = await Promise.all([
+        axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${before7_from}&to_date=${before7_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${before7_from}&to_date=${before7_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${before7_from}&to_date=${before7_to}`)
+      ]);
+
+      setLast30DaysUsers(last7Users.data.status === "Success" ? last7Users.data.totalUserCount : 0);
+      setBefore30DaysUsers(before7Users.data.status === "Success" ? before7Users.data.totalUserCount : 0);
+
+      setLast30DaysWorkspaces(last7Workspaces.data.status === "Success" ? last7Workspaces.data.totalWorkspaceCount : 0);
+      setBefore30DaysWorkspaces(before7Workspaces.data.status === "Success" ? before7Workspaces.data.totalWorkspaceCount : 0);
+
+      setLast30DaysCampaigns(last7Campaigns.data.status === "Success" ? last7Campaigns.data.totalCampaignsCount : 0);
+      setBefore30DaysCampaigns(before7Campaigns.data.status === "Success" ? before7Campaigns.data.totalCampaignsCount : 0);
+    } catch (error) {
+      console.error("Error fetching past 7 days data:", error);
+    }
+  };
+
+  const fetchPast30DaysData = async () => {
+
+    const past_from = format(subDays(new Date(), 30), "yyyy-MM-dd"); // Last 30 days (30 days ago to today)
+    const past_to = format(new Date(), "yyyy-MM-dd");
+
+    const before30_from = format(new Date("2000-01-01"), "yyyy-MM-dd"); // Start from the earliest available date
+    const before30_to = format(subDays(new Date(), 30), "yyyy-MM-dd"); // Until 30 days ago
+
+    try {
+      const [
+        last30Users, before30Users,
+        last30Workspaces, before30Workspaces,
+        last30Campaigns, before30Campaigns
+      ] = await Promise.all([
+        axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetUserCountByDateRange?from_date=${before30_from}&to_date=${before30_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetWorkspaceCountByDateRange?from_date=${before30_from}&to_date=${before30_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdminAcc}/GetCampaignsCountByDateRange?from_date=${before30_from}&to_date=${before30_to}`)
+      ]);
+
+      // Store last 30 days' data
+      setLast30DaysUsers(last30Users.data.status === "Success" ? last30Users.data.totalUserCount : 0);
+      setLast30DaysWorkspaces(last30Workspaces.data.status === "Success" ? last30Workspaces.data.totalWorkspaceCount : 0);
+      setLast30DaysCampaigns(last30Campaigns.data.status === "Success" ? last30Campaigns.data.totalCampaignsCount : 0);
+
+      // Store before 30 days' data (all previous data)
+      setBefore30DaysUsers(before30Users.data.status === "Success" ? before30Users.data.totalUserCount : 0);
+      setBefore30DaysWorkspaces(before30Workspaces.data.status === "Success" ? before30Workspaces.data.totalWorkspaceCount : 0);
+      setBefore30DaysCampaigns(before30Campaigns.data.status === "Success" ? before30Campaigns.data.totalCampaignsCount : 0);
+
+    } catch (error) {
+      console.error("Error fetching past 30 days data:", error);
+    }
+  };
+
+
+  // Call this function when the page loads
+  useEffect(() => {
+    fetchPast30DaysData();
+  }, []);
+
+  const calculatePercentageChange = (last: number, before: number, timeRange: string) => {
+    let type = "month"; // Default is month
+    if (timeRange === "7d") {
+      type = "week"; // If timeRange is "7d", show "week"
+    } else if (timeRange === "30d") {
+      type = "month"; // If timeRange is "30d", show "month"
+    }
+    if (!before || before === 0) return `+0% change from last ${type}`; // Avoid division by zero
+    const change = (last / before) * 100;
+    
+    return `+${change.toFixed(1)}% change from last ${type}`;
+  };
+
+  useEffect(() => {
+    setIsMonth(true);
+    setTimeRange("30d");
+    byMonthData();
+    fetchPast30DaysData();
+  }, []);
   
   return chartData ? (
     <div className="flex-col w-full h-screen overflow-y-auto no-scrollbar">
@@ -993,47 +1099,49 @@ const AdminHome: FC = () => {
           />
         </div>
         <div>
-        <Select
-          defaultValue="year"
-          onValueChange={(value) => {
-            if(value==="week"){
-              setIsWeek(true);
-              setTimeRange("7d");
-              byWeekData();
-            }
-            else if(value==="month"){
-              setIsMonth(true);
-              setTimeRange("30d");
-              byMonthData();
-            }
-            else{
-              setIsWeek(false);
-              setIsMonth(false);
-              setTimeRange("90d");
-              fetchData();
-            }
-          }}
-        >
-          <SelectTrigger className="w-[120px] h-9 text-[#020617] mt-6">
-            <SelectValue placeholder="Select view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">By Week</SelectItem>
-            <SelectItem value="month">By Month</SelectItem>
-            <SelectItem value="year">By Year</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select
+            defaultValue="month"
+            onValueChange={(value) => {
+              if (value === "week") {
+                setIsWeek(true);
+                setTimeRange("7d");
+                byWeekData();
+                fetchPast7DaysData();
+              }
+              else if (value === "month") {
+                setIsMonth(true);
+                setTimeRange("30d");
+                byMonthData();
+                fetchPast30DaysData();
+              }
+              else {
+                setIsWeek(false);
+                setIsMonth(false);
+                setTimeRange("90d");
+                fetchData();
+              }
+            }}
+          >
+            <SelectTrigger className="w-[120px] h-9 text-[#020617] mt-6">
+              <SelectValue placeholder="Select view" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">By Week</SelectItem>
+              <SelectItem value="month">By Month</SelectItem>
+              {/* <SelectItem value="year">By Year</SelectItem> */}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-4 w-full justify-between border-orange-600">
-        <CardComponent title="Users" value={userCount} change="+20.1 from last week" />
-        <CardComponent title="Workspaces" value={workspaceCount} change="+180.1% from last week" />
-        <CardComponent title="Campaigns" value={campaignsCount} change="+19% from last week" />
+        <CardComponent title="Users" value={userCount} change={calculatePercentageChange(last30DaysUsers, before30DaysUsers, timeRange)} />
+        <CardComponent title="Workspaces" value={workspaceCount} change={calculatePercentageChange(last30DaysWorkspaces, before30DaysWorkspaces, timeRange)} />
+        <CardComponent title="Campaigns" value={campaignsCount} change={calculatePercentageChange(last30DaysCampaigns, before30DaysCampaigns, timeRange)} />
         <CardComponent title="Ad Spend" value="AED 280,000" change="+201% from last week" />
       </div>
-      <DashChart data={fallbackData || []} setTimeRange={setTimeRange} timeRange={timeRange} isWeek={isWeek}/>
-      <SecondDashChart Data={chartData?.chartData || []} setTimeRange={setTimeRange} timeRange={timeRange} isWeek={isWeek}/>
+      <DashChart data={fallbackData || []} setTimeRange={setTimeRange} timeRange={timeRange} isWeek={isWeek} />
+      <SecondDashChart Data={chartData?.chartData || []} setTimeRange={setTimeRange} timeRange={timeRange} isWeek={isWeek} />
     </div>
   ) : (
     <div className="flex-col w-full">

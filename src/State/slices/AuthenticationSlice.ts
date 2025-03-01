@@ -17,6 +17,7 @@ interface InviteTokenData{
 
 
 
+
 interface PersonalInfo {
     firstName: string;
     email: string;
@@ -68,6 +69,7 @@ interface LoginState {
     userData?: PersonalInfo;
     workspaceData?: WorkspaceInfo;
     signupData?: SignupData;
+    authURL: string;
     apiURL: string;
     forgotPassword: boolean;
     forgotEmail: string;
@@ -76,6 +78,7 @@ interface LoginState {
     isInvited: boolean;
     inviteToken: InviteTokenData; // No longer optional
     account_id: number;
+    billingcountry: string;
 
     authprofileback: boolean;
 
@@ -111,11 +114,13 @@ const initialState: LoginState = {
     inviteToken: { token: "" }, // Ensure it's always defined
     authprofileback: false,
     account_id: 0,
+    billingcountry: "",
     
     //sarvash
     adminUrl:"", 
     smsUrl: "",
     operatorUrl: "",
+    authURL:"",
 };
 
 
@@ -174,6 +179,10 @@ const AuthenticationSlice = createSlice({
             state.apiURL = action.payload;
         },
 
+        setAuthUrl: (state, action: PayloadAction<string>) => {
+            state.authURL = action.payload;
+        },
+
         // Action to toggle forgot password
         setForgotPassword: (state, action: PayloadAction<boolean>) => {
             state.forgotPassword = action.payload;
@@ -214,6 +223,10 @@ const AuthenticationSlice = createSlice({
             state.operatorUrl = action.payload; // Use non-null assertion or safely update the token
         },
 
+        setBaseBillingCountryAuth: (state, action: PayloadAction<string>) => {
+            state.billingcountry = action.payload; 
+        },
+
     },
 });
 
@@ -237,7 +250,9 @@ export const {
     setAuthProfileBack,
     setSmsUrl,
     setOperatorUrl,
-    setAccountId
+    setAccountId,
+    setAuthUrl,
+    setBaseBillingCountryAuth,
 } = AuthenticationSlice.actions;
 
 

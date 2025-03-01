@@ -266,7 +266,7 @@ const OperatorCampaignList: React.FC = () => {
   const [operatorapiUrl,setOperatorApiUrl]=useState("")
   const [isLoading, setIsLoading] = useState(true);
   const [filterData, setFilterData] = useState({
-    filter: "",
+    filter: "None",
     subFilter: "",
   });
   const [hasCampaigns, setHasCampaigns] = useState(false);
@@ -674,7 +674,7 @@ const OperatorCampaignList: React.FC = () => {
                 className="w-24 mb-6 ml-4 mt-[-6] text-[#020617]"
                 onClick={handleExportButtonClick}
               >
-                <FileIcon className="mr-2 text-[#020617]" /> Export
+                <FileIcon style={{width:'14px' , height:'14px' }} className="mr-1 text-[#020617]" /> Export
               </Button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { FC, useEffect, useState } from "react";
 import { Progress } from "../ui/progress";
+import Logo from "../../Assets/Logo2.svg";
 import {
   User,
   Bell,
@@ -7,6 +8,7 @@ import {
   CreditCard,
   Users,
   ChevronLeft,
+  Wallet,
 } from "lucide-react";
 import { DropdownMenuDemo } from "./Dropdown";
 import { BellIcon } from "@radix-ui/react-icons";
@@ -31,7 +33,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "@/src/State/store";
-
+import { Button } from "../ui/button";
 // Define the menu items with routes as content
 const menuItems = [
   { label: "Profile", icon: User, path: "Profile", requiredPermission: null }, // No permission needed
@@ -115,10 +117,12 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
   const sentCount = useSelector(
     (state: RootState) => state.advertiserAccount.sent_count_sidenav
   );
+  const navigate = useNavigate();
+  const availableCount = useSelector((state:RootState)=>state.advertiserAccount.total_available_count_sidenav);
   return (
     <div className="h-full bg-[#FBFBFB]">
       <nav className="w-[calc(100%-20px)] ml-[10px] h-full flex flex-col bg-[#FBFBFB]">
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto py-4 ">
           {menuItems
             .filter(
               (item) =>
@@ -136,19 +140,47 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
               />
             ))}
         </div>
-        <div className="sticky bottom-0 p-4 bg-white w-full mb-[80px]">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm text-[#020617] text-left font-[400px] flex gap-1">
-              <span>{sentCount || 0}</span>
-              <span className="text-[#64748B]">/</span>
-              <span>{sampleTotalMessageCount||10000}</span>
-              <span>Messages</span>
-            </span>
-            <Progress
-              value={(sentCount/sampleTotalMessageCount)*100}
-              className="w-[218px] h-[6px]"
-              color="#3A85F7"
-            />
+        <div className="sticky bottom-0 p-4 w-full">
+          <div className="flex flex-col space-y-2">
+            <div className="py-4 flex flex-col gap-[10px]">
+              {userPermissions.includes("ADV_Billings_View") &&
+                <>
+                  <Button
+                    className="w-[96px] h-[27px] text-[14px] font-normal"
+                    onClick={() => {
+                      onSelect("Billing"); // Highlight the Billing tab
+                      navigate("/settings/Billing", { state: { route: "Billing" } });
+                    }}>
+                    <div className="flex pr-16 pl-16 pt-8 pb-8 gap-[10px]">
+                      <span><Wallet size={16} /></span>
+                      <span className='flex justify-center items-center w-[48px] h-[16px]'>Top Up</span>
+                    </div>
+                  </Button>
+                  <span className="text-sm text-[#020617] text-left font-[400px] flex gap-1">
+                    <span>{sentCount || 0}</span>
+                    <span className="text-[#64748B]">/</span>
+                    <span>{availableCount||0}</span>
+                    <span>Messages</span>
+                  </span>
+                  <Progress value={(sentCount/availableCount)*100} className="w-[218px] h-[6px]" color="#3A85F7" />
+                </>}
+              <div
+                style={{
+                  position: "sticky",
+                  // left: '30px',
+                  // bottom: '30px',
+                  paddingTop: "2px",
+                  zIndex: 20,
+                  marginBottom: "2px",
+                }}
+              >
+                <img
+                  src={Logo}
+                  alt="Logo"
+                  style={{ width: "85px", height: "16.512px" }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </nav>
@@ -210,7 +242,7 @@ const Layout: FC = () => {
             }}
             className={cn(
               isCollapsed &&
-                "min-w-[50px] transition-all duration-300 ease-in-out"
+              "min-w-[50px] transition-all duration-300 ease-in-out"
             )}
           >
             <div
@@ -223,7 +255,7 @@ const Layout: FC = () => {
                 className="flex w-full justify-start items-center gap-2 border-transparent p-2 font-bold"
                 onClick={() =>
                   navigate("/navbar/dashboard", {
-                    state: { path: workspaceName },
+                    state: { path: workspaceName,route:"Dashboard" },
                   })
                 }
               >

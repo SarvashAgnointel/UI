@@ -6,6 +6,7 @@ interface Impersonator{
     ImpersonatorWName:string;
     ImpersonatorWID:number;
     ImpersonatorRID:number;
+    ImpersonatorAID:number;
 }
 
 interface AdminState{

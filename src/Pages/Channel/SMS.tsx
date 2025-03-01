@@ -260,9 +260,10 @@ export const AddPhone: FC<AddPhoneProps> = ({
       return false;
     }
 
-    const number = selectedCode + value.toString();
+    // const number = selectedCode + value.toString();
+    const number = value.toString();
     console.log("NUMBER :", number );
-    setPhoneNumber(number);
+    setPhoneNumber(value.toString());
 
 
     setPhoneNumberError("");
@@ -303,10 +304,10 @@ export const AddPhone: FC<AddPhoneProps> = ({
 
         <div className="flex flex-col gap-[6px]">
           <Label
-            htmlFor="phone-name"
+            htmlFor="sender-name"
             className="text-14px font-medium text-[#020617]"
           >
-            Phone Name
+            Sender Name
           </Label>
           <Input
             id="phone-name"
@@ -324,14 +325,14 @@ export const AddPhone: FC<AddPhoneProps> = ({
 
         <div className="flex flex-col gap-[6px]">
           <Label
-            htmlFor="phone-number"
+            htmlFor="short-code"
             className="text-14px font-medium text-[#020617]"
           >
-            Phone Number
+            Short Code
           </Label>
 
           <div className="flex items-center gap-2">
-          <Select
+          {/* <Select
             onValueChange={(value) => {
             console.log("Raw Value from Dropdown:", value); // Log the raw value
             setSelectedCode(value); // Update state
@@ -340,7 +341,7 @@ export const AddPhone: FC<AddPhoneProps> = ({
           <SelectTrigger className="w-[130px] border-gray-200 relative">
             <SelectValue placeholder={selectedCode} />
           </SelectTrigger>
-            {/* Country Code Dropdown */}
+            
             <SelectContent className="absolute z-50 top-full max-h-60 overflow-auto">
             {countryList.map((country) => (
               <SelectItem
@@ -348,27 +349,27 @@ export const AddPhone: FC<AddPhoneProps> = ({
                 key={country.country_code}
                 value={`+${country.country_code}`} // Ensure + is stored in the value
               >
-                {/* Flex container for alignment */}
+                
                 <div className="flex items-center w-full">
                   <span>+{country.country_code} ({country.country_shortname})</span>
                 </div>
               </SelectItem>
             ))}
           </SelectContent>
-        </Select>
+        </Select> */}
  
             {/* Phone Number Input */}
             <Input
-              id="phone-number"
+              id="short-code"
               required
-              placeholder="Add your number..."
+              placeholder="Add your short code here..."
               onChange={(handlePhoneNumberChange)}
               className="text-[14px] font-normal placeholder:text-[#64748B] flex-1 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance]:textfield"
             />
 
           </div>
           {/* Hidden Field for Saving */}
-          <input type="hidden" name="fullPhoneNumber" value={`+${selectedCode}${phoneNumber}`} />
+          {/* <input type="hidden" name="fullPhoneNumber" value={`+${selectedCode}${phoneNumber}`} /> */}
 
           {PhoneNumberError && (
             <p className="text-red-500 text-sm">{PhoneNumberError}</p>

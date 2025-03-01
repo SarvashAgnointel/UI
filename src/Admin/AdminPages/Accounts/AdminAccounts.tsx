@@ -48,7 +48,7 @@ import { Skeleton } from "../../../Components/ui/skeleton";
 import DropdownMenuDemo from "../../../Components/Filter/AccountsDropdown";
 import { useDispatch, useSelector } from "react-redux";
 import { UseSelector } from "react-redux";
-import { setworkspace, setWorkspaceId, setmail } from "../../../State/slices/AuthenticationSlice";
+import { setworkspace, setWorkspaceId, setmail, setAccountId } from "../../../State/slices/AuthenticationSlice";
 import { SetImpersonator } from "../../../State/slices/AdminSlice";
 import { setCreateBreadCrumb, setPermissions, setUser_Role_Name } from "../../../State/slices/AdvertiserAccountSlice";
 import PersonalInfoPopup from "./PersonalInfoPopUp"
@@ -111,6 +111,7 @@ const Accounts: React.FC = () => {
 
   const [selected_type, setSelected_type] = useState<number>(0);
   const roleId = useSelector((state: RootState) => state.authentication.role_id);
+  const CurrentAID = useSelector((state: RootState) => state.authentication.account_id);
 
 
 
@@ -227,11 +228,15 @@ const Accounts: React.FC = () => {
   }, [filterData]);
 
 
-  const GetWorkspaceDetailsByPersonaltId = async(accountId: Number , mode: string) =>{
+  const GetWorkspaceDetailsByPersonalId = async(accountId: Number , mode: string) =>{
     try{
       const response = await axios.get(`${apiUrlAdminAcc}/GetWorkspaceDetailsByPersonalId?accountId=${accountId}&mode=${mode}`);
       if(response.data.status==="Success"){
-        return {wId:response.data.workspaceData[0].workspaceId, wName:response.data.workspaceData[0].workspaceName,rId:response.data.workspaceData[0].roleId}
+        return {wId:response.data.workspaceData[0].workspaceId, 
+          wName:response.data.workspaceData[0].workspaceName,
+          rId:response.data.workspaceData[0].roleId,
+          aid:response.data.workspaceData[0].accountId,
+        }
       }
       else{
         console.error("Error in getting user workspace details")
@@ -336,13 +341,16 @@ const Accounts: React.FC = () => {
       if(accountType !== 'Personal'){
         mode = 'Workspace'
       }
-      const response = await GetWorkspaceDetailsByPersonaltId(accountId, mode);
+      const response = await GetWorkspaceDetailsByPersonalId(accountId, mode);
+      console.log("Im Account ID : ", response?.aid);
+      console.log("CURRENT AID :" , CurrentAID);
       const Impersonator = {
         ImpersonationState:true,
         ImpersonatorEmail:emailId,
         ImpersonatorWName:workspaceName,
         ImpersonatorWID:workspaceId,
-        ImpersonatorRID:roleId
+        ImpersonatorRID:roleId,
+        ImpersonatorAID:CurrentAID,
       }
 
       console.log("Role ID: ",roleId);
@@ -352,6 +360,7 @@ const Accounts: React.FC = () => {
         dispatch(setmail(accountEmail));
         dispatch(setworkspace(response.wName));
         dispatch(setWorkspaceId(response.wId));
+        dispatch(setAccountId(response.aid));
    
         const response2 = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${response.rId}`);
         if (response2.data.status === "Success") {

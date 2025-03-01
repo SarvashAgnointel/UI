@@ -442,7 +442,8 @@ const CreatePlans: React.FC = () => {
                   onChange={handlePlanNameChange}
                   className="mt-2 text-gray-500"
                 />
-                {planNameError && <p className="text-red-500 text-sm" > {planNameError} </p>}
+                {planNameError && <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1" > {planNameError} </p>}
+
               </div>
 
               < div className="mt-4" >
@@ -455,7 +456,7 @@ const CreatePlans: React.FC = () => {
                   onChange={handlePlanMessageChange}
                   className="mt-2 text-gray-500"
                 />
-                {planMessageError && <p className="text-red-500 text-sm" > {planMessageError} </p>}
+                {planMessageError && <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1" > {planMessageError} </p>}
               </div>
 
               < div className="mt-4" >
@@ -468,7 +469,7 @@ const CreatePlans: React.FC = () => {
                   onChange={handlePerMessageChange}
                   className="mt-2 text-gray-500"
                 />
-                {perMessageError && <p className="text-red-500 text-sm" > {perMessageError} </p>}
+                {perMessageError && <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1" > {perMessageError} </p>}
               </div>
 
               < div className="mt-4" >
@@ -482,7 +483,6 @@ const CreatePlans: React.FC = () => {
                     onChange={handlePlanPriceChange}
                     className="mt-2 text-gray-500"
                   />
-                  {planPriceError && <p className="text-red-500 text-sm" > {planPriceError} </p>}
 
                   <Select
                     value={countrySymbol}
@@ -505,8 +505,10 @@ const CreatePlans: React.FC = () => {
                       }
                     </SelectContent>
                   </Select>
-                  {countrySymbolError && <p className="text-red-500 text-sm" > {countrySymbolError} </p>}
+                  {countrySymbolError && <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1" > {countrySymbolError} </p>}
                 </div>
+                {planPriceError && <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1" > {planPriceError} </p>}
+
               </div>
             </div>
           </Card>

@@ -111,15 +111,6 @@ const Whatsapp: FC = () => {
             const { phone_number_id, waba_id } = data.data;
             setWabaId(waba_id);
             setPhoneId(phone_number_id);
-            
-            // wabaId = waba_id;
-            // phoneId = phone_number_id;
-            console.log(
-              "Phone number ID ",
-              phone_number_id,
-              " WhatsApp business account ID ",
-              waba_id
-            );
           }
         }
       } catch {
@@ -138,13 +129,6 @@ const Whatsapp: FC = () => {
   const fbLoginCallback = (response: any) => {
     if (response.status === "connected") {
       console.log("login callback initiated");
-      console.log("Login successful:", response.authResponse);
-      const code = response.authResponse.code;
-      if (code) {
-        exchangeToken(code);
-        console.log("code received");
-      }
-      const accessToken = response.authResponse.accessToken;
       console.log("login callback ended!");
     } else {
       console.error("User not logged in:", response);
@@ -155,7 +139,7 @@ const Whatsapp: FC = () => {
   const launchWhatsAppSignup = (mode: string) => {
     if (mode === "connect") {
       FB.login(fbLoginCallback, {
-        config_id: "546715987994574",
+        config_id: "808240921419360",
         response_type: "code",
         override_default_response_type: true,
         extras: {
@@ -170,7 +154,7 @@ const Whatsapp: FC = () => {
       return true;
     } else if (mode === "addPhoneNumber") {
       FB.login(fbLoginCallback, {
-        config_id: "546715987994574",
+        config_id: "808240921419360",
         response_type: "code",
         override_default_response_type: true,
         extras: {
@@ -307,34 +291,6 @@ const Whatsapp: FC = () => {
     setLoading(false);
   };
 
-  const tokenUpdate = async (waba_id: string, phone_number_id: string, id:number) => {
-    try {
-      const response = await axios.post(`${whatsappUrl}/UpdateWabaNPhoneId`, {
-        Id: id,
-        WabaId: waba_id,
-        PhoneId: phone_number_id,
-      });
-      if (response.data.status == "Success") {
-        toast.toast({
-          title: "Success",
-          description: "Token is updated with WABA details",
-        });
-        afterLogin();
-      } else {
-        toast.toast({
-          title: "Error",
-          description: "Token is not updated with WABA details",
-        });
-      }
-    } catch (error) {
-      console.error("error updating WABA details: ", error);
-      toast.toast({
-        title: "Error",
-        description: "Token is not updated with WABA details: " + error,
-      });
-    }
-  };
-
   const registerNumber = async (phoneId: string) => {
     try {
       setLoading(true);
@@ -390,16 +346,18 @@ const Whatsapp: FC = () => {
   useEffect(()=>{
     if(wabaId!=="" && phoneId!=="" && Id!=0){
       console.log("phId: "+phoneId+" wabaID: "+wabaId+ "Id: "+Id);
-      tokenUpdate(wabaId,phoneId,Id);
-    }
-  },[wabaId,phoneId,Id])
+      InsertWabaDetails(wabaId,phoneId);
 
-  const exchangeToken = async (code: string) => {
+    }
+  },[wabaId,phoneId])
+
+  const InsertWabaDetails = async (wabaid:string,phoneid:string) => {
     try {
       const response = await axios.post(
-        `${whatsappUrl}/GetAccessToken/GetAccessToken`,
+        `${whatsappUrl}/InsertWabaDetails`,
         {
-          Code: code,
+          WabaId:wabaid,
+          PhoneId:phoneid,
           EmailId: emailId,
           workspaceId: workspaceId,
         }
@@ -407,22 +365,21 @@ const Whatsapp: FC = () => {
       if (response.data.status === "Success") {
         toast.toast({
           title: "Success",
-          description: "Access token created successfully",
+          description: "WABA account connected successfully",
         });
         setId(response.data.id);
       } else {
         toast.toast({
           title: "Error",
-          description: "Token creation failed",
+          description: "WABA account creation failed",
         });
       }
-      console.log("Access token data:", response.data);
     } catch (error) {
       toast.toast({
         title: "Error",
-        description: "Error exchanging token",
+        description: "Error in connecting WABA account",
       });
-      console.error("Error exchanging token:", error);
+      console.error("Error inserting waba details:", error);
     }
   };
 
@@ -432,12 +389,6 @@ const Whatsapp: FC = () => {
 
   return (
     <>
-      {loading && (
-        <div className="flex flex-col items-center justify-center h-[500px]">
-          <CircularProgress color="primary" />
-        </div>
-      )}
-
       {!loading && !isTokenValid ? (
         <Card className="flex-col w-[593px]">
           <Toaster />
@@ -482,21 +433,12 @@ const Whatsapp: FC = () => {
             </Button>
             <Button
               className="w-auto"
-              onClick={async () => {
+              onClick={ () => {
                 launchWhatsAppSignup("addPhoneNumber");
-                await checkTokenValidity();
-                await subscribeToWebhook();
+                checkTokenValidity();
               }}
-              // onClick={() => {
-              //   if (campaignId) {
-              //     handleEdit(); // Call handleEdit if campaignId exists
-              //   } else {
-              //     handleSubmit(); // Call handleSubmit if campaignId does not exist
-              //   }
-              //   console.log("Clicked"); // Log the click event
-              // }}
             >
-              {/* {campaignId ? "Update" : "Submit"} */}Add Phone Number
+              Add Phone Number
             </Button>
           </div>
           <div className="flex flex-col gap-[1rem]">
@@ -639,6 +581,13 @@ const Whatsapp: FC = () => {
           </div>
         </>
       )}
+
+      {loading && (
+        <div className="flex flex-col items-center justify-center h-[500px]">
+          <CircularProgress color="primary" />
+        </div>
+      )}
+
     </>
   );
 };

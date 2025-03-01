@@ -282,14 +282,12 @@ const toast = useToast();
             value={email}
             onChange={handleEmailChange}
             />
-          <Typography
-            color="error"
-            variant="body2"
-            sx={{ textAlign: "center" }}
-          >
-            {emailError}
-          </Typography>
 
+          {emailError && (
+            <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1">{emailError}</p>
+          )}
+
+        
           <div className="relative">
             <Input
               required
@@ -316,14 +314,10 @@ const toast = useToast();
             </button>
           </div>
 
+          {passwordError && (
+            <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1">{passwordError}</p>
+          )}
 
-          <Typography
-            color="error"
-            variant="body2"
-            sx={{ textAlign: "center" }}
-          >
-            {passwordError}
-          </Typography>
 
           <div className="relative">
           <Input
@@ -350,14 +344,14 @@ const toast = useToast();
             </button>
             </div>
 
-          <Typography
-            color="error"
-            variant="body2"
-            sx={{ textAlign: "center" }}
-          >
-            {repasswordError}
-          </Typography>
+          {repasswordError && (
+            <p className="text-red-500 text-xs font-medium mt-1 mb-4 font-sans italic ml-1">{repasswordError}</p>
+          )}
+
         </Box>
+
+
+        
 
         <Button
           type="submit"

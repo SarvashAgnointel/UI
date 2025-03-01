@@ -135,8 +135,21 @@ interface Audience {
 }
 
 interface SmppServerList {
-  id: number;
+  serverId: number;
+  serverName: string;
+  serverType: string;
+  serverUrl: string;
+}
+
+interface connecectionList {
   channelName: string;
+  id: number;
+  type: string;
+  host: string;
+  port: number;
+  systemId: string;
+  password: string;
+  created_date: string;
 }
 
 const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
@@ -223,12 +236,16 @@ export default function AdminCampaignReview() {
   const campaignStatus = location.state?.status || "";
   let templateId = "";
   const [approvedServerId, setApprovedServerId] = useState<number>(0);
+  const [approvedSmsConnectionId, setApprovedSmsConnectionId] = useState<number>(0);
   const channelName = location.state?.channelType || "";
   const [campaignNameError, setCampaignNameError] = useState<string | null>(
     null
   );
   const [channelError, setChannelError] = useState<string | null>(null);
   const [smsServerError, setSmsServerError] = useState<string | null>(null);
+  const [smsConnectionError, setSmsConnectionError] = useState<string | null>(
+    null
+  );
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [FbudgetError, setFBudgetError] = useState<string | null>(null);
@@ -290,6 +307,11 @@ export default function AdminCampaignReview() {
   const [templatePreview, setTemplatePreview] = useState<string>("");
   const [showRussiaAndKazakhstan, setShowRussiaAndKazakhstan] = useState(false);
   const [smppServers, setSmppServers] = useState<SmppServerList[]>([]);
+  const [smsConnectionList, setSmsConnectionList] = useState<
+    connecectionList[]
+  >([]);
+  const [smsConnection, setSmsConnection] = useState<number | undefined>(0);
+  const smsUrl = useSelector((state: RootState) => state.authentication.smsUrl);
 
   const [campaignApprovalStatus, setCampaignApprovalStatus] =
     useState<boolean>(true);
@@ -1045,6 +1067,7 @@ export default function AdminCampaignReview() {
   };
 
   const UpdateCampaignStatusApprove = async (campaignId: number) => {
+    debugger
     setIsLoading(true);
 
     if (!validateSmsServer(smsServer)) {
@@ -1057,6 +1080,7 @@ export default function AdminCampaignReview() {
         campaignId: campaignId,
         status: "Approved",
         serverId: smsServer,
+        connectionId:smsConnection
       };
 
       const response = await axios.put(
@@ -1135,6 +1159,27 @@ export default function AdminCampaignReview() {
     }
   };
 
+  const getConnectionList = async (serverId: number) => {
+    //setIsLoading(true);
+    try {
+      const response = await axios.get(
+        `${smsUrl}/getconnections?ServerId=${serverId}`
+      );
+      if (response.data.status === "Success") {
+        //setConnectionList(response.data.connectionList);
+        // response.data.connectionList.forEach((connection: ServerList) => {
+        //   checkIsAlive(serverId, connection.id);
+        // });
+        setSmsConnectionList(response.data.connectionList);
+      } else {
+        console.error("List of connections not found");
+      }
+    } catch (error) {
+      console.error("Error getting connection list: ", error);
+    }
+    //setIsLoading(false);
+  };
+
   const handleCampaignNameChange = (value: string) => {
     setCampaignName(value);
     validateCampaignName();
@@ -1148,6 +1193,13 @@ export default function AdminCampaignReview() {
   const handleSmsServerChange = (value: number) => {
     setSmsServer(value);
     validateSmsServer(value); // Pass the updated value for validation
+    getConnectionList(value);
+  };
+
+  const handleSmsConnectionChange = (value: number) => {
+    debugger
+    setSmsConnection(value);
+    validateSmsConnection(value); // Pass the updated value for validation
   };
 
   const handleTemplateChange = (value: string) => {
@@ -1233,6 +1285,22 @@ export default function AdminCampaignReview() {
     }
 
     setSmsServerError(null);
+    return true;
+  };
+
+  const validateSmsConnection = (value: number | undefined): boolean => {
+    if (updateChannel === "SMS") {
+      if (!value) {
+        setSmsConnectionError("Please select a Connection");
+        toast.toast({
+          title: "Warning",
+          description: "Please select a Connection",
+        });
+        return false;
+      }
+    }
+
+    setSmsConnectionError(null);
     return true;
   };
 
@@ -1675,6 +1743,8 @@ export default function AdminCampaignReview() {
         setUpdateRoamingCountry(campaignDetailslocal.roaming_country);
         console.log("Roaming Country :-" + updateRoamingCountry);
         setApprovedServerId(campaignDetailslocal.smpp_id);
+        getConnectionList(campaignDetailslocal.smpp_id);
+        setApprovedSmsConnectionId(campaignDetailslocal.sms_connection_id);
 
         debugger;
 
@@ -1703,27 +1773,36 @@ export default function AdminCampaignReview() {
     if (
       smppServers.length > 0 &&
       campaignApprovalStatus &&
-      approvedServerId > 0
+      approvedServerId > 0 &&
+      smsConnectionList.length > 0 &&
+      approvedSmsConnectionId > 0
     ) {
       console.log("Smpp Servers: ", smppServers);
       const selectedServer = smppServers.find(
-        (server) => server.id === approvedServerId
+        (server) => server.serverId === approvedServerId
       );
       if (selectedServer) {
-        setSmsServer(selectedServer.id);
+        setSmsServer(selectedServer.serverId);
+      }
+      const selectedSmsConnection = smsConnectionList.find(
+        (connection) => connection.id === approvedSmsConnectionId
+      );
+      if (selectedSmsConnection) {
+        setSmsConnection(selectedSmsConnection.id);
       }
     }
-  }, [approvedServerId, smppServers, campaignApprovalStatus]);
+  }, [approvedServerId, approvedSmsConnectionId,smppServers, campaignApprovalStatus]);
 
   const loadSmppServerList = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${apiUrlSms}/getchannels`);
+      const response = await axios.get(`${smsUrl}/getservers`);
       if (response.data.status === "Success") {
         debugger;
         setIsLoading(false);
-        const smppServerList = response.data.channelList;
-        setSmppServers(response.data.channelList);
+        const smppServerList = response.data.serverList;
+        setSmppServers(response.data.serverList);
+        console.log("servers : " + smppServers);
       } else {
         console.log("No smpp server list available in response.");
         setIsLoading(false);
@@ -1797,371 +1876,423 @@ export default function AdminCampaignReview() {
         <div className="flex flex-col items-center justify-center h-[500px]">
           <CircularProgress color="primary" />
         </div>
-      ):(
-      <div className="overflow-y-auto ml-[-7px]">
-        <Toaster />
-        <div className="fixed flex justify-end gap-4 mr-[40px] items-end right-[0px] top-[-15px] z-20 ">
-          {campaignStatus !== "Live" &&
-            campaignStatus !== "Rejected" &&
-            campaignApprovalStatus == false && (
-              <Button
-                variant={"outline"}
-                className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                onClick={() => {
-                  UpdateCampaignStatusReject(campaignId); // Call handleSubmit if campaignId does not exist
+      ) : (
+        <div className="overflow-y-auto ml-[-7px]">
+          <Toaster />
+          <div className="fixed flex justify-end gap-4 mr-[40px] items-end right-[0px] top-[-15px] z-20 ">
+            {campaignStatus !== "Live" &&
+              campaignStatus !== "Rejected" &&
+              campaignApprovalStatus == false && (
+                <Button
+                  variant={"outline"}
+                  className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                  onClick={() => {
+                    UpdateCampaignStatusReject(campaignId); // Call handleSubmit if campaignId does not exist
 
-                  console.log("Clicked"); // Log the click event
+                    console.log("Clicked"); // Log the click event
+                  }}
+                >
+                  Reject
+                </Button>
+              )}
+            {campaignStatus !== "Live" &&
+            campaignStatus !== "Rejected" &&
+            !campaignApprovalStatus ? (
+              <Button
+                className="w-[80px] text-[#F8FAFC]"
+                onClick={() => {
+                  UpdateCampaignStatusApprove(campaignId);
+                  console.log("Clicked");
                 }}
               >
-                Reject
+                Approve
+              </Button>
+            ) : (
+              <Button
+                className="w-[80px] text-[#F8FAFC]"
+                onClick={() => {
+                  navigate("/adminNavbar/campaigns");
+                  console.log("Clicked");
+                }}
+              >
+                Back
               </Button>
             )}
-          {campaignStatus !== "Live" &&
-          campaignStatus !== "Rejected" &&
-          !campaignApprovalStatus ? (
-            <Button
-              className="w-[80px] text-[#F8FAFC]"
-              onClick={() => {
-                UpdateCampaignStatusApprove(campaignId);
-                console.log("Clicked");
-              }}
-            >
-              Approve
-            </Button>
-          ) : (
-            <Button
-              className="w-[80px] text-[#F8FAFC]"
-              onClick={() => {
-                navigate("/adminNavbar/campaigns");
-                console.log("Clicked");
-              }}
-            >
-              Back
-            </Button>
-          )}
-        </div>
-        <div className="gap-4 flex ">
-          <div className="ml-4">
-            <Card className="w-[580px] h-flex-grow p-4 shadow-sm">
-              <div className="text-left">
-                <h3 className="text-base font-bold text-[#020617] text-left">
-                  Create campaign
-                </h3>
-                <div className="mt-4">
-                  <Label
-                    htmlFor="campaignName"
-                    className="mt-8 font-medium text-[#020617]"
-                    style={{ fontSize: "14px" }}
-                  >
-                    Campaign name
-                  </Label>
-                  <Input
-                    id="campaignName"
-                    type="text"
-                    placeholder={"New campaign - " + getCurrentDateTime()}
-                    value={campaignName}
-                    onChange={(e) => handleCampaignNameChange(e.target.value)}
-                    className="mt-2 text-[#64748B] text-sm font-normal"
-                    disabled
-                  />
-                  {campaignNameError && (
-                    <p className="text-red-500 text-sm">{campaignNameError}</p>
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <Label
-                    htmlFor="channel"
-                    className="mt-2 font-medium text-[#020617]"
-                    style={{ fontSize: "14px" }}
-                  >
-                    Channel
-                  </Label>
-                  <Select
-                    value={channel}
-                    onValueChange={(value) => {
-                      handleChannelChange(value);
-                      channelFilter(value);
-                      console.log("Selected Channel ID:", value);
-                    }}
-                  >
-                    <SelectTrigger disabled className="text-gray-500 mt-2">
-                      <SelectValue
-                        className="text-[#64748B] text-sm font-normal"
-                        placeholder={
-                          campaignId
-                            ? updateChannel
-                            : "Select your campaign channel"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {channelList
-                        .filter(
-                          (channel) =>
-                            channel.channel_name.toLowerCase() === "whatsapp"
-                        ) // Filter WhatsApp channel
-                        .map((channel) => (
-                          <SelectItem
-                            className="text-[#64748B] text-sm font-normal"
-                            key={channel.channel_id}
-                            value={channel.channel_id as any}
-                          >
-                            {channel.channel_name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-
-                  {channelError && (
-                    <p className="text-red-500 text-sm">{channelError}</p>
-                  )}
-                </div>
-
-                {channelName === "SMS" && (
+          </div>
+          <div className="gap-4 flex ">
+            <div className="ml-4">
+              <Card className="w-[580px] h-flex-grow p-4 shadow-sm mb-[150px]">
+                <div className="text-left">
+                  <h3 className="text-base font-bold text-[#020617] text-left">
+                    Create campaign
+                  </h3>
                   <div className="mt-4">
                     <Label
-                      htmlFor="SmsServer"
-                      className="mt-2 font-medium text-[#020617]"
+                      htmlFor="campaignName"
+                      className="mt-8 font-medium text-[#020617]"
                       style={{ fontSize: "14px" }}
                     >
-                      SMPP Server
+                      Campaign name
                     </Label>
-                    <Select
-                      value={smsServer?.toString()}
-                      onValueChange={(value) => {
-                        handleSmsServerChange(Number(value));
-                        console.log("Selected Server ID:", value);
-                      }}
-                      disabled={campaignApprovalStatus}
-                    >
-                      <SelectTrigger className="text-gray-500 mt-2">
-                        <SelectValue
-                          className="text-[#64748B] text-sm font-normal"
-                          placeholder={"Select a SMS Server"}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {smppServers.map((server) => (
-                          <SelectItem
-                            key={server.id}
-                            value={server.id.toString()}
-                            className="text-[#64748B] text-sm font-normal"
-                          >
-                            {server.channelName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {smsServerError && (
-                      <p className="text-red-500 text-sm">{smsServerError}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Reach people from */}
-                {updateCountry && updateCountry.trim().length > 0 && (
-                  <div className="mt-4">
-                    <Label
-                      htmlFor="reachPeopleFrom"
-                      className="mt-2 text-sm font-medium text-[#020617]"
-                    >
-                      Reach people from
-                    </Label>
-                    <MultiSelect
+                    <Input
+                      id="campaignName"
+                      type="text"
+                      placeholder={"New campaign - " + getCurrentDateTime()}
+                      value={campaignName}
+                      onChange={(e) => handleCampaignNameChange(e.target.value)}
+                      className="mt-2 text-[#64748B] text-sm font-normal"
                       disabled
-                      className="text-[#64748B] text-sm font-normal mt-1 overflow-hidden"
-                      options={targetCountryList.map((country) => ({
-                        label: country.country_name,
-                        value: country.country_id.toString(),
-                      }))}
-                      onValueChange={(values) => {
-                        console.log("Selected Country IDs:", values);
-                        handleReachPeopleFromChange(values);
-                      }}
-                      value={reachPeopleFrom}
-                      placeholder={
-                        reachPeopleFrom.length === 0 ? updateCountry : ""
-                      }
-                      maxCount={3}
-                      variant="inverted"
                     />
-                    {targetCountryError && (
+                    {campaignNameError && (
                       <p className="text-red-500 text-sm">
-                        {targetCountryError}
+                        {campaignNameError}
                       </p>
                     )}
                   </div>
-                )}
 
-                {/* Reach people traveling to */}
-                {updateRoamingCountry &&
-                  updateRoamingCountry.trim().length > 0 && (
+                  <div className="mt-4">
+                    <Label
+                      htmlFor="channel"
+                      className="mt-2 font-medium text-[#020617]"
+                      style={{ fontSize: "14px" }}
+                    >
+                      Channel
+                    </Label>
+                    <Select
+                      value={channel}
+                      onValueChange={(value) => {
+                        handleChannelChange(value);
+                        channelFilter(value);
+                        console.log("Selected Channel ID:", value);
+                      }}
+                    >
+                      <SelectTrigger disabled className="text-gray-500 mt-2">
+                        <SelectValue
+                          className="text-[#64748B] text-sm font-normal"
+                          placeholder={
+                            campaignId
+                              ? updateChannel
+                              : "Select your campaign channel"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {channelList
+                          .filter(
+                            (channel) =>
+                              channel.channel_name.toLowerCase() === "whatsapp"
+                          ) // Filter WhatsApp channel
+                          .map((channel) => (
+                            <SelectItem
+                              className="text-[#64748B] text-sm font-normal"
+                              key={channel.channel_id}
+                              value={channel.channel_id as any}
+                            >
+                              {channel.channel_name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+
+                    {channelError && (
+                      <p className="text-red-500 text-sm">{channelError}</p>
+                    )}
+                  </div>
+
+                  {channelName === "SMS" && (
                     <div className="mt-4">
                       <Label
-                        htmlFor="reachPeopleIn"
-                        className="mt-2 text-sm font-medium text-[#020617]"
+                        htmlFor="SmsServer"
+                        className="mt-2 font-medium text-[#020617]"
+                        style={{ fontSize: "14px" }}
                       >
-                        Reach people traveling to
+                        SMPP Server
                       </Label>
-                      <MultiSelect
-                        disabled
-                        className="text-[#64748B] text-sm font-normal mt-1"
-                        options={roamingCountryList.map((country) => ({
-                          label: country.country_name,
-                          value: country.country_id.toString(),
-                        }))}
-                        onValueChange={(values) => {
-                          console.log("Selected Country IDs:", values);
-                          handleReachPeopleInChange(values);
+                      <Select
+                        value={smsServer?.toString()}
+                        onValueChange={(value) => {
+                          handleSmsServerChange(Number(value));
+                          console.log("Selected Server ID:", value);
                         }}
-                        value={reachPeopleIn}
-                        placeholder={
-                          reachPeopleIn.length === 0 ? updateRoamingCountry : ""
-                        }
-                        maxCount={3}
-                        variant="inverted"
-                      />
-                      {roamingCountryError && (
+                        disabled={campaignApprovalStatus}
+                      >
+                        <SelectTrigger className="text-gray-500 mt-2">
+                          <SelectValue
+                            className="text-[#64748B] text-sm font-normal"
+                            placeholder={"Select a SMS Server"}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {smppServers.map((server) => (
+                            <SelectItem
+                              key={server.serverId}
+                              value={server.serverId.toString()}
+                              className="text-[#64748B] text-sm font-normal"
+                            >
+                              {server.serverName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {smsServerError && (
+                        <p className="text-red-500 text-sm">{smsServerError}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {channelName === "SMS" && (
+                    <div className="mt-4">
+                      <Label
+                        htmlFor="connections"
+                        className="mt-2 font-medium text-[#020617]"
+                        style={{ fontSize: "14px" }}
+                      >
+                        Connections
+                      </Label>
+                      <Select
+                        value={smsConnection?.toString()}
+                        onValueChange={(value) => {
+                          handleSmsConnectionChange(Number(value));
+                          console.log("Selected Connection ID:", value);
+                        }}
+                        disabled={campaignApprovalStatus}
+                      >
+                        <SelectTrigger className="text-gray-500 mt-2">
+                          <SelectValue
+                            className="text-[#64748B] text-sm font-normal"
+                            placeholder={"Select a SMS Server"}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {smsConnectionList.map((connection) => (
+                            <SelectItem
+                              key={connection.id}
+                              value={connection.id.toString()}
+                              className="text-[#64748B] text-sm font-normal"
+                            >
+                              {connection.channelName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {smsConnectionError && (
                         <p className="text-red-500 text-sm">
-                          {roamingCountryError}
+                          {smsConnectionError}
                         </p>
                       )}
                     </div>
                   )}
 
-                <div className="mt-4">
-                  <Label
-                    htmlFor="campaignStartDate"
-                    className="mt-2 text-sm font-normal text-[#020617]"
-                  >
-                    Campaign start date
-                  </Label>
-                  <div className="relative mt-2 text-[#64748B] text-sm font-normal">
-                    <input
-                      disabled
-                      id="campaignStartDate"
-                      type="text"
-                      value={campaignStartDate}
-                      onChange={(e) => setCampaignStartDate(e.target.value)}
-                      onBlur={() =>
-                        handleStartDateChange(
-                          new Date(
-                            campaignStartDate.split("/").reverse().join("-")
-                          )
-                        )
-                      }
-                      placeholder="dd/mm/yyyy"
-                      style={{ fontSize: "14px" }}
-                      className="w-full p-2 border border-gray-300 rounded text-[#64748B] text-sm font-normal"
-                    />
-                    {startdateError && (
-                      <p className="text-red-500 text-sm">{startdateError}</p>
-                    )}
-                    <Popover
-                      open={isStartCalendarOpen}
-                      onOpenChange={setStartCalendarOpen}
-                    >
-                      <PopoverTrigger disabled asChild>
-                        <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                          <CalendarIcon className="text-gray-500" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <Calendar
-                          mode="single"
-                          selected={
-                            campaignStartDate
-                              ? new Date(
-                                  campaignStartDate
-                                    .split("/")
-                                    .reverse()
-                                    .join("-")
-                                )
-                              : undefined
+                  {/* Reach people from */}
+                  {updateCountry && updateCountry.trim().length > 0 && (
+                    <div className="mt-4">
+                      <Label
+                        htmlFor="reachPeopleFrom"
+                        className="mt-2 text-sm font-medium text-[#020617]"
+                      >
+                        Reach people from
+                      </Label>
+                      <MultiSelect
+                        disabled
+                        className="text-[#64748B] text-sm font-normal mt-1 overflow-hidden"
+                        options={targetCountryList.map((country) => ({
+                          label: country.country_name,
+                          value: country.country_id.toString(),
+                        }))}
+                        onValueChange={(values) => {
+                          console.log("Selected Country IDs:", values);
+                          handleReachPeopleFromChange(values);
+                        }}
+                        value={reachPeopleFrom}
+                        placeholder={
+                          reachPeopleFrom.length === 0 ? updateCountry : ""
+                        }
+                        maxCount={3}
+                        variant="inverted"
+                      />
+                      {targetCountryError && (
+                        <p className="text-red-500 text-sm">
+                          {targetCountryError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Reach people traveling to */}
+                  {updateRoamingCountry &&
+                    updateRoamingCountry.trim().length > 0 && (
+                      <div className="mt-4">
+                        <Label
+                          htmlFor="reachPeopleIn"
+                          className="mt-2 text-sm font-medium text-[#020617]"
+                        >
+                          Reach people traveling to
+                        </Label>
+                        <MultiSelect
+                          disabled
+                          className="text-[#64748B] text-sm font-normal mt-1"
+                          options={roamingCountryList.map((country) => ({
+                            label: country.country_name,
+                            value: country.country_id.toString(),
+                          }))}
+                          onValueChange={(values) => {
+                            console.log("Selected Country IDs:", values);
+                            handleReachPeopleInChange(values);
+                          }}
+                          value={reachPeopleIn}
+                          placeholder={
+                            reachPeopleIn.length === 0
+                              ? updateRoamingCountry
+                              : ""
                           }
-                          onSelect={handleStartDateChange}
-                          disabled={(date: Date) => isStartDateDisabled(date)} // Disable dates before today
+                          maxCount={3}
+                          variant="inverted"
                         />
-                      </PopoverContent>
-                    </Popover>
+                        {roamingCountryError && (
+                          <p className="text-red-500 text-sm">
+                            {roamingCountryError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                  <div className="mt-4">
+                    <Label
+                      htmlFor="campaignStartDate"
+                      className="mt-2 text-sm font-normal text-[#020617]"
+                    >
+                      Campaign start date
+                    </Label>
+                    <div className="relative mt-2 text-[#64748B] text-sm font-normal">
+                      <input
+                        disabled
+                        id="campaignStartDate"
+                        type="text"
+                        value={campaignStartDate}
+                        onChange={(e) => setCampaignStartDate(e.target.value)}
+                        onBlur={() =>
+                          handleStartDateChange(
+                            new Date(
+                              campaignStartDate.split("/").reverse().join("-")
+                            )
+                          )
+                        }
+                        placeholder="dd/mm/yyyy"
+                        style={{ fontSize: "14px" }}
+                        className="w-full p-2 border border-gray-300 rounded text-[#64748B] text-sm font-normal"
+                      />
+                      {startdateError && (
+                        <p className="text-red-500 text-sm">{startdateError}</p>
+                      )}
+                      <Popover
+                        open={isStartCalendarOpen}
+                        onOpenChange={setStartCalendarOpen}
+                      >
+                        <PopoverTrigger disabled asChild>
+                          <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                            <CalendarIcon className="text-gray-500" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <Calendar
+                            mode="single"
+                            selected={
+                              campaignStartDate
+                                ? new Date(
+                                    campaignStartDate
+                                      .split("/")
+                                      .reverse()
+                                      .join("-")
+                                  )
+                                : undefined
+                            }
+                            onSelect={handleStartDateChange}
+                            disabled={(date: Date) => isStartDateDisabled(date)} // Disable dates before today
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Label
+                      htmlFor="campaignEndDate"
+                      className="mt-2 text-sm font-normal text-[#020617]"
+                    >
+                      Campaign end date
+                    </Label>
+                    <div className="relative mt-2 text-[#64748B] text-sm font-normal">
+                      <input
+                        disabled
+                        id="campaignEndDate"
+                        type="text"
+                        value={campaignEndDate}
+                        onChange={(e) => setCampaignEndDate(e.target.value)}
+                        onBlur={() =>
+                          handleEndDateChange(
+                            new Date(
+                              campaignEndDate.split("/").reverse().join("-")
+                            )
+                          )
+                        }
+                        placeholder="dd/mm/yyyy"
+                        style={{ fontSize: "14px" }}
+                        className="w-full p-2 border border-gray-300 rounded text-[#64748B] text-sm font-normal"
+                      />
+                      {enddateError && (
+                        <p className="text-red-500 text-sm">{enddateError}</p>
+                      )}
+                      <Popover
+                        open={isEndCalendarOpen}
+                        onOpenChange={setEndCalendarOpen}
+                      >
+                        <PopoverTrigger disabled asChild>
+                          <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                            <CalendarIcon className="text-gray-500" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          <Calendar
+                            mode="single"
+                            selected={
+                              campaignEndDate
+                                ? new Date(
+                                    campaignEndDate
+                                      .split("/")
+                                      .reverse()
+                                      .join("-")
+                                  )
+                                : undefined
+                            }
+                            onSelect={handleEndDateChange}
+                            disabled={(date: Date) => isEndDateDisabled(date)} // Disable dates before start date
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
                 </div>
+              </Card>
+            </div>
 
-                <div className="mt-4">
-                  <Label
-                    htmlFor="campaignEndDate"
-                    className="mt-2 text-sm font-normal text-[#020617]"
-                  >
-                    Campaign end date
-                  </Label>
-                  <div className="relative mt-2 text-[#64748B] text-sm font-normal">
-                    <input
-                      disabled
-                      id="campaignEndDate"
-                      type="text"
-                      value={campaignEndDate}
-                      onChange={(e) => setCampaignEndDate(e.target.value)}
-                      onBlur={() =>
-                        handleEndDateChange(
-                          new Date(
-                            campaignEndDate.split("/").reverse().join("-")
-                          )
-                        )
-                      }
-                      placeholder="dd/mm/yyyy"
-                      style={{ fontSize: "14px" }}
-                      className="w-full p-2 border border-gray-300 rounded text-[#64748B] text-sm font-normal"
-                    />
-                    {enddateError && (
-                      <p className="text-red-500 text-sm">{enddateError}</p>
-                    )}
-                    <Popover
-                      open={isEndCalendarOpen}
-                      onOpenChange={setEndCalendarOpen}
-                    >
-                      <PopoverTrigger disabled asChild>
-                        <button className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                          <CalendarIcon className="text-gray-500" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent>
-                        <Calendar
-                          mode="single"
-                          selected={
-                            campaignEndDate
-                              ? new Date(
-                                  campaignEndDate.split("/").reverse().join("-")
-                                )
-                              : undefined
-                          }
-                          onSelect={handleEndDateChange}
-                          disabled={(date: Date) => isEndDateDisabled(date)} // Disable dates before start date
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          <div
-            className={`border justify-items-center pl-7 pr-7 max-h-fit top-auto right-14 rounded-lg`}
-          >
-            <h2 className="mb-2 mt-4 ml-[-200px] font-bold">Message preview</h2>
             <div
-              className="flex flex-col justify-between rounded-[30px] text-black p-4 w-[350px] min-h-auto"
-              style={{ backgroundColor: "#f9f9f9" }}
+              className={`border justify-items-center pl-7 pr-7 max-h-fit top-auto right-14 rounded-lg`}
             >
-              <div className="justify-center">
-                <i className="fas fa-mobile-alt text-4xl mb-4"></i>
-                {renderPreview()}
+              <h2 className="mb-2 mt-4 ml-[-200px] font-bold">
+                Message preview
+              </h2>
+              <div
+                className="flex flex-col justify-between rounded-[30px] text-black p-4 w-[350px] min-h-auto"
+                style={{ backgroundColor: "#f9f9f9" }}
+              >
+                <div className="justify-center">
+                  <i className="fas fa-mobile-alt text-4xl mb-4"></i>
+                  {renderPreview()}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       )}
     </>
   );

@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+
+
 interface Workspace {
     workspace_id: number;
     workspace_name: string;
@@ -22,6 +24,8 @@ interface AdvAccState{
     workspace_list: Workspace[];
     sent_count_sidenav: number,
     createCampaign: Boolean,
+    workspace_count: number,
+    total_available_count_sidenav:number
 }
 
 const initialState:AdvAccState={
@@ -40,6 +44,8 @@ const initialState:AdvAccState={
     workspace_list: [],
     sent_count_sidenav: 0,
     createCampaign: false,
+    workspace_count: 0,
+    total_available_count_sidenav:0
 }
 
 const AdvertiserAccountSlice = createSlice({
@@ -95,7 +101,12 @@ const AdvertiserAccountSlice = createSlice({
         setCreateCampaign:(state,action: PayloadAction<boolean>)=>{
             state.createCampaign=action.payload;
         },
-        
+        setWorkspace_Count:(state,action: PayloadAction<number>) => {
+            state.workspace_count = action.payload;
+        },
+        setTotalAvailableCount:(state,action: PayloadAction<number>) => {
+            state.total_available_count_sidenav = action.payload;
+        }
         
     }
 })
@@ -113,7 +124,9 @@ export const {
     setFromAdmin,
     setWorkspace_List,
     setSentCount,
-    setCreateCampaign
+    setCreateCampaign,
+    setWorkspace_Count,
+    setTotalAvailableCount
 } = AdvertiserAccountSlice.actions;
 
 export default AdvertiserAccountSlice.reducer;

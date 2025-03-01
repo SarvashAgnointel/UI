@@ -8,6 +8,7 @@
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@hookform/resolvers": "^3.9.0",
+    "@microsoft/signalr": "^8.0.7",
     "@mui/icons-material": "^6.1.0",
     "@mui/joy": "^5.0.0-beta.48",
     "@mui/material": "^6.1.0",
@@ -25,7 +26,7 @@
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-switch": "^1.1.0",
-    "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-toast": "^1.2.2",
     "@radix-ui/react-tooltip": "^1.1.3",
     "@react-pdf/renderer": "^4.1.6",
@@ -71,6 +72,7 @@
     "react-tooltip": "^5.28.0",
     "recharts": "^2.12.7",
     "redux-persist": "^6.0.0",
+    "sms-length": "^0.2.0",
     "stream-browserify": "^3.0.0",
     "styled-components": "^6.1.13",
     "tailwind-merge": "^2.5.2",
@@ -81,11 +83,12 @@
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
- "scripts": {
-  "start": "serve -s build",
-  "build": "craco build",
-  "postinstall": "npm run build"
- },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
   "eslintConfig": {
     "extends": [
       "react-app",

@@ -55,6 +55,8 @@ interface Debitdetials {
   messagecount: string;
   paymentdate:string;
   symbol:string;
+  lastcampaign_enddate:string;
+
 }
 interface BillingPlan {
   billing_name: string;
@@ -136,7 +138,6 @@ const Billing: FC = () => {
   const mailId = useSelector((state:RootState)=>state.authentication.userEmail);
   const [isSorted, setIsSorted] = useState(false);
   const [walletAmount, setWalletAmount] = useState<number | null>(null);
-  // const accountId = useSelector((state:RootState)=>state.authentication.account_id);
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -148,12 +149,11 @@ const Billing: FC = () => {
     setIsLoading(true);
     const fetchConfig = async () => {
       try {
-
+        console.log("ACCOUNT ID :" , accountId );
         const response = await fetch("/config.json");
         const config = await response.json();
         setApiUrlAdvAcc(config.ApiUrlAdvAcc);
-        const id = localStorage.getItem("userid");
-        const response1 = await axios.get(`${config.ApiUrlAdvAcc}/Getuserrole?accountid=${id}`);
+        const response1 = await axios.get(`${config.ApiUrlAdvAcc}/Getuserrole?accountid=${accountId}`);
         debugger;
         console.log("user role Response : ", response);
 
@@ -257,8 +257,7 @@ const Billing: FC = () => {
   const pairworkspace = async (workspaceid: any) => {
     try {
       debugger;
-      const id = localStorage.getItem("userid");
-      const response = await axios.get(`${apiUrlAdvAcc}/pairworkspaceid?accountid=${id}&workpaceid=${workspaceid}`);
+      const response = await axios.get(`${apiUrlAdvAcc}/pairworkspaceid?accountid=${accountId}&workpaceid=${workspaceid}`);
       console.log("Response : ", response.data.workspacelist);
       if (response.data.status == "Success") {
         if (response.data) {
@@ -267,6 +266,7 @@ const Billing: FC = () => {
             description: "workspace paired successfully",
           })
           workspaceslists();
+          userdebitlist();
         } else {
           console.error("Error fetching workspace details: response - ", response);
         }
@@ -290,6 +290,7 @@ const Billing: FC = () => {
             description: "workspace unpaired successfully",
           })
           workspaceslists();
+          userdebitlist();
         } else {
           console.error("Error fetching workspace details: response - ", response);
         }
@@ -348,8 +349,7 @@ const Billing: FC = () => {
 
     try {
       debugger;
-      const id = localStorage.getItem("userid");
-      const response = await axios.get(`${apiUrlAdvAcc}/GetuserTransaction?accountid=${id}`);
+      const response = await axios.get(`${apiUrlAdvAcc}/GetuserTransaction?accountid=${accountId}`);
       console.log("Response : ", response.data.user_transaction);
       setTransactionList(response.data.user_transaction)
       if (response.data.status === "Success") {
@@ -379,10 +379,10 @@ const Billing: FC = () => {
       setdebitList(response.data.user_transaction)
       if (response.data.status == "Success") {
         if (response.data) {
-          toast.toast({
-            title: "Success",
-            description: "Transaction received successfully",
-          })
+          // toast.toast({
+          //   title: "Success",
+          //   description: "Transaction received successfully",
+          // })
         } else {
           console.error("Error fetching Transaction details: response - ", response);
         }
@@ -581,6 +581,8 @@ const Billing: FC = () => {
 const creditMessageCount = Array.isArray(transactionList)
   ? transactionList.reduce((sum, item) => sum + Number(item.messages || 0), 0)
   : 0;
+
+
   const sortTransactions = (field: string) => {
     let sortedList = [...transactionList];
 
@@ -712,7 +714,7 @@ const creditMessageCount = Array.isArray(transactionList)
                       const parts = feature.split(" ");
                       return (
                         <div key={i} className="flex items-center space-x-1 mt-1">
-                          <span>✓</span> <span>{parts[0]} {parts[1]}</span>
+                          <span>✓</span> <span>{Number(parts[0]).toLocaleString()} {parts[1]}</span>
                           <span>{plan.symbol}</span> <span>{parts[2]}</span>
                         </div>);
                     }
@@ -720,7 +722,7 @@ const creditMessageCount = Array.isArray(transactionList)
                       return (
                         <div key={i} className="flex flex-col space-y-1 mt-1">
                         <div className="flex items-center space-x-1">
-                          <span>✓</span> <span>{feature}</span>
+                          <span>✓</span> <span>{feature.replace(/\d+/g, (match) => Number(match).toLocaleString())}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <span>✓</span> per message {plan.symbol} <span>{plan.permessage}</span>
@@ -760,7 +762,7 @@ const creditMessageCount = Array.isArray(transactionList)
                       const parts = feature.split(" ");
                       return (
                         <div key={i} className="flex items-center space-x-1 mt-1">
-                          <span>✓</span> <span>{parts[0]} {parts[1]}</span>
+                          <span>✓</span> <span>{Number(parts[0]).toLocaleString()} {parts[1]}</span>
                           <span>{plan.symbol}</span> <span>{parts[2]}</span>
                         </div>);
                     }
@@ -768,7 +770,7 @@ const creditMessageCount = Array.isArray(transactionList)
                       return (
                         <div key={i} className="flex flex-col space-y-1 mt-1">
                         <div className="flex items-center space-x-1">
-                          <span>✓</span> <span>{feature}</span>
+                          <span>✓</span> <span>{feature.replace(/\d+/g, (match) => Number(match).toLocaleString())}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <span>✓</span> per message {plan.symbol} <span>{plan.permessage}</span>
@@ -860,17 +862,19 @@ const creditMessageCount = Array.isArray(transactionList)
                 <h2 className="text-lg font-bold text-left">Transactions</h2>
                 <p className="text-sm text-gray-600 text-left">Here you can manage the pending invitations to your team.</p>
               </div> <br></br>
-              <Input placeholder="Search transactions..." />
+              {/* <Input placeholder="Search transactions..." /> */}
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="mt-[0px]">
               <div className='rounded-md border' >
                 <Table className="rounded-xl whitespace-nowrap border-gray-200" style={{ color: "#020202", fontSize: "14px" }}>
                   <TableHeader className="text-center">
                     <TableRow>
                       <TableHead className="text-left">
                         <div className="flex items-center gap-2 justify-start ml-2">
-                          Value <CaretSortIcon onClick={() => sortTransactions("ByValues")} className="cursor-pointer" />
+                          Value 
+                          {/* <CaretSortIcon  className="cursor-pointer" />
+                          onClick={() => sortTransactions("ByValues")} */}
                         </div>
                       </TableHead>
                       {/* <TableHead>
@@ -885,24 +889,30 @@ const creditMessageCount = Array.isArray(transactionList)
                         </TableHead> */}
                       <TableHead>
                         <div className="flex items-center gap-2 justify-start">
-                          Messages <CaretSortIcon onClick={() => sortTransactions("ByDate")} className="cursor-pointer" />
+                          Messages 
+                          {/* <CaretSortIcon  className="cursor-pointer" />
+                          onClick={() => sortTransactions("ByDate")} */}
                         </div>
                       </TableHead>
                       <TableHead>
                         <div className="flex items-center gap-2 justify-start">
-                          Description <CaretSortIcon onClick={() => sortTransactions("ByDate")} className="cursor-pointer" />
+                          Description 
+                          {/* <CaretSortIcon  className="cursor-pointer" />
+                          onClick={() => sortTransactions("ByDate")} */}
                         </div>
                       </TableHead>
                       <TableHead>
                         <div className="flex items-center gap-2 justify-start">
-                          Date <CaretSortIcon onClick={() => sortTransactions("ByDate")} className="cursor-pointer" />
+                          Date 
+                          {/* <CaretSortIcon  className="cursor-pointer" />
+                          onClick={() => sortTransactions("ByDate")} */}
                         </div>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
 
                   {Array.isArray(transactionList) && transactionList.length > 0 ? (
-                    transactionList.map((transactionItem, index) => (
+                    transactionList.slice(0, 1).map((transactionItem, index) => (
                       <TableRow key={index}>
                         <TableCell className="flex items-center space-x-2 py-4 ml-2">
                           <span>{transactionItem.symbol}</span> <span>{transactionItem.amount}</span>
@@ -980,11 +990,13 @@ const creditMessageCount = Array.isArray(transactionList)
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center gap-2 justify-start">
-                {debitItem.paymentdate}
+                {/* {debitItem.paymentdate} */}
+                {/* {new Date().toISOString().split('T')[0]} */}
+               {debitItem.lastcampaign_enddate} 
                 </div>
               </TableCell>
               <TableCell className="text-center">
-                <DropdownMenu>
+                {/* <DropdownMenu>
                   <DropdownMenuTrigger className="ml-2 cursor-pointer">•••</DropdownMenuTrigger>
                   <DropdownMenuContent
                     className="absolute right-0"
@@ -994,7 +1006,7 @@ const creditMessageCount = Array.isArray(transactionList)
                       Download invoice
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
+                </DropdownMenu> */}
               </TableCell>
             </TableRow>
           ))

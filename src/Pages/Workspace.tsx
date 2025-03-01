@@ -31,6 +31,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { UseSelector } from "react-redux";
 import {
   setAuthProfileBack,
+  setBaseBillingCountryAuth,
   setworkspace,
   setWorkspaceData,
   setWorkspaceId,
@@ -45,6 +46,7 @@ import { useToast } from "../Components/ui/use-toast";
 import { Toaster } from "../Components/ui/toaster";
 import { Weight } from "lucide-react";
 import { error } from "console";
+import { Dialpad } from "@mui/icons-material";
 
 interface CustomWorkspaceControlProps {
   setNext: React.Dispatch<React.SetStateAction<boolean>>; // Type for setNext
@@ -108,8 +110,8 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
   const [ baseBillingCountry , setBaseBillingCountry ] = useState("");
   const baseworkspace_id = useSelector((state: RootState) => state.authentication.workspace_id);
   const advUrl  = useSelector((state: RootState) => state.authentication.apiURL);
-  const baseBillingCountryCode = useSelector((state: RootState) => state.authentication.workspaceData?.billingCountry);
-
+  const baseBillingCountryCode = useSelector((state: RootState) => state.authentication.billingcountry);
+  
 
   const isAdmin = useSelector(
     (state: RootState) => state.authentication.isAdmin
@@ -218,38 +220,30 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
   };
 
   const validateCompanyName = (value: string): boolean => {
-    const regex = /^(?![0-9_@ ])([a-zA-Z0-9 _@]*[a-zA-Z0-9])?$/;
 
     if (value.length === 0) {
       setFirstNameError("Company name cannot be empty.");
       return false;
     }
 
-    if (
-      value.startsWith("_") ||
-      value.startsWith("@") ||
-      value.startsWith(" ")
-    ) {
-      setFirstNameError("Company name cannot start with '_', '@', or a space.");
-      return false;
-    }
-
-    if (value.endsWith("_") || value.endsWith("@") || value.endsWith(" ")) {
-      setFirstNameError("Company name cannot end with '_', '@', or a space.");
-      return false;
-    }
-
-    if (/^[0-9]/.test(value)) {
-      setFirstNameError("Company name cannot start with a number.");
-      return false;
-    }
-
-    if (!regex.test(value)) {
-      setFirstNameError(
-        "Company name contains invalid characters or invalid placement."
-      );
-      return false;
-    }
+    // First character should NOT be a special character (letters & numbers allowed)
+    const firstChar = value.charAt(0);
+    const firstCharRegex = /^[a-zA-Z0-9]/; // Allows letters and numbers
+  
+      // Last character should NOT be a special character (letters & numbers allowed)
+      const lastChar = value.charAt(value.length - 1);
+      const lastCharRegex = /^[a-zA-Z0-9]$/; // Allows letters and numbers
+  
+      // Ensure spaces are allowed in between but not at the start or end
+      if (!firstCharRegex.test(firstChar)) {
+        setFirstNameError('First character should not be a special character.');
+        return false;
+      } else if (!lastCharRegex.test(lastChar)) {
+        setFirstNameError('Last character should not be a special character or empty space.');
+        return false;
+      } else {
+        setFirstNameError('');
+      }
 
     setCompanyName(value);
     setFirstNameError(null);
@@ -274,6 +268,16 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
 
     const validFileTypes = ["image/jpeg", "image/png"];
     const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+    const dotCount = (file.name.match(/\./g) || []).length;
+    if (dotCount > 1) {
+      toast.toast({
+        title: "Error",
+        description: "Invalid File name.",
+      });
+      setFileName('');
+      return;
+    }
 
     // Check file type
     if (!validFileTypes.includes(file.type)) {
@@ -340,10 +344,11 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
     }
     setIsButtonDisabled(true); // Disable the button
     console.log("BILLING :" , baseBillingCountry);
+    console.log("Base Billing Country Code :" , baseBillingCountryCode);
     const payload = {
       email: emailId,
       workspaceName: companyName,
-      billingCountry: baseBillingCountryCode ? baseBillingCountryCode : "0",
+      billingCountry: baseBillingCountryCode ? baseBillingCountryCode.toString() : "0", 
       workspaceIndustry: selectedIndustry === "Tourism" ? "11" : selectedIndustry,
       workspaceType: selectedWorkspaceType === "Advertiser" ? "1" : selectedWorkspaceType,
       status: "active",
@@ -418,8 +423,9 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
     };
   
     dispatch(setworkspace(companyName));
-    dispatch(setWorkspaceData(payload))
-  
+    dispatch(setWorkspaceData(payload));
+    dispatch(setBaseBillingCountryAuth(billingCountry));
+
     try {
       await registerUser();
       await insertPersonalInfo();
@@ -651,7 +657,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                 <div className="grid w-full max-w-md items-start gap-1.5">
                   <Label
                     htmlFor="companyname"
-                    className="whitespace-nowrap text-left font-medium text-[14px] text-[#020617] mb-1 "
+                    className="whitespace-nowrap text-left font-medium text-[14px] text-[#020617]"
                     style={{ marginTop: "0.6rem" }}
                   >
                     Company name
@@ -663,10 +669,13 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                     className="w-full border-gray-200 placeholder:font-normal placeholder:text-[#64748B] rounded-[7px] custom-placeholder"
                     onChange={handleFirstNameChange}
                   />
-                  {CompanyNameError && (
-                    <p className="text-red-500 text-sm">{CompanyNameError}</p>
-                  )}
+                {CompanyNameError && (
+                  <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                    {CompanyNameError}
+                  </p>
+                )}
                 </div>
+
 
                 <div className="grid w-full max-w-md items-start gap-1.5">
                   <Label
@@ -788,7 +797,6 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
           </>
         ) : (
           <>
-
       {loading ? (
             <div className="flex items-center justify-center">
               <CircularProgress color="primary" />
@@ -800,6 +808,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
               sx={{ display: "flex", flexDirection: "column" }}
               className="space-y-3"
             >
+              <Toaster/>
               <div className="grid w-full items-start gap-1.5">
                 <Label
                   htmlFor="companyLogo"
@@ -865,7 +874,9 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                   onChange={handleFirstNameChange}
                 />
                 {CompanyNameError && (
-                  <p className="text-red-500 text-sm">{CompanyNameError}</p>
+                  <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                    {CompanyNameError}
+                  </p>
                 )}
               </div>
 
@@ -917,7 +928,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                   </SelectTrigger>
                   <SelectContent className="absolute z-50 top-full max-h-40 overflow-auto">
                     {industries.map((data) => (
-                      <SelectItem key={data.id} value={data.id.toString()}>
+                      <SelectItem className="cursor-pointer" key={data.id} value={data.id.toString()}>
                         {/* Added flex container for alignment */}
                         <div className="flex items-center w-full">
                           <span>{data.label}</span>
@@ -957,7 +968,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
                     {workspace_types
                       .filter((data) => data.label !== "Telecom Operator") // Exclude Telecom Operator
                       .map((data) => (
-                        <SelectItem key={data.id} value={data.id.toString()}>
+                        <SelectItem className="cursor-pointer" key={data.id} value={data.id.toString()}>
                           <div className="flex items-center w-full">
                             <span>{data.label}</span>
                             {selectedWorkspaceType === data.label && (

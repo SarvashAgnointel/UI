@@ -1,4 +1,5 @@
 import React, { FC, useEffect, useState } from "react";
+import loginVideo from "../Assets/loginVideo.mp4";
 import Logo from '../Assets/Logo.svg';
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from '../Components/ui/input';
@@ -15,8 +16,6 @@ import { Toaster } from "../Components/ui/toaster";
 import { jwtDecode } from "jwt-decode";
 
 import { Eye, EyeOff } from 'lucide-react';
-
-const loginVideo = "https://mediafiles-travelad.s3.eu-central-1.amazonaws.com/loginVideo.mp4";
 
 
 

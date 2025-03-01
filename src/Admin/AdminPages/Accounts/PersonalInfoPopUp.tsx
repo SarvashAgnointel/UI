@@ -1,6 +1,6 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { Dialog ,DialogContent, DialogTitle, DialogHeader, DialogDescription} from "../../../Components/ui/dialog";
+import { Dialog ,DialogContent, DialogTitle, DialogHeader, DialogDescription} from "../../../Components/ui/PersonalInfoPopUpDialog";
 import { Button } from "../../../Components/ui/button";
 
 

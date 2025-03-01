@@ -37,6 +37,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../../State/store";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import { CircularProgress } from "@mui/material";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface ConnectSMSProps {
   open: boolean;
@@ -62,6 +63,7 @@ export const ConnectSMS: FC<ConnectSMSProps> = ({
   const [serverName, setServerName] = useState("");
   const [serverType, setServerType] = useState("SMPP");
   const [serverURL, setServerURL] = useState("");
+
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const toast = useToast();
 
@@ -241,14 +243,17 @@ const AdminSMS: FC = () => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [openMenuRowId, setOpenMenuRowId] = useState<number | null>(null);
-  const [connectionList, setConnectionList] = useState<ServerList[]>();
-  const [connectionStatus, setConnectionStatus] = useState<
+  const [serverlist, setServerList] = useState<ServerList[]>();
+
+  const navigate = useNavigate();
+
+  const [serverStatus, setserverStatus] = useState<
     Record<number, string>
   >({});
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
-    getConnectionList();
+    getserverlist();
     setOpen(false);
   };
 
@@ -261,27 +266,35 @@ const AdminSMS: FC = () => {
     return response.data.status === "Success";
   };
 
-  const checkIsAliveForConnectionList = async (channelId: number) => {
+  const checkIsAliveForServerList = async (serverId: number) => {
+    debugger
     try {
-      setConnectionStatus((prev) => ({ ...prev, [channelId]: "Loading..." }));
+      setserverStatus((prev) => ({ ...prev, [serverId]: "Loading..." }));
       const response = await axios.get(
-        `${smsUrl}/isAlive?channelId=${channelId}`
+        `${smsUrl}/isServerAlive?serverId=${serverId}`
       );
       if (response.data.status === "Success") {
-        setConnectionStatus((prev) => ({ ...prev, [channelId]: "Connected" }));
+        setserverStatus((prev) => ({ ...prev, [serverId]: "Connected" }));
       } else {
-        setConnectionStatus((prev) => ({
+        setserverStatus((prev) => ({
           ...prev,
-          [channelId]: "Disconnected",
+          [serverId]: "Disconnected",
         }));
       }
     } catch (error) {
-      setConnectionStatus((prev) => ({ ...prev, [channelId]: "Disconnected" }));
+      setserverStatus((prev) => ({ ...prev, [serverId]: "Disconnected" }));
       console.error(
-        `Error checking connection status for channel ${channelId}:`,
+        `Error checking server status for channel ${serverId}:`,
         error
       );
     }
+  };
+
+  const handleNavigate =
+  (serverId:number) =>
+  (event: { stopPropagation: () => void }) => {
+    event.stopPropagation(); // Prevent event bubbling
+    navigate("/adminNavbar/smsConnections",{ state: { serverId} }); // Navigate with state
   };
 
   const handleDisconnect = async (channelId: number) => {
@@ -295,7 +308,7 @@ const AdminSMS: FC = () => {
           title: "Success",
           description: "Disconnected from SMPP server",
         });
-        getConnectionList();
+        getserverlist();
       } else {
         toast.toast({
           title: "Error",
@@ -311,26 +324,28 @@ const AdminSMS: FC = () => {
     setOpenMenuRowId(openMenuRowId === rowId ? null : rowId);
   };
 
-  const getConnectionList = async () => {
+  const getserverlist = async () => {
+    debugger
     setIsLoading(true);
     try {
+      debugger
       const response = await axios.get(`${smsUrl}/getservers`);
       if (response.data.status === "Success") {
-        setConnectionList(response.data.serverList);
-        response.data.channelList.forEach((connection: ServerList) => {
-          checkIsAliveForConnectionList(connection.serverId);
+        setServerList(response.data.serverList);
+        response.data.serverList.forEach((server: ServerList) => {
+          checkIsAliveForServerList(server.serverId);
         });
       } else {
-        console.error("List of connections not found");
+        console.error("List of servers not found");
       }
     } catch (error) {
-      console.error("error getting connection list: ", error);
+      console.error("error getting server list: ", error);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
-    getConnectionList();
+    getserverlist();
   }, []);
 
   return (
@@ -349,7 +364,7 @@ const AdminSMS: FC = () => {
               Connect Server
             </Button>
           </div>
-          {connectionList ? (
+          {serverlist ? (
             <div className="rounded-md border overflow-hidden">
               <div className="max-h-[60vh] overflow-y-auto">
                 <Table className="rounded-xl border-[#020202]">
@@ -388,18 +403,17 @@ const AdminSMS: FC = () => {
                   </TableHeader>
 
                   <TableBody className="text-left text-[14px] font-normal text-[#020617]">
-                    {connectionList.map((connection) => (
-                      <TableRow key={connection.serverId}>
+                    {serverlist.map((server) => (
+                      <TableRow key={server.serverId}>
                         <TableCell className="flex justify-start py-4">
                           <div className="flex items-center gap-6">
-                            <span
-                              style={{
-                                color: "#020617",
-                                fontSize: "14px",
-                                fontWeight: "400",
-                              }}
+                           <span
+                              className="hover:text-blue-500 text-black text-[14px] cursor-pointer font-normal"
+                              onClick={handleNavigate(
+                                server.serverId
+                              )}
                             >
-                              {connection.serverName}
+                              {server.serverName}
                             </span>
                           </div>
                         </TableCell>
@@ -411,7 +425,7 @@ const AdminSMS: FC = () => {
                               fontWeight: "400",
                             }}
                           >
-                            {connection.serverType}
+                            {server.serverType}
                           </span>
                         </TableCell>
                         <TableCell className="py-4">
@@ -422,7 +436,7 @@ const AdminSMS: FC = () => {
                               fontWeight: "400",
                             }}
                           >
-                            {connection.serverUrl}
+                            {server.serverUrl}
                           </span>
                         </TableCell>
                         <TableCell className="py-4">
@@ -433,7 +447,7 @@ const AdminSMS: FC = () => {
                               fontWeight: "400",
                             }}
                           >
-                            {connectionStatus[connection.serverId] || "Loading..."}
+                            {serverStatus[server.serverId] || "Loading..."}
                           </span>
                         </TableCell>
                         <TableCell className="py-4">
@@ -441,12 +455,12 @@ const AdminSMS: FC = () => {
                             <DropdownMenuTrigger asChild>
                               <DotsHorizontalIcon
                                 onClick={() =>
-                                  handleMenuToggle(connection.serverId)
+                                  handleMenuToggle(server.serverId)
                                 }
                                 className="cursor-pointer w-6 h-6"
                               />
                             </DropdownMenuTrigger>
-                            {openMenuRowId === connection.serverId && (
+                            {openMenuRowId === server.serverId && (
                               <DropdownMenuContent
                                 align="end"
                                 className="w-20 bg-gray-200"
@@ -457,7 +471,7 @@ const AdminSMS: FC = () => {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    handleDisconnect(connection.serverId)
+                                    handleDisconnect(server.serverId)
                                   }
                                 >
                                   Disconnect
@@ -487,7 +501,7 @@ const AdminSMS: FC = () => {
             open={open}
             handleClose={handleClose}
             checkIsAlive={checkIsAlive}
-            serverList={connectionList}
+            serverList={serverlist}
           />
         </div>
       )}

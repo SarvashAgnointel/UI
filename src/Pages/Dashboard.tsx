@@ -61,7 +61,19 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../State/store";
 import { stat } from "fs";
 import CircularProgress from "@mui/material/CircularProgress";
-import { setPermissions, setUser_Role_Name, setSentCount } from "../State/slices/AdvertiserAccountSlice";
+import { setPermissions, setUser_Role_Name, setSentCount, setTotalAvailableCount } from "../State/slices/AdvertiserAccountSlice";
+
+
+interface Transactions {
+  paymentId: string;
+  amount: string;
+  paymentDate: string;
+  symbol: string;
+  receipturl: string;
+  name: string;
+  messages: string;
+  fundtype: string;
+}
 
 interface DatePickerWithRangeProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -69,7 +81,7 @@ interface DatePickerWithRangeProps
   setChartData: (data: any) => void; // Prop that accepts a function with a number
   fetchData: () => void;
 }
- 
+
 export function DatePickerWithRange({
   className,
   setChartData,
@@ -87,22 +99,6 @@ export function DatePickerWithRange({
   const apiUrlAdvAcc = useSelector(
     (state: RootState) => state.authentication.apiURL
   );
-  // const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
-
-  // useEffect(() => {
-  //   const loadConfig = async () => {
-  //     try {
-  //       const response = await fetch("/config.json");
-  //       const config = await response.json();
-  //       setApiUrlAdvAcc(config.ApiUrlAdvAcc);
-  //       // setApiUrl(config.API_URL) // Set the API URL from config
-  //     } catch (error) {
-  //       console.error("Error loading config:", error);
-  //     }
-  //   };
-
-  //   loadConfig();
-  // }, []);
 
   useEffect(() => {
     console.log("The date is", date);
@@ -144,7 +140,7 @@ export function DatePickerWithRange({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal",
+              "min-w-[150px] w-auto justify-start text-left font-normal",
               !date && "text-muted-foreground text-[#020617] border-red-500"
             )}
           >
@@ -245,7 +241,6 @@ const DashChart: FC<DashChartProps> = ({
     };
   });
 
-  // const [timeRange, setTimeRange] = React.useState("90d")
   const filteredData = chartData.filter((item) => {
     const date = new Date(item.date);
     const referenceDate = new Date("2024-06-30");
@@ -270,25 +265,6 @@ const DashChart: FC<DashChartProps> = ({
               : "Showing total messages sent per month"}
           </CardDescription>
         </div>
-        {/* <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger
-            className="w-[160px] rounded-lg sm:ml-auto"
-            aria-label="Select a value"
-          >
-            <SelectValue placeholder="Last 3 months" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="90d" className="rounded-lg">
-              Last 3 months
-            </SelectItem>
-            <SelectItem value="30d" className="rounded-lg">
-              Last 30 days
-            </SelectItem>
-            <SelectItem value="7d" className="rounded-lg">
-              Last 7 days
-            </SelectItem>
-          </SelectContent>
-        </Select> */}
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer
@@ -479,61 +455,23 @@ const CardComponent: FC<CardProps> = ({ title, value, change, icon }) => {
   );
 };
 
-const SkeletonCard: FC = () => {
-  return (
-    <div className="flex-col">
-      <div className="flex flex-wrap gap-2">
-        <Card className="w-full md:w-[200px] lg:w-[220px] xl:w-[240px] h-fit relative">
-          <Skeleton className="absolute top-5 right-2 text-gray-200" />
-          <CardHeader className="text-left">
-            <Skeleton className="h-4 w-[100px]" />
-          </CardHeader>
-          <CardContent className="text-left text-2xl font-bold">
-            <Skeleton className="h-4 mt-2 w-[100px]" />
-            <div className="text-sm text-gray-400 font-medium">
-              <Skeleton className="h-4 w-[100px]" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <Skeleton />
-    </div>
-  );
-};
-
-const SkeletonChart: FC = () => {
-  return (
-    <Card className="mt-[20px] w-full md:w-[400px] lg:w-[500px] xl:w-[1000px] h-fit relative">
-      <CardHeader className="text-left">
-        <CardTitle>
-          <Skeleton className="w-full h-" />
-        </CardTitle>
-        <CardDescription>
-          <Skeleton className="w-[200px] h-4" />
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={{}} className="w-full h-[200px]">
-          <Skeleton className="w-full h-full" />
-        </ChartContainer>
-      </CardContent>
-    </Card>
-  );
-};
 
 const Dashboard: FC = () => {
   const [chartData, setChartData] = useState<any>();
-  const [apiUrl, setApiUrl] = useState("");
-  const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
+  //const [apiUrl, setApiUrl] = useState("");
+  // const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [campaignCount, setCampaignCount] = useState(0);
+
   const [isWeek, setIsWeek] = useState(false);
   const [isMonth, setIsMonth] = useState(false);
-  const [timeRange, setTimeRange] = React.useState("90d");
+  const [timeRange, setTimeRange] = React.useState("30d");
+  const [last30DaysData, setLast30DaysData] = useState<any>(null);
+  const [before30DaysData, setBefore30DaysData] = useState<any>(null);
+
   const [date_Week, setDate_Week] = React.useState<DateRange | undefined>({
     from: subDays(new Date(), 7), // 7 days before the current date
     to: new Date(), // Current date
-  }); 
+  });
   const [date_Month, setDate_Month] = React.useState<DateRange | undefined>({
     from: subDays(new Date(), 30), // 7 days before the current date
     to: new Date(), // Current date
@@ -547,23 +485,14 @@ const Dashboard: FC = () => {
   const isInvited = useSelector(
     (state: RootState) => state.authentication.isInvited
   );
+
+
+  const accountId = useSelector((state: RootState) => state.authentication.account_id);
+  const apiUrlAdvAcc = useSelector((state: RootState) => state.authentication.apiURL);
+  const apiUrl = useSelector((state: RootState) => state.authentication.authURL);
   const roleId = useSelector((state: RootState) => state.authentication.role_id);
   console.log(Workspace_Id);
-  const dispatch=useDispatch();
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const response = await fetch("/config.json");
-        const config = await response.json();
-        setApiUrlAdvAcc(config.ApiUrlAdvAcc);
-        setApiUrl(config.API_URL); // Set the API URL from config
-      } catch (error) {
-        console.error("Error loading config:", error);
-      }
-    };
-
-    loadConfig();
-  }, [Workspace_Id]);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (apiUrlAdvAcc) {
@@ -573,25 +502,28 @@ const Dashboard: FC = () => {
     }
   }, [apiUrlAdvAcc, Workspace_Id]);
 
-  const GetPermissionsByRoleId = async() => {
+  const GetPermissionsByRoleId = async () => {
 
     const response2 = await axios.get(`${apiUrl}/GetPermissionsByRoleId?RoleID=${roleId}`);
     if (response2.data.status === "Success") {
-        const permissions = JSON.parse(response2.data.roleDetails.permissions);
-        const role_name = response2.data.roleDetails.roleName;
-        dispatch(setPermissions(permissions));
-        dispatch(setUser_Role_Name(role_name));
+      const permissions = JSON.parse(response2.data.roleDetails.permissions);
+      const role_name = response2.data.roleDetails.roleName;
+      dispatch(setPermissions(permissions));
+      dispatch(setUser_Role_Name(role_name));
 
-        
+
     } else {
-        console.log("GetPermissionsByRoleId API error");
-      }
+      console.log("GetPermissionsByRoleId API error");
+    }
   }
   const fetchData = async () => {
     setIsLoading(true);
     if (apiUrlAdvAcc) {
       // Ensure apiUrlAdvAcc is valid
       try {
+
+        usertransactionlist();
+
         console.log("apiUrlAdvAcc", apiUrlAdvAcc); // For debugging
         const data = {
           Email: EmailId,
@@ -610,6 +542,7 @@ const Dashboard: FC = () => {
             );
           }
         }
+
         const response = await axios.get(
           `${apiUrlAdvAcc}/GetCombinedStatistics?workspaceId=${Workspace_Id}`
         );
@@ -617,12 +550,36 @@ const Dashboard: FC = () => {
         console.log("API Response:", response.data); // Check the response
         setChartData(response.data);
         dispatch(setSentCount(response.data.messagesSentDetails[0]?.totalSent));
+
       } catch (error) {
         console.error("Error fetching the statistics:", error);
         setIsLoading(false);
       }
     }
   };
+
+
+
+  const usertransactionlist = async () => {
+    try {
+      const response = await axios.get(`${apiUrlAdvAcc}/GetuserTransaction?accountid=${accountId}`);
+      console.log("Response : ", response.data.user_transaction);
+      const data = response.data.user_transaction;
+      if (response.data.status === "Success") {
+        const creditMessageCount = Array.isArray(data)
+          ? data.reduce((sum, item) => sum + Number(item.messages || 0), 0)
+          : 0;
+        console.log("CMC:    ", creditMessageCount);
+        dispatch(setTotalAvailableCount(creditMessageCount));
+      }
+      else {
+        console.error("error in retrieving user_transaction list or list does not exist")
+      }
+    } catch (error) {
+      console.error("Error fetching Transaction details:", error);
+    }
+
+  }
 
   const ByWeekData = async () => {
     if (date_Week && date_Week.from && date_Week.to) {
@@ -651,7 +608,7 @@ const Dashboard: FC = () => {
       };
 
       ChartDateRange();
-      
+
     }
   };
 
@@ -671,10 +628,7 @@ const Dashboard: FC = () => {
             response.data.chartDetails.length > 0
           ) {
             setChartData(response.data);
-            // fetchData();
           } else {
-            // setChartData(response.data);
-            // fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -688,14 +642,91 @@ const Dashboard: FC = () => {
 
   useEffect(() => {
     if (apiUrlAdvAcc) {
-      // GetCampaingCount();
       fetchData();
     }
   }, [apiUrlAdvAcc, Workspace_Id]); // Depend on apiUrlAdvAcc
 
+  const fetchPast7DaysData = async () => {
+    if (!apiUrlAdvAcc || !Workspace_Id) return;
+
+    const past_from = format(subDays(new Date(), 7), "yyyy-MM-dd"); // Last 7 days
+    const past_to = format(new Date(), "yyyy-MM-dd"); // Today
+
+    const before7_from = format(new Date("2000-01-01"), "yyyy-MM-dd"); // All data before the last 7 days
+    const before7_to = format(subDays(new Date(), 7), "yyyy-MM-dd"); // Until 7 days ago
+
+    try {
+      const [last7Days, before7Days] = await Promise.all([
+        axios.get(`${apiUrlAdvAcc}/GetCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdvAcc}/GetCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${before7_from}&to_date=${before7_to}`)
+      ]);
+
+      setLast30DaysData(last7Days.data.status === "Success" ? last7Days.data : null);
+      setBefore30DaysData(before7Days.data.status === "Success" ? before7Days.data : null);
+    } catch (error) {
+      console.error("Error fetching past 7 days data:", error);
+    }
+  };
+
+
+  const fetchPast30DaysData = async () => {
+    if (!apiUrlAdvAcc || !Workspace_Id) return;
+
+    const past_from = format(subDays(new Date(), 30), "yyyy-MM-dd"); // Last 30 days
+    const past_to = format(new Date(), "yyyy-MM-dd"); // Today
+
+    const before30_from = format(new Date("2000-01-01"), "yyyy-MM-dd"); // All data before the last 30 days
+    const before30_to = format(subDays(new Date(), 30), "yyyy-MM-dd"); // Until 30 days ago
+
+    try {
+      const [last30Days, before30Days] = await Promise.all([
+        axios.get(`${apiUrlAdvAcc}/GetCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlAdvAcc}/GetCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${before30_from}&to_date=${before30_to}`)
+      ]);
+
+      setLast30DaysData(last30Days.data.status === "Success" ? last30Days.data : null);
+      setBefore30DaysData(before30Days.data.status === "Success" ? before30Days.data : null);
+
+    } catch (error) {
+      console.error("Error fetching past 30 days data:", error);
+    }
+  };
+
+  // Fetch data on page load
+  useEffect(() => {
+    fetchPast30DaysData();
+  }, [apiUrlAdvAcc, Workspace_Id]);
+
+
+  const calculatePercentageChange = (last30Days: number, before30Days: number, timeRange: string) => {
+    let type = "month"; // Default is month
+    if (timeRange === "7d") {
+      type = "week"; // If timeRange is "7d", show "week"
+    } else if (timeRange === "30d") {
+      type = "month"; // If timeRange is "30d", show "month"
+    }
+    if (!before30Days || before30Days === 0) return `+0% change from last ${type}`; // Avoid division by zero
+    const change = (last30Days / before30Days) * 100;
+    return `${change > 0 ? "+" : ""}${change.toFixed(1)}% change from last ${type}`;
+  };
+
+  useEffect(() => {
+    setIsMonth(true);
+    setTimeRange("30d");
+  
+    ByMonthData(); 
+    fetchPast30DaysData();
+  
+    // Only on initial render
+    if (apiUrlAdvAcc && Workspace_Id) {
+      fetchPast30DaysData(); 
+    }
+  }, [apiUrlAdvAcc, Workspace_Id]);
+  
+
   return chartData ? (
     <div className="flex-col w-full">
-      <Toaster/>
+      <Toaster />
       <div className="flex mt-[-15px] justify-end gap-2">
         <div>
           <DatePickerWithRange
@@ -704,116 +735,108 @@ const Dashboard: FC = () => {
           />
         </div>
         <div>
-        <Select
-          defaultValue="year"
-          onValueChange={(value) => {
-            if(value==="week"){
-              setIsWeek(true);
-              setTimeRange("7d");
-              ByWeekData();
-            }
-            else if(value==="month"){
-              setIsMonth(true);
-              setTimeRange("30d");
-              ByMonthData();
-            }
-            else{
-              setIsWeek(false);
-              setIsMonth(false);
-              setTimeRange("90d");
-              fetchData();
-            }
-          }}
-        >
-          <SelectTrigger className="w-[120px] h-9 text-[#020617] mt-6">
-            <SelectValue placeholder="Select view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">By Week</SelectItem>
-            <SelectItem value="month">By Month</SelectItem>
-            <SelectItem value="year">By Year</SelectItem>
-          </SelectContent>
-        </Select>
-        </div>
-        {/* <div>
-          <Button
-            className={
-              isWeek
-                ? "ml-2 w-fit font-normal text-[#020617] bg-[#01012E14]"
-                : "ml-2 w-fit font-normal text-[#020617]"
-            }
-            variant={"outline"}
-            onClick={() => {
-              if (!isWeek) {
+          <Select
+            defaultValue="month"
+            onValueChange={(value) => {
+              if (value === "week") {
                 setIsWeek(true);
                 setTimeRange("7d");
                 ByWeekData();
-              } else {
-                setIsWeek(false);
-                setTimeRange("90d");
-                fetchData();
+                fetchPast7DaysData();
               }
-            }}
-          >
-            By Week
-          </Button>
-        </div>
-        <div>
-          <Button
-            className="ml-2 w-fit font-normal text-[#020617]"
-            variant={"outline"}
-            onClick={() => {
-              if (!isMonth) {
+              else if (value === "month") {
                 setIsMonth(true);
                 setTimeRange("30d");
                 ByMonthData();
-              } else {
+                fetchPast30DaysData();
+              }
+              else {
+                setIsWeek(false);
                 setIsMonth(false);
                 setTimeRange("90d");
                 fetchData();
               }
             }}
           >
-            By Month
-          </Button>
-        </div> */}
+            <SelectTrigger className="w-[120px] h-9 text-[#020617] mt-6">
+              <SelectValue placeholder="Select view" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">By Week</SelectItem>
+              <SelectItem value="month">By Month</SelectItem>
+              {/* <SelectItem value="year">By Year</SelectItem> */}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 w-full justify-between border-orange-600">
         <CardComponent
           title="Campaigns"
           value={chartData?.campaignDetails[0]?.totalCampaigns || "0"}
-          change="+20.1 from last month"
-          icon={<PaperPlaneIcon className="text-[#64748B] size-4"/>}
+          change={
+            last30DaysData?.campaignDetails && before30DaysData?.campaignDetails
+              ? calculatePercentageChange(
+                last30DaysData?.campaignDetails[0]?.totalCampaigns,
+                before30DaysData?.campaignDetails[0]?.totalCampaigns,
+                timeRange
+              )
+              : "+0% from last month"
+          }
+          icon={<PaperPlaneIcon className="text-[#64748B] size-4" />}
         />
 
         <CardComponent
           title="Recipients"
           value={chartData?.recipientCount[0]?.recipients || "0"}
-          change="-15.6 from last month"
+          change={
+            last30DaysData?.recipientCount && before30DaysData?.recipientCount
+              ? calculatePercentageChange(
+                last30DaysData?.recipientCount[0]?.recipients,
+                before30DaysData?.recipientCount[0]?.recipients,
+                timeRange
+              )
+              : "+0% from last month"
+          }
           icon={<Users className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Sent"
           value={chartData?.messagesSentDetails[0]?.totalSent || 0}
-          change="+30.2 from last month"
+          change={
+            last30DaysData?.messagesSentDetails && before30DaysData?.messagesSentDetails
+              ? calculatePercentageChange(
+                last30DaysData?.messagesSentDetails[0]?.totalSent,
+                before30DaysData?.messagesSentDetails[0]?.totalSent,
+                timeRange
+              )
+              : "+0% from last month"
+          }
           icon={<Check className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Delivery rate"
           value={
             Math.round(
-              (chartData?.messagesSentDetails[0]?.totalSent /
+              ((chartData?.messagesSentDetails[0]?.totalSent /
                 chartData?.recipientCount[0]?.recipients) *
-                100 || 0
+                100) / (chartData?.campaignDetails[0]?.totalCampaigns) || 0
             ) + "%"
           }
-          change="+2.1 from last month"
+          change={
+            last30DaysData?.messagesSentDetails && before30DaysData?.messagesSentDetails
+              ? calculatePercentageChange(
+                (last30DaysData?.messagesSentDetails[0]?.totalSent / last30DaysData?.recipientCount[0]?.recipients),
+                (before30DaysData?.messagesSentDetails[0]?.totalSent / before30DaysData?.recipientCount[0]?.recipients),
+                timeRange
+              )
+              : "+0% from last month"
+          }
           icon={<Activity className="text-[#64748B]" size={16} />}
         />
       </div>
       {/* <DashChart data={chartData?.chartDetails} isWeek={isWeek} /> */}
-      
+
       <DashChart
         Data={chartData.chartDetails}
         setTimeRange={setTimeRange}
@@ -823,11 +846,11 @@ const Dashboard: FC = () => {
     </div>
   ) : (
     <div>
-    {isLoading && (
-      <div className="flex flex-col items-center justify-center h-[500px]">
-        <CircularProgress color="primary" />
-      </div>
-    )}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center h-[500px]">
+          <CircularProgress color="primary" />
+        </div>
+      )}
     </div>
   );
 };

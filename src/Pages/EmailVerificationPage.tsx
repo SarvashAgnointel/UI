@@ -14,7 +14,7 @@ import axios from "axios";
 import config from '../config.json';
 import { useDispatch } from 'react-redux';
 import { useSelector } from 'react-redux';
-import { setmail,setworkspace,setWorkspaceId,setAdvUrl, setAdminUrl,setForgotPassword, setIsAdmin,setSmsUrl, setOperatorUrl, setRoleId } from '../State/slices/AuthenticationSlice';
+import { setmail,setworkspace,setWorkspaceId,setAdvUrl, setAdminUrl,setForgotPassword, setIsAdmin,setSmsUrl, setOperatorUrl, setRoleId, setAuthUrl } from '../State/slices/AuthenticationSlice';
 import { RootState } from '../State/store';
 import { useToast } from "../Components/ui/use-toast";
 import { Toaster } from "../Components/ui/toaster";
@@ -113,6 +113,7 @@ export default function EmailVerificationPage() {
             .then(response => response.json())
             .then(config => {
                 setApiUrl(config.API_URL);
+                dispatch(setAuthUrl(config.API_URL));
                 dispatch(setAdvUrl(config.ApiUrlAdvAcc));
                 dispatch(setAdminUrl(config.ApiUrlAdminAcc));
                 dispatch(setSmsUrl(config.SmsUrlAdminAcc));
@@ -203,7 +204,7 @@ export default function EmailVerificationPage() {
     
                     navigateWithDelay(
                         workspace_type === "Telecom Operator" ? "/operatorNavbar/dashboard" : "/navbar/dashboard",
-                        { state: { path: workspace_name, email } }
+                        { state: { path: workspace_name, email, route:"Dashboard" } }
                     );
                 }
             } catch (error) {

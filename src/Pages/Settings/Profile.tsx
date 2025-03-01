@@ -26,7 +26,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 const Profile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isAlertOpen, setIsAlertOpen] = useState(false); 
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [name, setName] = useState('Sebastian Swaczynski');
   const [email, setEmail] = useState('');
   const [repeatEmail, setRepeatEmail] = useState('');
@@ -125,6 +125,13 @@ const Profile: React.FC = () => {
     const validFileTypes = ["image/jpeg", "image/png"];
     const maxFileSize = 5 * 1024 * 1024;
 
+    const dotCount = (file.name.match(/\./g) || []).length;
+    if (dotCount > 1) {
+      setFileName('');
+      setErrorMessage("Invalid file name");
+      return;
+    }
+
     if (!validFileTypes.includes(file.type)) {
       setErrorMessage("Please select a valid image (PNG or JPEG).");
       // setTimeout(() => setErrorMessage(null), 3000);
@@ -156,7 +163,7 @@ const Profile: React.FC = () => {
           // setSuccessMessage("Image uploaded successfully!");
           // setTimeout(() => setSuccessMessage(null), 3000);
           setErrorMessage('')
-          
+
           // Convert image to Base64
           const base64String = reader.result?.toString().split(",")[1]; // Remove metadata
           setFileName(file.name);
@@ -173,7 +180,7 @@ const Profile: React.FC = () => {
     };
     reader.readAsDataURL(file);
   };
-  
+
   const handleUpdateImage = async () => {
     setIsLoading(true);
     const mappingId = userPersonalId;
@@ -193,7 +200,7 @@ const Profile: React.FC = () => {
     }
 
     try {
-      console.log("Image :" , base64Image);
+      console.log("Image :", base64Image);
       const response = await axios.put(`${apiUrlAdvAcc}/UpdateLogo_personal_id/UpdateLogo`, {
         CreatedBy: accountId,
         MappingId: mappingId,
@@ -266,9 +273,9 @@ const Profile: React.FC = () => {
           description: "Profile Deleted Successfully",
           duration: 1000,
         });
-        setTimeout(()=>{
+        setTimeout(() => {
           navigate("/");
-        },1000);
+        }, 1000);
       }
     } catch (error) {
       setIsLoading(false);
@@ -811,18 +818,22 @@ const Profile: React.FC = () => {
             className="mb-4" style={{ fontSize: '14px', fontWeight: 700, color: '#020617', paddingBottom: '6px' }} ><b>Your name</b></Typography>
           <p className='' style={{ fontSize: '14px', color: '#64748B', fontWeight: 400 }}>Update your name to be displayed on your profile.</p>
 
+          <div className='mb-4 mt-4'>
+            <Input
+              required
+              id="profilename"
+              placeholder="Sebastian Swaczynski"
+              value={fullName}
+              onChange={handleFirstNameChange}
+            />
 
-          <Input
-            className='mb-4 mt-4'
-            required
-            id="profilename"
-            placeholder="Sebastian Swaczynski"
-            value={fullName}
-            onChange={handleFirstNameChange}
-          />
-          {fullNameError && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{fullNameError}</p>
-          )}
+            {fullNameError && (
+              <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                {fullNameError}
+              </p>
+            )}
+          </div>
+
 
           <Button onClick={handleProfileUpdate} disabled={isLoading} className="py-1 px-3 text-sm w-[128px] mt-[-2]" style={{ fontWeight: 400, fontSize: '14px' }}>
             {isLoading ? 'Updating...' : 'Update profile'}
@@ -837,11 +848,14 @@ const Profile: React.FC = () => {
         <Card className="mb-8 p-6 border border-grey text-left max-w-xl">
           <Typography component="h3" className="mb-4" style={{ fontSize: '14px', fontWeight: 700, color: '#020617', paddingBottom: '6px' }} ><b>Update your email</b></Typography>
           <Typography component="p" className="mb-4" style={{ fontSize: '14px', color: '#64748B', fontWeight: 400 }}>Update your email address you use to login to your account.</Typography>
-          <Input className="mb-2 mt-4" required type="email" value={email} onChange={handleEmailChange} placeholder="Your new email" aria-label="Your new email" />
-          {emailError && <p className="text-red-500 text-xs mb-4 mt-2">{emailError}</p>}
-          <Input className="mb-2 mt-2" value={repeatEmail} onChange={handleRepeatEmailChange} placeholder="Repeat email" aria-label="Repeat email" />
-          {repeatEmailError && <p className="text-red-500 text-xs mb-4 mt-2">{repeatEmailError}</p>}
+          <div className='mb-4'>
+            <Input className="mb-2 mt-4" required type="email" value={email} onChange={handleEmailChange} placeholder="Your new email" aria-label="Your new email" />
+            {emailError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{emailError}</p>}
+            <Input className="mb-2 mt-2" value={repeatEmail} onChange={handleRepeatEmailChange} placeholder="Repeat email" aria-label="Repeat email" />
+            {repeatEmailError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{repeatEmailError}</p>}
+          </div>
           <Button onClick={handleEmailUpdate} className="py-2 px-4 w-[178px] mt-[-1]" style={{ fontWeight: 400, fontSize: '14px' }}>Update email address</Button>
+
         </Card>
 
 
@@ -849,13 +863,14 @@ const Profile: React.FC = () => {
         <Card className="mb-8 p-6 border border-grey text-left max-w-xl">
           <Typography component="h3" className="mb-4" style={{ fontSize: '14px', fontWeight: 700, color: '#020617', paddingBottom: '6px' }} ><b>Update your password</b></Typography>
           <Typography component="p" className="mb-4" style={{ fontSize: '14px', color: '#64748B', fontWeight: 400 }}>Update your password to keep your account secure.</Typography>
-          <Input className="mb-2 mt-4" type="password" value={newPassword} onChange={(e) => validatePassword(e.target.value)}
-            placeholder="New password" aria-label="New password" />
-          {passwordError && <p className="text-red-500 text-xs mb-4 mt-2">{passwordError}</p>}
-
-          <Input className="mb-2 mt-2" type="password" value={repeatNewPassword} onChange={(e) => reValidatePassword(e.target.value)}
-            placeholder="Repeat new password" aria-label="Repeat new password" />
-          {newPasswordError && <p className="text-red-500 mb-4 mt-1 text-xs ">{newPasswordError}</p>}
+          <div className='mb-4'>
+            <Input className="mb-2 mt-4" type="password" value={newPassword} onChange={(e) => validatePassword(e.target.value)}
+              placeholder="New password" aria-label="New password" />
+            {passwordError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{passwordError}</p>}
+            <Input className="mb-2 mt-2" type="password" value={repeatNewPassword} onChange={(e) => reValidatePassword(e.target.value)}
+              placeholder="Repeat new password" aria-label="Repeat new password" />
+            {newPasswordError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left ">{newPasswordError}</p>}
+          </div>
           <Button onClick={handleUpdatePassword} className="py-2 px-4 text-sm w-[150px] mt-2" style={{ fontWeight: 400, fontSize: '14px' }}>Update password</Button>
         </Card>
 
@@ -913,18 +928,18 @@ const Profile: React.FC = () => {
 
           >
             <DialogContent className="max-w-xl ">
-                <DialogTitle className="text-18px font-semibold text-[#09090B]">
-                    Delete Account
-                </DialogTitle>
-                <DialogDescription className="text-14px font-medium text-[#71717A] mt-1">
-                    If you delete your account, you are the owner of the workspace, so the workspace will also be deleted. Do you want to proceed?
-                </DialogDescription>
+              <DialogTitle className="text-18px font-semibold text-[#09090B]">
+                Delete Account
+              </DialogTitle>
+              <DialogDescription className="text-14px font-medium text-[#71717A] mt-1">
+                If you delete your account, you are the owner of the workspace, so the workspace will also be deleted. Do you want to proceed?
+              </DialogDescription>
               <div className="flex justify-end gap-4">
                 <Button disabled={isLoading} variant="outline" className="px-4 py-2 w-24" onClick={handleClose}>
                   Cancel
                 </Button>
                 <Button className="px-4 py-2 w-24" onClick={confirmDelete} autoFocus>
-                  {isLoading?"Deleting...":"OK"}
+                  {isLoading ? "Deleting..." : "OK"}
                 </Button>
               </div>
             </DialogContent>

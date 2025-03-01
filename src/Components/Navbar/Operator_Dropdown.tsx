@@ -27,7 +27,8 @@ import {
   setIsAdmin,
   setWorkspaceId,
   setmail,
-  setRoleId
+  setRoleId,
+  setAccountId
 } from "../../State/slices/AuthenticationSlice";
 import { SetImpersonator } from "../../State/slices/AdminSlice";
 import config from "../../config.json";
@@ -236,19 +237,21 @@ export function DropdownMenuDemo({
           <DropdownMenuGroup>
             {ImpersonatorData?.ImpersonationState && <DropdownMenuItem
                 onClick={() => {
-                dispatch(
+                  dispatch(setmail(ImpersonatorData?.ImpersonatorEmail));
+                  dispatch(setworkspace(ImpersonatorData?.ImpersonatorWName));
+                  dispatch(setWorkspaceId(ImpersonatorData?.ImpersonatorWID));
+                  dispatch(setRoleId(ImpersonatorData?.ImpersonatorRID));
+                  dispatch(setAccountId(ImpersonatorData?.ImpersonatorAID));
+                  dispatch(
                     SetImpersonator({
                       ImpersonationState: false,
                       ImpersonatorEmail: "",
                       ImpersonatorWName: "",
                       ImpersonatorWID: 0,
                       ImpersonatorRID: 0,
+                      ImpersonatorAID: 0,
                     })
                   );
-                  dispatch(setmail(ImpersonatorData?.ImpersonatorEmail));
-                  dispatch(setworkspace(ImpersonatorData?.ImpersonatorWName));
-                  dispatch(setWorkspaceId(ImpersonatorData?.ImpersonatorWID));
-                  dispatch(setRoleId(ImpersonatorData?.ImpersonatorRID));
                   navigate("/adminNavbar/accounts",{state:{route:"Accounts"}});
                 }}
                 className="flex items-center cursor-pointer"

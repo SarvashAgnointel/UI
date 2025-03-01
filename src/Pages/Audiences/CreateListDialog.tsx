@@ -116,6 +116,14 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
   ) => {
     const file = event.target.files && event.target.files[0];
     if (file) {
+
+      const dotCount = (file.name.match(/\./g) || []).length;
+      if (dotCount > 1) {
+        setFileName('');
+        setFileError("Invalid file name");
+        return;
+      }
+
       setFileName(file.name); // Set the file name to display
       setSelectedFile(file); // Store the selected file in state
       setFileError(""); // Clear any previous error
@@ -537,7 +545,7 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
               onChange={(e) => handleInputChange(e.target.value)}
               className="text-[14px] font-normal placeholder:text-[#64748B]"
             />
-            {nameError && <p className="text-sm text-red-500">{nameError}</p>}
+            {nameError && <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{nameError}</p>}
           </div>
 
           {isEditMode ? null : (
@@ -583,11 +591,13 @@ const CreateListDialog: React.FC<CreateListDialogProps> = ({
                   <span className="text-[14px] text-[#64748B] font-normal">
                     *.csv, *.xlsx, *.txt files up to 25MB
                   </span>
+
+                  {fileError && (
+                    <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{fileError}</p>
+                  )}
+
                 </div>
 
-                {fileError && (
-                  <p className="text-sm text-red-500">{fileError}</p>
-                )}
               </div>
             </>
           )}

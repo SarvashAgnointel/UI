@@ -650,6 +650,13 @@ const Workspace_settings: FC = () => {
     const validFileTypes = ["image/jpeg", "image/png"];
     const maxFileSize = 5 * 1024 * 1024;
 
+    const dotCount = (file.name.match(/\./g) || []).length;
+    if (dotCount > 1) {
+      setFileName('');
+      setErrorMessage("Invalid file name");
+      return;
+    }
+    
     if (!validFileTypes.includes(file.type)) {
       setErrorMessage("Please select a valid image (PNG or JPEG).");
       // setTimeout(() => setErrorMessage(null), 3000);
@@ -962,7 +969,7 @@ const Workspace_settings: FC = () => {
             aria-label="Your name"
           />
           {nameError && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{nameError}</p>
+            <p className="text-red-500 text-xs font-medium mt-1 mb-2 font-sans italic ml-1">{nameError}</p>
           )}
           <Button
             onClick={handleCompanyUpdate}
@@ -990,88 +997,91 @@ const Workspace_settings: FC = () => {
             Update your company address
           </Typography>
           {WarningMessage && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{WarningMessage}</p>
+            <p className="text-red-500 text-xs font-medium mt-1 font-sans italic text-left ">{WarningMessage}</p>
           )}
-          <Input
-            className="mb-4 mt-4"
-            value={Streetname}
-            // onChange={(e) => setStreetName(e.target.value)}
-            onChange={handleStreetNameChange}
-            placeholder="Street name"
-            aria-label="Street Name" />
-          {StreetNameError && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{StreetNameError}</p>
-          )}
+          
+          <div className="mb-4 mt-4">
+            <div className="mb-4 mt-4">
+              <Input
+                value={Streetname}
+                // onChange={(e) => setStreetName(e.target.value)}
+                onChange={handleStreetNameChange}
+                placeholder="Street name"
+                aria-label="Street Name" />
+              {StreetNameError && (
+                <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{StreetNameError}</p>
+              )}
+            </div>
 
-          <Input
-            className="mb-4 mt-4"
-            value={Streetnumber}
-            // onChange={(e) => setStreetnumber(e.target.value)}
-            onChange={handleStreetNumberChange}
-            placeholder="Street number"
-            aria-label="Street number"
-          />
-          {StreetNumberError && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{StreetNumberError}</p>
-          )}
-          {/* <Input className="mb-4 mt-4" value={Streetnumber} onChange={handleStreetNumberChange} placeholder="Street number" aria-label="Street Number" /> */}
-          <Input
-            className="mb-4 mt-4"
-            value={City}
-            // onChange={(e) => setcity(e.target.value)}
-            onChange={handleCityChange}
-            placeholder="City"
-            aria-label="City"
-          />
-          {CityError && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{CityError}</p>
-          )}
-          <Input
-            className="mb-4 mt-4 text-[14px] font-normal"
-            value={Code}
-            //  onChange={(e) => setCode(e.target.value)}
-            onChange={handlePostalCodeChange}
-            placeholder="Postal Code"
-            aria-label="Postal Code"
-          />
-          {PostalCodeError && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{PostalCodeError}</p>
-          )}
+            <div className="mb-4 mt-4">
+              <Input
+                value={Streetnumber}
+                // onChange={(e) => setStreetnumber(e.target.value)}
+                onChange={handleStreetNumberChange}
+                placeholder="Street number"
+                aria-label="Street number"
+              />
+              {StreetNumberError && (
+                <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{StreetNumberError}</p>
+              )}
+            </div>
 
-          {/* <Input className="mb-4 mt-4" value={Code} onChange={handlePostalCodeChange} placeholder="Postal Code" aria-label="Postal Code" /> */}
-          <Input
-            className="mb-4 mt-4"
-            value={State}
-            required
-            // onChange={(e) => setstate(e.target.value)}
-            onChange={handleStateChange}
-            placeholder="State"
-            aria-label="State"
-          />
-          {StateError && (
-            <p className="text-red-500 text-xs mt-1 mb-2">{StateError}</p>
-          )}
-<Select value={Country} onValueChange={(value) => setcountry(value)}>
-  <SelectTrigger className="text-gray-500 mt-4 text-left w-full p-2 border border-gray-300 rounded">
-    <SelectValue className="text-gray-500 text-[14px] font-normal" placeholder="Select Country" />
-  </SelectTrigger>
-  <SelectContent className="overflow-y-auto max-h-[200px]">
-    {countrylist.length > 0 ? (
-      countrylist.map((country) => (
-        <SelectItem className="cursor-pointer" key={country.country_id} value={country.country_name}>
-          {country.country_name}
-        </SelectItem>
-      ))
-    ) : (
-      <div>No countries available</div>
-    )}
-  </SelectContent>
-</Select>
+            <div className="mb-4 mt-4">
+              {/* <Input className="mb-4 mt-4" value={Streetnumber} onChange={handleStreetNumberChange} placeholder="Street number" aria-label="Street Number" /> */}
+              <Input
+                value={City}
+                // onChange={(e) => setcity(e.target.value)}
+                onChange={handleCityChange}
+                placeholder="City"
+                aria-label="City"
+              />
+              {CityError && (
+                <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{CityError}</p>
+              )}
+            </div>
 
+            <div className="mb-4 mt-4">
+              <Input
+                value={Code}
+                //  onChange={(e) => setCode(e.target.value)}
+                onChange={handlePostalCodeChange}
+                placeholder="Postal Code"
+                aria-label="Postal Code"
+              />
+              {PostalCodeError && (
+                <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{PostalCodeError}</p>
+              )}
+            </div>
 
-          {CountryError && (
-            <Typography className="text-red-500 mb-4">{CountryError}</Typography>
-          )}
+            <div className="mb-4 mt-4">
+              {/* <Input className="mb-4 mt-4" value={Code} onChange={handlePostalCodeChange} placeholder="Postal Code" aria-label="Postal Code" /> */}
+              <Input
+                value={State}
+                required
+                // onChange={(e) => setstate(e.target.value)}
+                onChange={handleStateChange}
+                placeholder="State"
+                aria-label="State"
+              />
+              {StateError && (
+                <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{StateError}</p>
+              )}
+            </div>
+
+            <div className="mb-4 mt-4">
+              <Input
+                  required
+                  id="billingcountry"
+                  placeholder={Country}
+                  className="w-full border-gray-400 rounded-[7px] custom-placeholder"
+                  disabled
+              />
+              {CountryError && (
+                <Typography className="text-red-500 mb-4">{CountryError}</Typography>
+              )}
+            </div>
+
+          </div>
           <Button
             onClick={UpdateWorkspaceAddress}
             disabled={isLoading}

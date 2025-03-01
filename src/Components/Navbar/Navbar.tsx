@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, useEffect, useRef, useState } from "react";
 import { Progress } from "../ui/progress";
 import Logo from "../../Assets/Logo2.svg";
 import {
@@ -50,6 +50,7 @@ import { setCreateBreadCrumb } from "../../State/slices/AdvertiserAccountSlice";
 import { FiBell } from "react-icons/fi";
 import axios from "axios";
 import { UseSelector } from "react-redux";
+
 // Define the menu items with routes as content
 const menuItems = [
   { label: "Dashboard", icon: HomeIcon, path: "dashboard", permission: "ADV_Dashboard" },
@@ -58,6 +59,11 @@ const menuItems = [
   { label: "Audiences", icon: Users, path: "audiences", permission: "ADV_Audience_View" },
   { label: "Channels", icon: LightningBoltIcon, path: "channels", permission: "ADV_Channels_View" },
 ];
+
+interface Notification {
+  id: number;
+  message: string;
+}
 
 
 interface NavItemProps {
@@ -115,6 +121,7 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
   const navigate = useNavigate();
   const userPermissions = useSelector((state: RootState) => state.advertiserAccount.permissions);
   const sentCount = useSelector((state:RootState)=>state.advertiserAccount.sent_count_sidenav);
+  const availableCount = useSelector((state:RootState)=>state.advertiserAccount.total_available_count_sidenav);
   return (
     <div className="bg-[#FBFBFB] h-full">
       <nav
@@ -155,10 +162,10 @@ const NavLinks: FC<{ onSelect: (label: string) => void; selected: string }> = ({
               <span className="text-sm text-[#020617] text-left font-[400px] flex gap-1">
                 <span>{sentCount||0}</span>
                 <span className="text-[#64748B]">/</span>
-                <span>{sampleTotalMessageCount||10000}</span>
+                <span>{availableCount||0}</span>
                 <span>Messages</span>
               </span>
-              <Progress value={(sentCount/sampleTotalMessageCount)*100} className="w-[218px] h-[6px]" color="#3A85F7" />
+              <Progress value={(sentCount/availableCount)*100} className="w-[218px] h-[6px]" color="#3A85F7" />
             </> }
             <div
               style={{
@@ -191,10 +198,13 @@ const Navbar: FC<{
   const [selectedLabel, setSelectedLabel] = useState("Dashboard"); // Default label
   const navigate = useNavigate();
   const location = useLocation();
-  const route = location.state?.route || "Dashboard";
+  const route = location.state?.route || "";
   const [workspaceName, setWorkspaceName] = useState("");
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const emailId = useSelector((state:RootState)=>state.authentication.userEmail); 
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]); 
+  const notificationRef = useRef<HTMLDivElement>(null);  
   const AdvAccUrl = useSelector(
     (state: RootState) => state.authentication.apiURL
   );
@@ -227,7 +237,7 @@ const Navbar: FC<{
   }, [userRoleName]); // Runs whenever userRoleName changes
 
   useEffect(() => {
-    if (workspace != "") {
+    if (workspace !== "") {
       setWorkspaceName(workspace);
     }
 
@@ -236,7 +246,14 @@ const Navbar: FC<{
     console.log(data);
   }, [location]);
 
+  useEffect(()=>{
+    if(route!=""){
+      setSelectedLabel(route);
+    }
+  },[route])
+
   useEffect(() => {
+    setImageSrc("");
     const fetchProfileImage = async () => {
       try {
         const response = await axios.get(
@@ -267,7 +284,23 @@ const Navbar: FC<{
 
   useEffect(() => {
     setSelectedLabel(route);
-  }, []);
+  }, []);  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showNotifications]);
+
+
 
   return (
     <div className="h-screen">
@@ -281,7 +314,7 @@ const Navbar: FC<{
           }}
           className="h-full items-stretch"
         >
-          <ResizablePanel
+    <ResizablePanel
             collapsible={false}
             minSize={20}
             maxSize={20}
@@ -314,17 +347,44 @@ const Navbar: FC<{
                 profileName={workspaceName}
                 setAuthenticated={setAuthenticated}
               />
-              <div className="mr-4  border-gray-200 border rounded p-2 sticky right-0">
-                <FiBell 
-                style={{ width: '16px', height: '16px', color:'#0F172A' }}/>
-              </div>
+             <div className="relative">
+            <div
+              className="relative mr-4 border-gray-200 border rounded p-2 cursor-pointer"
+              onClick={() => setShowNotifications(!showNotifications)} >
+            <FiBell style={{ width: "16px", height: "16px", color: "#0F172A" }} />
+
+            {notifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1 rounded-full">
+                {notifications.length}
+              </span>
+            )}
+          </div>
+
+          {showNotifications && (
+            <div
+              ref={notificationRef}
+              className="absolute top-12 right-0 w-max min-w-[200px] bg-white border border-gray-300 rounded shadow-lg p-4 z-50"
+              >
+              {notifications.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center">No notifications yet.</p>
+              ) : (
+            <ul>
+              {notifications.map((notification) => (
+                <li key={notification.id} className="text-sm text-gray-800 py-1 border-b last:border-none">
+                  {notification.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      </div>
             </div>
             <Separator />
             <NavLinks
               onSelect={setSelectedLabel}
               selected={selectedLabel}
             />{" "}
-            {/* Pass the setter function */}
           </ResizablePanel>
           {/* <Separator orientation="vertical" className="h-full ml-64" /> */}
           <ResizableHandle />

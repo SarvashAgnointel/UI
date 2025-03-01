@@ -54,7 +54,7 @@ import { useSelector } from "react-redux";
 import { text } from "stream/consumers";
 import { Smile, Strikethrough } from "lucide-react";
 import { Document, Page } from "react-pdf";
-
+import { count } from "sms-length";
 import {
   Dialog,
   DialogClose,
@@ -236,14 +236,6 @@ const CreateTemplate: React.FC = () => {
   const [showPicker, setShowPicker] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const [isFixed, setIsFixed] = useState(true);
-  const [smsData, setSmsData] = useState({
-    length7Bit: 0,
-    lengthUnicode: 0,
-    parts7Bit: 1,
-    partsUnicode: 1,
-    totalParts: 1,
-    messageLength: 0,
-  });
   const workspaceId = useSelector(
     (state: RootState) => state.authentication.workspace_id
   );
@@ -1072,73 +1064,29 @@ const CreateTemplate: React.FC = () => {
     }
   };
 
-  // List of special characters that require escape sequences in 7-bit encoding
-  const escapeSequenceChars = ["|", "~", "^", "{", "}", "\\", "€", "©"];
-
-  // Function to detect if the character is Unicode (non-ASCII)
-  const isUnicode = (char: string) => {
-    return /[^\x00-\x7F]/.test(char);
-  };
-
   // Function to calculate the message length considering encoding
-  const calculateSMSParts = (text: string) => {
-    const max7BitFirstPart = 160;
-    const max7BitSubsequentParts = 153;
-    const maxUnicode = 70;
-
-    let length7Bit = 0;
-    let lengthUnicode = 0;
-
-    // Iterate over each character in the body text
-    for (let char of text) {
-      if (isUnicode(char)) {
-        lengthUnicode += 1; // Unicode character (special character or emoji)
-      } else {
-        // If it's a 7-bit character, check if it requires escape sequence
-        if (escapeSequenceChars.includes(char)) {
-          length7Bit += 2; // Escape sequences count as 2 bytes
-        } else {
-          length7Bit += 1; // Normal 7-bit character (1 byte)
-        }
-      }
-    }
-
-    // Calculate parts based on encoding
-    let parts7Bit = 0;
-    let remaining7Bit = length7Bit;
-
-    // Calculate parts for 7-bit encoding
-    if (remaining7Bit > 0) {
-      // First part can hold up to max7BitFirstPart characters
-      parts7Bit = 1;
-      remaining7Bit -= max7BitFirstPart;
-
-      // If there are remaining characters, each subsequent part can hold max7BitSubsequentParts
-      while (remaining7Bit > 0) {
-        parts7Bit += 1;
-        remaining7Bit -= max7BitSubsequentParts;
-      }
-    }
-
-    // Calculate parts for Unicode encoding (this remains the same as previously)
-    const partsUnicode = Math.ceil(lengthUnicode / maxUnicode);
-
-    // Set the SMS data
-    setSmsData({
-      length7Bit,
-      lengthUnicode,
-      parts7Bit,
-      partsUnicode,
-      totalParts: Math.max(parts7Bit, partsUnicode), // We use the larger part count
-      messageLength: text.length, // Total character count for the message
-    });
-  };
 
   const handleBodyTextChange = (text: string) => {
     setBodyText(text);
+    let cnt ;
     if (Number(channel) === 2) {
-      calculateSMSParts(text);
+      cnt=count(text);
     }
+
+  
+    if (Number(channel) === 2 && cnt?.encoding === "GSM_7BIT" && cnt.messages > 1) {
+      setBodyError(
+        "⚠️ Warning: Messages over 160 characters will be split into multiple parts."
+      );
+    } 
+    else if(Number(channel) === 2 && cnt?.encoding === "UTF16" && cnt.messages > 1){
+      setBodyError(
+        "⚠️ Warning: Messages over 70 characters will be split into multiple parts."
+      );
+    } else {
+      setBodyError(null);
+    }
+
     // Extract placeholders (e.g., {{1}}, {{2}}) from the text
     const placeholderRegex = /{{(\d+)}}/g;
     const matches = Array.from(text.matchAll(placeholderRegex));
@@ -1446,6 +1394,7 @@ const CreateTemplate: React.FC = () => {
       !validateBody()
     ) {
       // If validation fails, do not submit
+      dispatch(setCreateTemplateLoading(true));
       return;
     }
 
@@ -1479,7 +1428,6 @@ const CreateTemplate: React.FC = () => {
     //   combinedData.data2.components.push(bodyComponent);
     // }
     debugger;
-    console.log("sms data: ", smsData);
     try {
       const response = await axios.post(
         `${apiUrlAdvAcc}/CreateSMSMessageTemplate?channel_id=${channel}&workspace_id=${workspaceId}`,
@@ -1532,6 +1480,7 @@ const CreateTemplate: React.FC = () => {
       !validateBody()
     ) {
       // If validation fails, do not submit
+      dispatch(setCreateTemplateLoading(false));
       return;
     }
 
@@ -1783,7 +1732,7 @@ const CreateTemplate: React.FC = () => {
     if (value == 5) {
       try {
         //setIsLoading(true);
-        dispatch(setCreateTemplateLoading(true));
+        //dispatch(setCreateTemplateLoading(true));
         // Check token validity
         const response = await axios.get(
           `${apiUrlAdvAcc}/IsWhatsappTokenValid?workspaceId=${workspaceId}`
@@ -1791,17 +1740,17 @@ const CreateTemplate: React.FC = () => {
         console.log("status: " + response.data.status);
         if (response.data.status === "Success") {
           console.log("Whatsapp business account connected");
-          dispatch(setCreateTemplateLoading(false));
+          //dispatch(setCreateTemplateLoading(false));
         } else {
           toast.toast({
             title: "Warning",
             description: "Please connect your WhatsApp business account",
           });
           //setIsLoading(false);
-          dispatch(setCreateTemplateLoading(false));
+          //dispatch(setCreateTemplateLoading(false));
           // Automatically navigate after a short delay to allow the user to read the toast
           setTimeout(() => {
-            navigate("/navbar/channels");
+            navigate("/navbar/channels",{state: { route:"Channels" }});
           }, 1000); // Adjust the time (in milliseconds) for how long the toast stays
         }
       } catch (error) {
@@ -1840,20 +1789,19 @@ const CreateTemplate: React.FC = () => {
       >
         {noContentSelected ? (
           <div className="flex w-full h-[calc(100vh-200px)] items-center justify-center">
-  <div className="text-center">
-    <div>{textAreaIcon()}</div>
-    <div className="mt-6">
-      <p className="text-xl font-semibold">Mobile screen</p>
-    </div>
-    <div
-      className="w-[125px] mt-2"
-      style={{ fontWeight: 500, fontSize: "14px" }}
-    >
-      <p>Preview varies based on platform selection</p>
-    </div>
-  </div>
-</div>
-
+            <div className="text-center">
+              <div>{textAreaIcon()}</div>
+              <div className="mt-6">
+                <p className="text-xl font-semibold">Mobile screen</p>
+              </div>
+              <div
+                className="w-[125px] mt-2"
+                style={{ fontWeight: 500, fontSize: "14px" }}
+              >
+                <p>Preview varies based on platform selection</p>
+              </div>
+            </div>
+          </div>
         ) : (
           <>
             {/* Image, Video, or Document Preview */}
@@ -2068,7 +2016,9 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Button Text</Label>
               <Input
                 value={row.buttonText}
-                onChange={(e) => handleRowInputChange(index, "buttonText", e.target.value)}
+                onChange={(e) =>
+                  handleRowInputChange(index, "buttonText", e.target.value)
+                }
                 placeholder="Button text"
                 className="w-[125px] h-[36px]"
               />
@@ -2077,14 +2027,19 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Country Code</Label>
               <Select
                 value={row.countryCode}
-                onValueChange={(value) => handleRowInputChange(index, "countryCode", value)}
+                onValueChange={(value) =>
+                  handleRowInputChange(index, "countryCode", value)
+                }
               >
                 <SelectTrigger className="w-[125px] h-[36px]">
                   <SelectValue placeholder="Select Country" />
                 </SelectTrigger>
                 <SelectContent>
                   {countryList.map((country) => (
-                    <SelectItem key={country.country_code} value={country.country_code.toString()}>
+                    <SelectItem
+                      key={country.country_code}
+                      value={country.country_code.toString()}
+                    >
                       {`${country.country_shortname} +${country.country_code}`}
                     </SelectItem>
                   ))}
@@ -2095,14 +2050,16 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Phone Number</Label>
               <Input
                 value={row.callPhoneNumber}
-                onChange={(e) => handleRowInputChange(index, "callPhoneNumber", e.target.value)}
+                onChange={(e) =>
+                  handleRowInputChange(index, "callPhoneNumber", e.target.value)
+                }
                 placeholder="Phone number"
                 className="w-[120px] h-[36px]"
               />
             </div>
           </div>
         );
-  
+
       case "Copy Offer Code":
         return (
           <div className="flex space-x-4">
@@ -2110,7 +2067,9 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Button Text</Label>
               <Input
                 value={row.buttonText}
-                onChange={(e) => handleRowInputChange(index, "buttonText", e.target.value)}
+                onChange={(e) =>
+                  handleRowInputChange(index, "buttonText", e.target.value)
+                }
                 placeholder="Button text"
                 className="w-[125px] h-[36px]"
               />
@@ -2119,14 +2078,16 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Offer Code</Label>
               <Input
                 value={row.copyOfferCode}
-                onChange={(e) => handleRowInputChange(index, "copyOfferCode", e.target.value)}
+                onChange={(e) =>
+                  handleRowInputChange(index, "copyOfferCode", e.target.value)
+                }
                 placeholder="Offer code"
                 className="w-[220px] h-[36px]"
               />
             </div>
           </div>
         );
-  
+
       default:
         return (
           <div className="flex space-x-4">
@@ -2134,7 +2095,9 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Button Text</Label>
               <Input
                 value={row.buttonText}
-                onChange={(e) => handleRowInputChange(index, "buttonText", e.target.value)}
+                onChange={(e) =>
+                  handleRowInputChange(index, "buttonText", e.target.value)
+                }
                 placeholder="Button text"
                 className="w-[125px] h-[36px]"
               />
@@ -2143,7 +2106,9 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">URL Type</Label>
               <Select
                 value={row.buttonTypeDropdown}
-                onValueChange={(value) => handleRowInputChange(index, "buttonTypeDropdown", value)}
+                onValueChange={(value) =>
+                  handleRowInputChange(index, "buttonTypeDropdown", value)
+                }
               >
                 <SelectTrigger className="w-[125px] h-[36px]">
                   <SelectValue placeholder="Static" />
@@ -2157,7 +2122,9 @@ const CreateTemplate: React.FC = () => {
               <Label className="text-left">Website URL</Label>
               <Input
                 value={row.websiteUrl}
-                onChange={(e) => handleRowInputChange(index, "websiteUrl", e.target.value)}
+                onChange={(e) =>
+                  handleRowInputChange(index, "websiteUrl", e.target.value)
+                }
                 placeholder="Website URL"
                 className="w-[120px] h-[36px]"
               />
@@ -2174,508 +2141,514 @@ const CreateTemplate: React.FC = () => {
         <div className="loading-overlay">
           <CircularProgress color="primary" />
         </div>
-      )} 
-        <>
-          <div className="fixed flex justify-end space-x-3 ml-[calc(70%-135px)] top-[-8px] z-20">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                >
-                  Discard
-                </Button>
-              </DialogTrigger>
+      )}
+      <>
+        <div className="fixed flex justify-end space-x-3 ml-[calc(70%-135px)] top-[-8px] z-20">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant={"outline"}
+                className="w-[80px] border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+              >
+                Discard
+              </Button>
+            </DialogTrigger>
 
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogDescription>
-                    Are you sure you want to discard this Template?
-                  </DialogDescription>
-                </DialogHeader>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogDescription>
+                  Are you sure you want to discard this Template?
+                </DialogDescription>
+              </DialogHeader>
 
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline" className="w-24">
-                      Cancel
-                    </Button>
-                  </DialogClose>
-
-                  <Button
-                    className="w-24"
-                    onClick={() => {
-                      dispatch(setCreateBreadCrumb(false));
-                      navigate("/navbar/templatelist");
-                    }}
-                    autoFocus
-                  >
-                    OK
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" className="w-24">
+                    Cancel
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Button
-              className="w-fit"
-              onClick={() => {
-                debugger;
-                if (templateId) {
-                  handleEdit();
-                } else {
-                  if (Number(channel) === 2) {
-                    handleSMSTemplateSubmit();
-                  } else {
-                    handleSubmit();
-                  }
-                }
-                console.log("Clicked");
-              }}
-            >
-              Save and exit
-            </Button>
-          </div>
-          <div className="p-3 ">
-            <div className=" flex flex-col md:flex-row gap-6 mb-[100px]">
-              <div className="space-y-6 w-full md:w-3/5 ">
-                <div className="border p-4 rounded-lg">
-                  <h2
-                    className="text-left mb-2"
-                    style={{ fontWeight: 600, fontSize: "16px" }}
-                  >
-                    Platform
-                  </h2>
-                  <Select
-                    value={channel}
-                    onValueChange={(value) => {
-                      console.log(
-                        "Selected Channel ID:",
-                        value + " channelId Type: " + typeof value
-                      );
-                      setChannel(value);
-                      checkWhatsappAccount(value);
-                      validateChannel(value);
-                    }}
-                  >
-                    <SelectTrigger className="text-gray-500">
-                      {" "}
-                      {/* Apply gray text color to the trigger */}
-                      <SelectValue
-                        className="text-gray-500"
-                        placeholder={
-                          templateId
-                            ? updateChannel
-                            : "Select your Template channel"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {channelList
-                        .filter(
-                          (channel) =>
-                            ["whatsapp", "sms"].includes(
-                              channel.channel_name.toLowerCase()
-                            ) // Filter both SMS & WhatsApp
-                        )
-                        .map((channel) => (
-                          <SelectItem
-                            className="text-gray-500 cursor-pointer"
-                            key={channel.channel_id}
-                            value={channel.channel_id as any}
-                          >
-                            {channel.channel_name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  {channelError && (
-                    <p className="text-red-500 text-xs text-left mt-2 ml-2">
-                      {channelError}
-                    </p>
-                  )}
-                </div>
-                <Card className="border w-full p-4 rounded-lg text-left">
-                  <h2
-                    className="text-lg text-left mb-2"
-                    style={{ fontWeight: 600, fontSize: "16px" }}
-                  >
-                    Template name and language
-                  </h2>
-                  <div className="flex items-center space-x-4 mt-2">
-                    {/* Template Column */}
-                    <div className="flex-grow">
-                      <Label htmlFor="template" className="mt-2 text-left">
-                        Template
-                      </Label>
-                      <div className="relative w-full mt-2">
-                        <Input
-                          type="text"
-                          placeholder="Name your message template"
-                          className="w-full h-[35px] border rounded-md p-2 pr-10 text-gray-500"
-                          value={templateName}
-                          maxLength={512}
-                          onChange={handleInputChange}
-                        />
-                        <span className="absolute top-[8px] right-[8px] text-xs text-gray-500">
-                          {templateName.length}/{512}
-                        </span>
-                      </div>
-                    </div>
-                    {/* Language Column */}
-                    <div className="flex-shrink-0">
-                      <Label htmlFor="language" className="mt-2 text-left">
-                        Language
-                      </Label>
-                      <Select onValueChange={(value) => setLanguage(value)}>
-                        <SelectTrigger className="text-gray-500 w-48 mt-2">
-                          <SelectValue
-                            className="text-gray-500"
-                            placeholder={
-                              templateId ? updateLanguage : "English"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {languageList.map((type) => (
-                            <SelectItem
-                              className="text-gray-500 cursor-pointer"
-                              key={type.language_id}
-                              value={type.language_code}
-                            >
-                              {type.language_name}
-                              {updateLanguage === type.language_name ? (
-                                <CheckIcon />
-                              ) : null}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                </DialogClose>
 
-                      {LanguageError && (
-                        <p className="text-red-500 text-xs mt-2 ml-2">
-                          {LanguageError}
-                        </p>
-                      )}
+                <Button
+                  className="w-24"
+                  onClick={() => {
+                    dispatch(setCreateBreadCrumb(false));
+                    navigate("/navbar/templatelist");
+                  }}
+                  autoFocus
+                >
+                  OK
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Button
+            className="w-fit"
+            onClick={() => {
+              debugger;
+              if (templateId) {
+                handleEdit();
+              } else {
+                if (Number(channel) === 2) {
+                  handleSMSTemplateSubmit();
+                } else {
+                  handleSubmit();
+                }
+              }
+              console.log("Clicked");
+            }}
+          >
+            Save and exit
+          </Button>
+        </div>
+        <div className="p-3 ">
+          <div className=" flex flex-col md:flex-row gap-6 mb-[100px]">
+            <div className="space-y-6 w-full md:w-3/5 ">
+              <div className="border p-4 rounded-lg">
+                <h2
+                  className="text-left mb-2"
+                  style={{ fontWeight: 600, fontSize: "16px" }}
+                >
+                  Platform
+                </h2>
+                <Select
+                  value={channel}
+                  onValueChange={(value) => {
+                    console.log(
+                      "Selected Channel ID:",
+                      value + " channelId Type: " + typeof value
+                    );
+                    setChannel(value);
+                    checkWhatsappAccount(value);
+                    validateChannel(value);
+                  }}
+                >
+                  <SelectTrigger className="text-gray-500">
+                    {" "}
+                    {/* Apply gray text color to the trigger */}
+                    <SelectValue
+                      className="text-gray-500"
+                      placeholder={
+                        templateId
+                          ? updateChannel
+                          : "Select your Template channel"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {channelList
+                      .filter(
+                        (channel) =>
+                          ["whatsapp", "sms"].includes(
+                            channel.channel_name.toLowerCase()
+                          ) // Filter both SMS & WhatsApp
+                      )
+                      .map((channel) => (
+                        <SelectItem
+                          className="text-gray-500 cursor-pointer"
+                          key={channel.channel_id}
+                          value={channel.channel_id as any}
+                        >
+                          {channel.channel_name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {channelError && (
+                  <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                    {channelError}
+                  </p>
+                )}
+              </div>
+              <Card className="border w-full p-4 rounded-lg text-left">
+                <h2
+                  className="text-lg text-left mb-2"
+                  style={{ fontWeight: 600, fontSize: "16px" }}
+                >
+                  Template name and language
+                </h2>
+                <div className="flex items-center space-x-4 mt-2">
+                  {/* Template Column */}
+                  <div className="flex-grow">
+                    <Label htmlFor="template" className="mt-2 text-left">
+                      Template
+                    </Label>
+                    <div className="relative w-full mt-2">
+                      <Input
+                        type="text"
+                        placeholder="Name your message template"
+                        className="w-full h-[35px] border rounded-md p-2 pr-10 text-gray-500"
+                        value={templateName}
+                        maxLength={512}
+                        onChange={handleInputChange}
+                      />
+                      <span className="absolute top-[8px] right-[8px] text-xs text-gray-500">
+                        {templateName.length}/{512}
+                      </span>
                     </div>
                   </div>
-                  {templateError && (
-                    <p className="text-red-500 text-xs mt-1 ml-2">
-                      {templateError}
-                    </p>
-                  )}
-                </Card>
+                  {/* Language Column */}
+                  <div className="flex-shrink-0">
+                    <Label htmlFor="language" className="mt-2 text-left">
+                      Language
+                    </Label>
+                    <Select onValueChange={(value) => setLanguage(value)}>
+                      <SelectTrigger className="text-gray-500 w-48 mt-2">
+                        <SelectValue
+                          className="text-gray-500"
+                          placeholder={templateId ? updateLanguage : "English"}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {languageList.map((type) => (
+                          <SelectItem
+                            className="text-gray-500 cursor-pointer"
+                            key={type.language_id}
+                            value={type.language_code}
+                          >
+                            {type.language_name}
+                            {updateLanguage === type.language_name ? (
+                              <CheckIcon />
+                            ) : null}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                <div className="border p-4 rounded-lg">
-                  <h2
-                    className="mb-2 text-left"
-                    style={{
-                      fontWeight: 600,
-                      fontSize: "16px",
-                      paddingBottom: "10px",
-                    }}
-                  >
-                    Content
-                  </h2>
+                    {LanguageError && (
+                      <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                        {LanguageError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {templateError && (
+                  <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                    {templateError}
+                  </p>
+                )}
+              </Card>
 
-                  {Number(channel) !== 2 ? (
-                    <>
-                      <h5
-                        className="text-md mb-2 text-left"
-                        style={{ fontWeight: 500, fontSize: "14px" }}
+              <div className="border p-4 rounded-lg">
+                <h2
+                  className="mb-2 text-left"
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "16px",
+                    paddingBottom: "10px",
+                  }}
+                >
+                  Content
+                </h2>
+
+                {Number(channel) !== 2 ? (
+                  <>
+                    <h5
+                      className="text-md mb-2 text-left"
+                      style={{ fontWeight: 500, fontSize: "14px" }}
+                    >
+                      Header
+                      <div
+                        style={{
+                          background: "#F0F4F8", // Background color for the badge
+                          color: "#64748B", // Fixed font color for testing
+                          padding: "2px 10px", // Padding for the badge
+                          borderRadius: "9999px", // Fully rounded badge
+                          // Border style, matching the background
+                          display: "inline-flex", // Ensures correct alignment
+                          alignItems: "center", // Centers the text vertically
+                          height: "20px", // Fixed height
+                          marginLeft: "8px", // Space between title and badge
+                          fontSize: "14px", // Optional: font size for better visibility
+                          fontWeight: 600, // Set font weight for the badge text to bold
+                        }}
                       >
-                        Header
-                        <div
-                          style={{
-                            background: "#F0F4F8", // Background color for the badge
-                            color: "#64748B", // Fixed font color for testing
-                            padding: "2px 10px", // Padding for the badge
-                            borderRadius: "9999px", // Fully rounded badge
-                            // Border style, matching the background
-                            display: "inline-flex", // Ensures correct alignment
-                            alignItems: "center", // Centers the text vertically
-                            height: "20px", // Fixed height
-                            marginLeft: "8px", // Space between title and badge
-                            fontSize: "14px", // Optional: font size for better visibility
-                            fontWeight: 600, // Set font weight for the badge text to bold
-                          }}
-                        >
-                          Optional
-                        </div>
-                      </h5>
-                    </>
+                        Optional
+                      </div>
+                    </h5>
+                  </>
+                ) : (
+                  <></>
+                )}
+
+                <div className="space-y-4">
+                  {Number(channel) !== 2 ? (
+                    <Select
+                      value={headerType}
+                      onValueChange={handleOptionChange}
+                    >
+                      <SelectTrigger className="w-full text-gray-500">
+                        <SelectValue
+                          placeholder={templateId ? updateHeaderType : " "}
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="cursor-pointer">
+                        <SelectItem value="image" className="cursor-pointer">
+                          Image
+                        </SelectItem>
+                        <SelectItem value="text" className="cursor-pointer">
+                          Text
+                        </SelectItem>
+                        <SelectItem value="document" className="cursor-pointer">
+                          Document
+                        </SelectItem>
+                        <SelectItem value="video" className="cursor-pointer">
+                          Video
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <></>
                   )}
 
-                  <div className="space-y-4">
-                    {Number(channel) !== 2 ? (
-                      <Select
-                        value={headerType}
-                        onValueChange={handleOptionChange}
-                      >
-                        <SelectTrigger className="w-full text-gray-500">
-                          <SelectValue
-                            placeholder={templateId ? updateHeaderType : " "}
-                          />
-                        </SelectTrigger>
-                        <SelectContent className="cursor-pointer">
-                          <SelectItem value="image" className="cursor-pointer">Image</SelectItem>
-                          <SelectItem value="text" className="cursor-pointer">Text</SelectItem>
-                          <SelectItem value="document" className="cursor-pointer">Document</SelectItem>
-                          <SelectItem value="video" className="cursor-pointer">Video</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <></>
-                    )}
-
-                    {/* File Input for Image, Video, or Document */}
-                    {(selectedOption === "image" ||
-                      selectedOption === "video" ||
-                      selectedOption === "document") && (
-                      <div className="flex items-center space-x-4 mb-4">
-                        <label className="text-sm font-medium text-gray-700">
-                          {selectedOption.charAt(0).toUpperCase() +
-                            selectedOption.slice(1)}
-                        </label>
-                        {selectedFile ? (
-                          <div className="flex items-center space-x-2">
-                            <span className="p-2 border rounded-md bg-gray-100">
-                              {selectedFile?.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={handleRemoveFile}
-                              className="text-gray-600 hover:text-red-500"
-                              aria-label="Remove File"
-                            >
-                              <FaTimes />
-                            </button>
-                          </div>
-                        ) : (
-                          <Input
-                            ref={fileInputRef}
-                            style={{ fontFamily: "'Inter', sans-serif" }}
-                            type="file"
-                            accept={
-                              selectedOption === "image"
-                                ? "image/jpeg, image/png"
-                                : headerType === "video"
-                                ? "video/mp4, video/mov"
-                                : headerType === "document"
-                                ? ".pdf"
-                                : ""
-                            }
-                            onChange={handleFileChange}
-                            className="border rounded-md p-2 w-full cursor-pointer"
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Text Input for Text Header */}
-                    {selectedOption === "text" && (
-                      <div className="mt-4" style={{ position: "relative" }}>
+                  {/* File Input for Image, Video, or Document */}
+                  {(selectedOption === "image" ||
+                    selectedOption === "video" ||
+                    selectedOption === "document") && (
+                    <div className="flex items-center space-x-4 mb-4">
+                      <label className="text-sm font-medium text-gray-700">
+                        {selectedOption.charAt(0).toUpperCase() +
+                          selectedOption.slice(1)}
+                      </label>
+                      {selectedFile ? (
+                        <div className="flex items-center space-x-2">
+                          <span className="p-2 border rounded-md bg-gray-100">
+                            {selectedFile?.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleRemoveFile}
+                            className="text-gray-600 hover:text-red-500"
+                            aria-label="Remove File"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      ) : (
                         <Input
-                          value={textInput}
-                          onChange={handleTextChange}
-                          className="text-gray-500 border rounded-md p-2 mb-4 w-full"
-                          placeholder="Enter your header text"
-                          maxLength={60}
+                          ref={fileInputRef}
+                          style={{ fontFamily: "'Inter', sans-serif" }}
+                          type="file"
+                          accept={
+                            selectedOption === "image"
+                              ? "image/jpeg, image/png"
+                              : headerType === "video"
+                              ? "video/mp4, video/mov"
+                              : headerType === "document"
+                              ? ".pdf"
+                              : ""
+                          }
+                          onChange={handleFileChange}
+                          className="border rounded-md p-2 w-full cursor-pointer"
                         />
-                        <span
-                          style={{
-                            position: "absolute",
-                            top: "8px",
-                            right: "8px",
-                            fontSize: "12px",
-                            color: "gray",
-                          }}
+                      )}
+                    </div>
+                  )}
+
+                  {/* Text Input for Text Header */}
+                  {selectedOption === "text" && (
+                    <div className="mt-4" style={{ position: "relative" }}>
+                      <Input
+                        value={textInput}
+                        onChange={handleTextChange}
+                        className="text-gray-500 border rounded-md p-2 mb-4 w-full"
+                        placeholder="Enter your header text"
+                        maxLength={60}
+                      />
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: "8px",
+                          right: "8px",
+                          fontSize: "12px",
+                          color: "gray",
+                        }}
+                      >
+                        {textInput.length}/{maxLength}
+                      </span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label
+                      className="block text-left mb-2"
+                      style={{ fontWeight: 500, fontSize: "14px" }}
+                    >
+                      Body
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <textarea
+                        className="w-full border rounded p-2 text-gray-500"
+                        rows={4}
+                        maxLength={1024}
+                        value={bodyText}
+                        placeholder="Hello"
+                        onChange={(e) => handleBodyTextChange(e.target.value)}
+                        style={{ paddingRight: "50px" }}
+                      ></textarea>
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: "8px",
+                          right: "8px",
+                          fontSize: "12px",
+                          color: "gray",
+                        }}
+                      >
+                        {bodyText.length}/1024
+                      </span>
+                    </div>
+                    {Number(channel) === 2 && BodyError && (
+                      <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                        {BodyError}
+                      </p>
+                    )}
+
+                    <div className="flex gap-4 flex-row w-full justify-end">
+                      <Smile
+                        className="w-4 h-4 mt-2 cursor-pointer"
+                        onClick={() => setShowPicker((val) => !val)}
+                      />
+                      <FontBoldIcon
+                        className="w-4 z-50 h-4 mt-2 cursor-pointer"
+                        onClick={makeTextBold}
+                      />
+                      <FontItalicIcon
+                        className="w-4 h-4 mt-2 cursor-pointer"
+                        onClick={makeTextItalic}
+                      />
+                      <Strikethrough
+                        className="w-4 h-4 mt-2 cursor-pointer"
+                        onClick={makeTextStrikethrough}
+                      />
+                      <CodeIcon
+                        className="w-4 h-4 mt-2 cursor-pointer"
+                        onClick={makeTextMonospace}
+                      />
+                      {Number(channel) !== 2 ? (
+                        <Button
+                          onClick={addVariable}
+                          variant="ghost"
+                          className="w-[125px] mt-[-6]  h-[30px]"
                         >
-                          {textInput.length}/{maxLength}
-                        </span>
+                          <AddIcon /> Add variable
+                        </Button>
+                      ) : (
+                        <></>
+                      )}
+
+                      <InfoCircledIcon className="mt-2 ml-[5px] text-[#fffff] cursor-pointer" />
+                    </div>
+                    {showPicker && (
+                      <div>
+                        <EmojiPicker
+                          className="z-10"
+                          onEmojiClick={(emoji: any) => onEmojiClick(emoji)}
+                        />
                       </div>
                     )}
 
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color:
+                          bodyText.length < 25
+                            ? "error.main"
+                            : "text.secondary",
+                        mt: 1,
+                        textAlign: "right",
+                        fontFamily: "Salesforce Sans, sans-serif",
+                      }}
+                    ></Typography>
+
+                    <Container>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          alignItems: "center",
+                          mt: 1,
+                        }}
+                      ></Box>
+
+                      <div style={{ textAlign: "left", marginTop: "25px" }}>
+                        {boxes.map((box, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              marginTop: "15px",
+                            }}
+                          >
+                            <Typography
+                              variant="body2"
+                              sx={{ color: "black", fontSize: "12px" }}
+                            >
+                              <p>{`{{${i + 1}}}`}</p>
+                            </Typography>
+                            <TextField
+                              size="small"
+                              type="text"
+                              variant="standard"
+                              sx={{ marginLeft: "10px", flex: 1 }}
+                              value={box.action}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                updateButtonAction(i, e)
+                              }
+                            />
+                            <IconButton
+                              onClick={() => onTextboxDelete(i)}
+                              sx={{
+                                color: "lightgray",
+                                borderRadius: "50%",
+                                padding: "8px",
+                                "&:hover": {
+                                  backgroundColor: "rgba(211, 211, 211, 0.3)",
+                                },
+                                marginLeft: "10px",
+                              }}
+                            >
+                              <CancelIcon />
+                            </IconButton>
+                          </div>
+                        ))}
+                      </div>
+                    </Container>
+                  </div>
+
+                  {Number(channel) !== 2 ? (
                     <div>
                       <label
                         className="block text-left mb-2"
                         style={{ fontWeight: 500, fontSize: "14px" }}
                       >
-                        Body
-                      </label>
-                      <div style={{ position: "relative" }}>
-                        <textarea
-                          className="w-full border rounded p-2 text-gray-500"
-                          rows={4}
-                          maxLength={1024}
-                          value={bodyText}
-                          placeholder="Hello"
-                          onChange={(e) => handleBodyTextChange(e.target.value)}
-                          style={{ paddingRight: "50px" }}
-                        ></textarea>
+                        Footer
                         <span
                           style={{
-                            position: "absolute",
-                            top: "8px",
-                            right: "8px",
-                            fontSize: "12px",
-                            color: "gray",
-                          }}
-                        >
-                          {bodyText.length}/1024
-                        </span>
-                      </div>
-                      {BodyError && (
-                        <p className="text-red-500 text-sm text-left">
-                          {BodyError}
-                        </p>
-                      )}
-
-                      <div className="flex gap-4 flex-row w-full justify-end">
-                        <Smile
-                          className="w-4 h-4 mt-2 cursor-pointer"
-                          onClick={() => setShowPicker((val) => !val)}
-                        />
-                        <FontBoldIcon
-                          className="w-4 z-50 h-4 mt-2 cursor-pointer"
-                          onClick={makeTextBold}
-                        />
-                        <FontItalicIcon
-                          className="w-4 h-4 mt-2 cursor-pointer"
-                          onClick={makeTextItalic}
-                        />
-                        <Strikethrough
-                          className="w-4 h-4 mt-2 cursor-pointer"
-                          onClick={makeTextStrikethrough}
-                        />
-                        <CodeIcon
-                          className="w-4 h-4 mt-2 cursor-pointer"
-                          onClick={makeTextMonospace}
-                        />
-                        {Number(channel) !== 2 ? (
-                          <Button
-                            onClick={addVariable}
-                            variant="ghost"
-                            className="w-[125px] mt-[-6]  h-[30px]"
-                          >
-                            <AddIcon /> Add variable
-                          </Button>
-                        ) : (
-                          <></>
-                        )}
-
-                        <InfoCircledIcon className="mt-2 ml-[5px] text-[#fffff] cursor-pointer" />
-                      </div>
-                      {showPicker && (
-                        <div>
-                          <EmojiPicker
-                            className="z-10"
-                            onEmojiClick={(emoji: any) => onEmojiClick(emoji)}
-                          />
-                        </div>
-                      )}
-
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color:
-                            bodyText.length < 25
-                              ? "error.main"
-                              : "text.secondary",
-                          mt: 1,
-                          textAlign: "right",
-                          fontFamily: "Salesforce Sans, sans-serif",
-                        }}
-                      ></Typography>
-
-                      <Container>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "flex-end",
+                            background: "#F0F4F8",
+                            color: "#64748B",
+                            padding: "2px 10px",
+                            borderRadius: "9999px",
+                            display: "inline-flex",
                             alignItems: "center",
-                            mt: 1,
+                            height: "20px",
+                            marginLeft: "8px",
+                            fontSize: "14px",
+                            fontWeight: 600,
                           }}
-                        ></Box>
-
-                        <div style={{ textAlign: "left", marginTop: "25px" }}>
-                          {boxes.map((box, i) => (
-                            <div
-                              key={i}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                marginTop: "15px",
-                              }}
-                            >
-                              <Typography
-                                variant="body2"
-                                sx={{ color: "black", fontSize: "12px" }}
-                              >
-                                <p>{`{{${i + 1}}}`}</p>
-                              </Typography>
-                              <TextField
-                                size="small"
-                                type="text"
-                                variant="standard"
-                                sx={{ marginLeft: "10px", flex: 1 }}
-                                value={box.action}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                  updateButtonAction(i, e)
-                                }
-                              />
-                              <IconButton
-                                onClick={() => onTextboxDelete(i)}
-                                sx={{
-                                  color: "lightgray",
-                                  borderRadius: "50%",
-                                  padding: "8px",
-                                  "&:hover": {
-                                    backgroundColor: "rgba(211, 211, 211, 0.3)",
-                                  },
-                                  marginLeft: "10px",
-                                }}
-                              >
-                                <CancelIcon />
-                              </IconButton>
-                            </div>
-                          ))}
-                        </div>
-                      </Container>
-                    </div>
-
-                    {Number(channel) !== 2 ? (
-                      <div>
-                        <label
-                          className="block text-left mb-2"
-                          style={{ fontWeight: 500, fontSize: "14px" }}
                         >
-                          Footer
-                          <span
-                            style={{
-                              background: "#F0F4F8",
-                              color: "#64748B",
-                              padding: "2px 10px",
-                              borderRadius: "9999px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              height: "20px",
-                              marginLeft: "8px",
-                              fontSize: "14px",
-                              fontWeight: 600,
-                            }}
-                          >
-                            Optional
-                          </span>
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter text"
-                          className="w-full border rounded p-2"
-                          value={FooterText}
-                          onChange={(e) => setFooterText(e.target.value)}
-                        />
+                          Optional
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter text"
+                        className="w-full border rounded p-2"
+                        value={FooterText}
+                        onChange={(e) => setFooterText(e.target.value)}
+                      />
 
-                        {/*<Select value={FooterText} onValueChange={handleFooterChange}>
+                      {/*<Select value={FooterText} onValueChange={handleFooterChange}>
                     <SelectTrigger className="w-full border rounded p-2 text-gray-500">
                       <SelectValue placeholder="Select an option" />
                     </SelectTrigger>
@@ -2684,139 +2657,154 @@ const CreateTemplate: React.FC = () => {
                       <SelectItem value="Welcome">Welcome</SelectItem>
                     </SelectContent>
                   </Select>*/}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                  </div>
-
-                  {/* </>):(<></>)} */}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                 </div>
-                {Number(channel) !== 2 ? (
-                  <div className="border p-4 rounded-lg">
-                    <Typography
-                      variant="h6"
+
+                {/* </>):(<></>)} */}
+              </div>
+              {Number(channel) !== 2 ? (
+                <div className="border p-4 rounded-lg">
+                  <Typography
+                    variant="h6"
+                    style={{
+                      fontSize: "16px",
+                      color: "black",
+                      textAlign: "left",
+                      fontWeight: "bold",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    Buttons
+                    <span
                       style={{
-                        fontSize: "16px",
-                        color: "black",
-                        textAlign: "left",
-                        fontWeight: "bold",
-                        marginBottom: "8px",
+                        background: "#F0F4F8",
+                        color: "#64748B",
+                        padding: "2px 10px",
+                        borderRadius: "9999px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        height: "20px",
+                        marginLeft: "8px",
+                        fontSize: "14px",
+                        fontWeight: 600,
                       }}
                     >
-                      Buttons
-                      <span
-                        style={{
-                          background: "#F0F4F8",
-                          color: "#64748B",
-                          padding: "2px 10px",
-                          borderRadius: "9999px",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          height: "20px",
-                          marginLeft: "8px",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Optional
+                      Optional
+                    </span>
+                  </Typography>
+
+                  <div className="inline-block mt-4 w-full flex-col justify-start">
+                    <Button
+                      onClick={handleAddRow}
+                      className="flex items-center px-4 py-2 border border-gray-300 font-thin rounded-md text-white hover:bg-gray-900"
+                      style={{
+                        width: "125px",
+                        height: "40px",
+                        background: "#3A85F7",
+                        marginTop: "-8px",
+                        marginBottom: "15px",
+                        fontWeight: "normal",
+                      }}
+                    >
+                      <span className="mr-1">
+                        <PlusIcon className="w-4 h-4" />
                       </span>
-                    </Typography>
+                      Add button
+                      <span className="ml-1">
+                        <ChevronDownIcon className="w-4 h-4" />
+                      </span>
+                    </Button>
 
-                    <div className="inline-block mt-4 w-full flex-col justify-start">
-  <Button
-    onClick={handleAddRow}
-    className="flex items-center px-4 py-2 border border-gray-300 font-thin rounded-md text-white hover:bg-gray-900"
-    style={{
-      width: "125px",
-      height: "40px",
-      background: "#3A85F7",
-      marginTop: "-8px",
-      marginBottom: "15px",
-      fontWeight: "normal",
-    }}
-  >
-    <span className="mr-1">
-      <PlusIcon className="w-4 h-4" />
-    </span>
-    Add button
-    <span className="ml-1">
-      <ChevronDownIcon className="w-4 h-4" />
-    </span>
-  </Button>
+                    {warning && (
+                      <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
+                        {warning}
+                      </p>
+                    )}
 
-  {warning && <p className="text-red-500 text-sm mt-2">{warning}</p>}
+                    <div className="space-y-4">
+                      {rows.map((row, index) => (
+                        <div
+                          key={index}
+                          className="flex space-x-4 items-center"
+                        >
+                          <div className="flex flex-col gap-2">
+                            <Label className="font-bold text-left">
+                              Type of action
+                            </Label>
+                            <Select
+                              value={row.buttonType}
+                              onValueChange={(value) =>
+                                handleRowInputChange(index, "buttonType", value)
+                              }
+                            >
+                              <SelectTrigger className="w-[125px] h-[36px]">
+                                <SelectValue placeholder="Select Type" />
+                              </SelectTrigger>
+                              <SelectContent className="cursor-pointer">
+                                <SelectItem value="View Website">
+                                  View Website
+                                </SelectItem>
+                                <SelectItem value="Call Phone Number">
+                                  Call Phone Number
+                                </SelectItem>
+                                <SelectItem value="Copy Offer Code">
+                                  Copy Offer Code
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-  <div className="space-y-4">
-    {rows.map((row, index) => (
-      <div key={index} className="flex space-x-4 items-center">
-        <div className="flex flex-col gap-2">
-          <Label className="font-bold text-left">Type of action</Label>
-          <Select
-            value={row.buttonType}
-            onValueChange={(value) => handleRowInputChange(index, "buttonType", value)}
-          >
-            <SelectTrigger className="w-[125px] h-[36px]">
-              <SelectValue placeholder="Select Type" />
-            </SelectTrigger>
-            <SelectContent className="cursor-pointer">
-              <SelectItem value="View Website">View Website</SelectItem>
-              <SelectItem value="Call Phone Number">Call Phone Number</SelectItem>
-              <SelectItem value="Copy Offer Code">Copy Offer Code</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+                          {renderRowFields(row, index)}
 
-        {renderRowFields(row, index)}
-
-        <IconButton
-          onClick={() => onDeleteRow(row, index)}
-          sx={{
-            color: "gray",
-            borderRadius: "10%",
-            padding: "4px",
-            "&:hover": {
-              backgroundColor: "rgba(211, 211, 211, 0.3)",
-            },
-            marginLeft: "10px",
-          }}
-        >
-          <CloseIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </div>
-    ))}
-  </div>
-</div>
-
+                          <IconButton
+                            onClick={() => onDeleteRow(row, index)}
+                            sx={{
+                              color: "gray",
+                              borderRadius: "10%",
+                              padding: "4px",
+                              "&:hover": {
+                                backgroundColor: "rgba(211, 211, 211, 0.3)",
+                              },
+                              marginLeft: "10px",
+                            }}
+                          >
+                            <CloseIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <></>
-                )}
-              </div>
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
 
-              <div
-                ref={previewRef}
-                className={`border  max-h-fit top-auto right-14 rounded-lg`}
-                // style={{
-                //   // Adjust top positioning when fixed
-                //   right: "14px", // Fixed right position for the preview container
-                //   zIndex: 10, // Ensure it appears above other content
-                //   // Apply rounded corners for a cleaner design
-                // }}
-              >
-                <h2 className="mb-2 mt-4 font-bold">Template Preview</h2>
-                <div className="flex flex-col justify-between rounded-[30px] text-black p-4 w-[350px] min-h-auto">
-                  <div className="justify-center">
-                    <i className="fas fa-mobile-alt text-4xl mb-4"></i>
-                    {renderPreview()}{" "}
-                    {/* Function to render the preview content dynamically */}
-                  </div>
+            <div
+              ref={previewRef}
+              className={`border  max-h-fit top-auto right-14 rounded-lg`}
+              // style={{
+              //   // Adjust top positioning when fixed
+              //   right: "14px", // Fixed right position for the preview container
+              //   zIndex: 10, // Ensure it appears above other content
+              //   // Apply rounded corners for a cleaner design
+              // }}
+            >
+              <h2 className="mb-2 mt-4 font-bold">Template Preview</h2>
+              <div className="flex flex-col justify-between rounded-[30px] text-black p-4 w-[350px] min-h-auto">
+                <div className="justify-center">
+                  <i className="fas fa-mobile-alt text-4xl mb-4"></i>
+                  {renderPreview()}{" "}
+                  {/* Function to render the preview content dynamically */}
                 </div>
               </div>
             </div>
           </div>
-        </>
-      
+        </div>
+      </>
     </div>
   );
 };

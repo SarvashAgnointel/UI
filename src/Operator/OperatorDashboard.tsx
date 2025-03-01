@@ -129,7 +129,7 @@ export function DatePickerWithRange({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal",
+              "min-w-[150px] w-auto justify-start text-left font-normal",
               !date && "text-muted-foreground text-[#020617] border-red-500"
             )}
           >
@@ -513,15 +513,19 @@ const OperatorDashboard: FC = () => {
   const [isMonth, setIsMonth] = useState(false);
   const [timeRange, setTimeRange] = React.useState("90d");
 
+  const [last30DaysData, setLast30DaysData] = useState<any>(null);
+  const [before30DaysData, setBefore30DaysData] = useState<any>(null);
+
+
   const [date_Week, setDate_Week] = React.useState<DateRange | undefined>({
-      from: subDays(new Date(), 7), // 7 days before the current date
-      to: new Date(), // Current date
-    });
+    from: subDays(new Date(), 7), // 7 days before the current date
+    to: new Date(), // Current date
+  });
 
   const [date_Month, setDate_Month] = React.useState<DateRange | undefined>({
-      from: subDays(new Date(), 30), // 7 days before the current date
-      to: new Date(), // Current date
-    });
+    from: subDays(new Date(), 30), // 7 days before the current date
+    to: new Date(), // Current date
+  });
 
   const Workspace_Id = 277
   // useSelector(
@@ -553,7 +557,7 @@ const OperatorDashboard: FC = () => {
 
     loadConfig();
   }, [Workspace_Id]);
-  
+
   // useEffect(() => {
   //   console.log("ChartData updated:", chartData);
   // }, [chartData]);
@@ -619,7 +623,7 @@ const OperatorDashboard: FC = () => {
         }
       };
 
-       ChartDateRange();
+      ChartDateRange();
     }
   };
 
@@ -661,6 +665,75 @@ const OperatorDashboard: FC = () => {
   }, [apiUrlAdvAcc, Workspace_Id]); // Depend on apiUrlAdvAcc
 
 
+  const fetchPast7DaysData = async () => {
+    if (!apiUrlOPAcc || !Workspace_Id) return;
+  
+    const past_from = format(subDays(new Date(), 7), "yyyy-MM-dd"); // Last 7 days
+    const past_to = format(new Date(), "yyyy-MM-dd"); // Today
+  
+    const before7_from = format(new Date("2000-01-01"), "yyyy-MM-dd"); // All data before 7 days
+    const before7_to = format(subDays(new Date(), 7), "yyyy-MM-dd"); // Until 7 days ago
+  
+    try {
+      const [last7Days, before7Days] = await Promise.all([
+        axios.get(`${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${before7_from}&to_date=${before7_to}`)
+      ]);
+  
+      setLast30DaysData(last7Days.data.status === "Success" ? last7Days.data : null);
+      setBefore30DaysData(before7Days.data.status === "Success" ? before7Days.data : null);
+    } catch (error) {
+      console.error("Error fetching past 7 days data:", error);
+    }
+  };
+  
+  const fetchPast30DaysData = async () => {
+    if (!apiUrlOPAcc || !Workspace_Id) return;
+
+    const past_from = format(subDays(new Date(), 30), "yyyy-MM-dd"); // Last 30 days
+    const past_to = format(new Date(), "yyyy-MM-dd"); // Today
+
+    const before30_from = format(new Date("2000-01-01"), "yyyy-MM-dd"); // All data before 30 days
+    const before30_to = format(subDays(new Date(), 30), "yyyy-MM-dd"); // Until 30 days ago
+
+    try {
+      const [last30Days, before30Days] = await Promise.all([
+        axios.get(`${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${past_from}&to_date=${past_to}`),
+        axios.get(`${apiUrlOPAcc}/GetOperatorCombinedStatisticsByDateRange?workspaceId=${Workspace_Id}&from_date=${before30_from}&to_date=${before30_to}`)
+      ]);
+
+      setLast30DaysData(last30Days.data.status === "Success" ? last30Days.data : null);
+      setBefore30DaysData(before30Days.data.status === "Success" ? before30Days.data : null);
+
+    } catch (error) {
+      console.error("Error fetching past 30 days data:", error);
+    }
+  };
+
+  // Fetch data on page load
+  useEffect(() => {
+    fetchPast30DaysData();
+  }, [apiUrlOPAcc, Workspace_Id]);
+
+  const calculatePercentageChange = (last30Days: number, before30Days: number, timeRange: string) => {
+    let type = "month"; // Default is month
+    if (timeRange === "7d") {
+      type = "week"; // If timeRange is "7d", show "week"
+    } else if (timeRange === "30d") {
+      type = "month"; // If timeRange is "30d", show "month"
+    }
+    if (!before30Days || before30Days === 0) return `+0% change from last ${type}`; // Avoid division by zero
+    const change = (last30Days / before30Days) * 100;
+    return `${change > 0 ? "+" : ""}${change.toFixed(1)}% change from last ${type}`;
+  };
+
+  useEffect(() => {
+    setIsMonth(true);
+    setTimeRange("30d");
+    ByMonthData();
+    fetchPast30DaysData();
+  }, []);
+  
   return chartData ? (
     <div className="flex-col w-full">
       <div className="flex mt-[-15px] justify-end gap-2">
@@ -671,17 +744,19 @@ const OperatorDashboard: FC = () => {
           />
         </div>
         <Select
-          defaultValue="year"
+          defaultValue="month"
           onValueChange={(value) => {
             if (value === "week") {
               setIsWeek(true);
               setTimeRange("7d");
               ByWeekData();
+              fetchPast7DaysData();
             }
             else if (value === "month") {
               setIsMonth(true);
               setTimeRange("30d");
               ByMonthData();
+              fetchPast30DaysData();
             }
             else {
               setIsWeek(false);
@@ -697,7 +772,7 @@ const OperatorDashboard: FC = () => {
           <SelectContent>
             <SelectItem value="week">By Week</SelectItem>
             <SelectItem value="month">By Month</SelectItem>
-            <SelectItem value="year">By Year</SelectItem>
+            {/* <SelectItem value="year">By Year</SelectItem> */}
           </SelectContent>
         </Select>
       </div>
@@ -706,32 +781,64 @@ const OperatorDashboard: FC = () => {
         <CardComponent
           title="Campaigns"
           value={chartData?.campaignDetails[0]?.totalCampaigns || "0"}
-          change="+20.1 from last month"
+          change={
+            last30DaysData?.campaignDetails && before30DaysData?.campaignDetails
+              ? calculatePercentageChange(
+                last30DaysData?.campaignDetails[0]?.totalCampaigns,
+                before30DaysData?.campaignDetails[0]?.totalCampaigns,
+                timeRange
+              )
+              : "+0% from last month"
+          }
           icon={<PaperPlaneIcon className="text-[#64748B] size-4" />}
         />
 
         <CardComponent
           title="Roamers"
           value={chartData?.recipientCount[0]?.recipients || "0"}
-          change="-15.6 from last month"
+          change={
+            last30DaysData?.recipientCount && before30DaysData?.recipientCount
+              ? calculatePercentageChange(
+                last30DaysData?.recipientCount[0]?.recipients,
+                before30DaysData?.recipientCount[0]?.recipients,
+                timeRange
+              )
+              : "+0% from last month"
+          }
           icon={<Users className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Sent"
           value={chartData?.messagesSentDetails[0]?.totalSent || 0}
-          change="+30.2 from last month"
+          change={
+            last30DaysData?.messagesSentDetails && before30DaysData?.messagesSentDetails
+              ? calculatePercentageChange(
+                last30DaysData?.messagesSentDetails[0]?.totalSent,
+                before30DaysData?.messagesSentDetails[0]?.totalSent,
+                timeRange
+              )
+              : "+0% from last month"
+          }
           icon={<Check className="text-[#64748B]" size={16} />}
         />
         <CardComponent
           title="Delivery rate"
           value={
             Math.round(
-              (chartData?.messagesSentDetails[0]?.totalSent /
+              ((chartData?.messagesSentDetails[0]?.totalSent /
                 chartData?.recipientCount[0]?.recipients) *
-              100 || 0
+                100) / (chartData?.campaignDetails[0]?.totalCampaigns) || 0
             ) + "%"
           }
-          change="+2.1 from last month"
+          change={
+            last30DaysData?.messagesSentDetails && before30DaysData?.messagesSentDetails
+              ? calculatePercentageChange(
+                (last30DaysData?.messagesSentDetails[0]?.totalSent / last30DaysData?.recipientCount[0]?.recipients),
+                (before30DaysData?.messagesSentDetails[0]?.totalSent / before30DaysData?.recipientCount[0]?.recipients),
+                timeRange
+              )
+              : "+0% from last month"
+          }
           icon={<Activity className="text-[#64748B]" size={16} />}
         />
       </div>

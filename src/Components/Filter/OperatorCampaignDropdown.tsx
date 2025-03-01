@@ -125,20 +125,12 @@ const DropdownMenuDemo: FC<{
   
   };
 
-  const handleSelectSubChange = (value: string) => {
-    setSelectedSubFilter(value);
-  };
-
     // Handle Subfilter Selection
   const handleSubFilterChange = (value: SubFilterOption) => {
       setSelectedSubFilter(value);
       setFilterData({ filter: selectedFilter, subFilter: value });
   };
 
-  const handleValueChange = (value: any) => {
-    console.log("value :" + value);
-    setValue(value);
-  };
 
   return (
 <DropdownMenu>
