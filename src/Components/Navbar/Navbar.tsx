@@ -335,8 +335,6 @@ const Navbar: FC<{
                 "min-w-[50px] transition-all duration-300 ease-in-out"
             )}
           >
-
-            
             <div
               className={cn(
                 "flex h-[60px] items-center justify-center bg-[#FBFBFB]"

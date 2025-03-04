@@ -85,7 +85,6 @@ interface DatePickerWithRangeProps
 export function DatePickerWithRange({
   className,
   setChartData,
-  fetchData,
 }: DatePickerWithRangeProps) {
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: undefined, // Current date
@@ -190,22 +189,22 @@ const chartConfig = {
   visitors: {
     label: "Visitors",
   },
-  email: {
-    label: "Email",
-    color: "hsl(var(--chart-1))",
-  },
+  // email: {
+  //   label: "Email",
+  //   color: "hsl(var(--chart-1))",
+  // },
   sms: {
     label: "Sms",
     color: "hsl(var(--chart-2))",
   },
-  pushNotifications: {
-    label: "RCS Mesages",
-    color: "hsl(var(--chart-3))",
-  },
-  rcSmessages: {
-    label: "RCS Messages",
-    color: "hsl(var(--chart-4))",
-  },
+  // pushNotifications: {
+  //   label: "RCS Mesages",
+  //   color: "hsl(var(--chart-3))",
+  // },
+  // rcSmessages: {
+  //   label: "RCS Messages",
+  //   color: "hsl(var(--chart-4))",
+  // },
   whatsApp: {
     label: "Whatsapp",
     color: "hsl(var(--chart-5))",
@@ -274,7 +273,7 @@ const DashChart: FC<DashChartProps> = ({
           <AreaChart data={filteredData}>
             <defs>
               {/* Email Gradient */}
-              <linearGradient id="fillEmail" x1="0" y1="0" x2="0" y2="1">
+              {/* <linearGradient id="fillEmail" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
                   stopColor="hsl(var(--chart-1))"
@@ -285,7 +284,7 @@ const DashChart: FC<DashChartProps> = ({
                   stopColor="hsl(var(--chart-1))"
                   stopOpacity={0.1}
                 />
-              </linearGradient>
+              </linearGradient> */}
 
               {/* Sms Gradient */}
               <linearGradient id="fillSms" x1="0" y1="0" x2="0" y2="1">
@@ -302,7 +301,7 @@ const DashChart: FC<DashChartProps> = ({
               </linearGradient>
 
               {/* Push Notifications Gradient */}
-              <linearGradient
+              {/* <linearGradient
                 id="fillPushNotifications"
                 x1="0"
                 y1="0"
@@ -319,10 +318,10 @@ const DashChart: FC<DashChartProps> = ({
                   stopColor="hsl(var(--chart-3))"
                   stopOpacity={0.1}
                 />
-              </linearGradient>
+              </linearGradient> */}
 
               {/* RCS Messages Gradient */}
-              <linearGradient id="fillRcSmessages" x1="0" y1="0" x2="0" y2="1">
+              {/* <linearGradient id="fillRcSmessages" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
                   stopColor="hsl(var(--chart-4))"
@@ -333,7 +332,7 @@ const DashChart: FC<DashChartProps> = ({
                   stopColor="hsl(var(--chart-4))"
                   stopOpacity={0.1}
                 />
-              </linearGradient>
+              </linearGradient> */}
 
               {/* Whatsapp Gradient */}
               <linearGradient id="fillWhatsapp" x1="0" y1="0" x2="0" y2="1">
@@ -385,20 +384,20 @@ const DashChart: FC<DashChartProps> = ({
               stroke="hsl(var(--chart-5))"
               stackId="a"
             />
-            <Area
+            {/* <Area
               dataKey="rcSmessages"
               type="natural"
               fill="url(#fillRcSmessages)"
               stroke="hsl(var(--chart-4))"
               stackId="a"
-            />
-            <Area
+            /> */}
+            {/* <Area
               dataKey="pushNotifications"
               type="natural"
               fill="url(#fillPushNotifications)"
               stroke="hsl(var(--chart-3))"
               stackId="a"
-            />
+            /> */}
             <Area
               dataKey="sms"
               type="natural"
@@ -406,13 +405,13 @@ const DashChart: FC<DashChartProps> = ({
               stroke="hsl(var(--chart-2))"
               stackId="a"
             />
-            <Area
+            {/* <Area
               dataKey="email"
               type="natural"
               fill="url(#fillEmail)"
               stroke="hsl(var(--chart-1))"
               stackId="a"
-            />
+            /> */}
             <ChartLegend content={<ChartLegendContent />} />
           </AreaChart>
         </ChartContainer>
@@ -497,7 +496,7 @@ const Dashboard: FC = () => {
   useEffect(() => {
     if (apiUrlAdvAcc) {
       // GetCampaingCount();
-      fetchData();
+      // fetchData();
       GetPermissionsByRoleId();
     }
   }, [apiUrlAdvAcc, Workspace_Id]);
@@ -516,47 +515,47 @@ const Dashboard: FC = () => {
       console.log("GetPermissionsByRoleId API error");
     }
   }
-  const fetchData = async () => {
-    setIsLoading(true);
-    if (apiUrlAdvAcc) {
-      // Ensure apiUrlAdvAcc is valid
-      try {
+  // const fetchData = async () => {
+  //   setIsLoading(true);
+  //   if (apiUrlAdvAcc) {
+  //     // Ensure apiUrlAdvAcc is valid
+  //     try {
 
-        usertransactionlist();
+  //       usertransactionlist();
 
-        console.log("apiUrlAdvAcc", apiUrlAdvAcc); // For debugging
-        const data = {
-          Email: EmailId,
-          WorkdspaceId: Workspace_Id,
-        };
-        if (isInvited) {
-          const response = await axios.put(`${apiUrl}/UpdateIsAccepted`, data);
+  //       console.log("apiUrlAdvAcc", apiUrlAdvAcc); // For debugging
+  //       const data = {
+  //         Email: EmailId,
+  //         WorkdspaceId: Workspace_Id,
+  //       };
+  //       if (isInvited) {
+  //         const response = await axios.put(`${apiUrl}/UpdateIsAccepted`, data);
 
-          if (response.data.success == "Success") {
-            console.log(
-              "isAcceptec Response : " + response.data.status_Description
-            );
-          } else {
-            console.log(
-              "isAcceptec Response : " + response.data.status_Description
-            );
-          }
-        }
+  //         if (response.data.success == "Success") {
+  //           console.log(
+  //             "isAcceptec Response : " + response.data.status_Description
+  //           );
+  //         } else {
+  //           console.log(
+  //             "isAcceptec Response : " + response.data.status_Description
+  //           );
+  //         }
+  //       }
 
-        const response = await axios.get(
-          `${apiUrlAdvAcc}/GetCombinedStatistics?workspaceId=${Workspace_Id}`
-        );
-        setIsLoading(false);
-        console.log("API Response:", response.data); // Check the response
-        setChartData(response.data);
-        dispatch(setSentCount(response.data.messagesSentDetails[0]?.totalSent));
+  //       const response = await axios.get(
+  //         `${apiUrlAdvAcc}/GetCombinedStatistics?workspaceId=${Workspace_Id}`
+  //       );
+  //       setIsLoading(false);
+  //       console.log("API Response:", response.data); // Check the response
+  //       setChartData(response.data);
+  //       dispatch(setSentCount(response.data.messagesSentDetails[0]?.totalSent));
 
-      } catch (error) {
-        console.error("Error fetching the statistics:", error);
-        setIsLoading(false);
-      }
-    }
-  };
+  //     } catch (error) {
+  //       console.error("Error fetching the statistics:", error);
+  //       setIsLoading(false);
+  //     }
+  //   }
+  // };
 
 
 
@@ -599,7 +598,7 @@ const Dashboard: FC = () => {
             setChartData(response.data);
           } else {
             // setChartData(response.data);
-            fetchData();
+            // fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -640,11 +639,11 @@ const Dashboard: FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (apiUrlAdvAcc) {
-      fetchData();
-    }
-  }, [apiUrlAdvAcc, Workspace_Id]); // Depend on apiUrlAdvAcc
+  // useEffect(() => {
+  //   if (apiUrlAdvAcc) {
+  //     fetchData();
+  //   }
+  // }, [apiUrlAdvAcc, Workspace_Id]); // Depend on apiUrlAdvAcc
 
   const fetchPast7DaysData = async () => {
     if (!apiUrlAdvAcc || !Workspace_Id) return;
@@ -731,7 +730,7 @@ const Dashboard: FC = () => {
         <div>
           <DatePickerWithRange
             setChartData={setChartData}
-            fetchData={fetchData}
+            fetchData={ByMonthData}
           />
         </div>
         <div>
@@ -754,7 +753,7 @@ const Dashboard: FC = () => {
                 setIsWeek(false);
                 setIsMonth(false);
                 setTimeRange("90d");
-                fetchData();
+                // fetchData();
               }
             }}
           >

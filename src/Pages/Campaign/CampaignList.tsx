@@ -463,7 +463,6 @@ const handlePageChange = (newPage: number) => {
     navigate("/navbar/createCampaign", { state: { campaignId, channelType } });
   };
 
-  // Function to open the alert dialog
   const handleDeleteClick = (campaignId: any) => {
     setCampaignToDelete(campaignId); // Store campaign ID to delete
     setIsAlertOpen(true); // Open the alert dialog
@@ -510,14 +509,14 @@ const handlePageChange = (newPage: number) => {
         console.log("Extracted Campaign Names:", names); 
 
        // setCurrentCampaigns(campaigns);
-        setIsLoading(false); // Hide loader once processing is done
-        setHasCampaigns(campaigns.length > 0); // Check if campaigns exist
+        setIsLoading(false); 
+        setHasCampaigns(campaigns.length > 0); 
       } else {
-        setIsLoading(false); // Hide loader once processing is done
+        setIsLoading(false); 
       }
     } catch (error) {
       console.error("Error fetching campaign list:", error);
-      setCampaignList([]); // Handle errors with an empty list
+      setCampaignList([]); 
       setHasCampaigns(false);
     } finally {
       setCampaignLoading(false);
@@ -528,10 +527,11 @@ const handlePageChange = (newPage: number) => {
     setIsLoading(true); 
     setCampaignLoading(true);
     try {
-      
       const response = await axios.get(
-        `${apiUrlAdvAcc}/GetWorkspaceBillingStatus/workspaceId=${workspaceId}`
-      );
+        `${apiUrlAdvAcc}/GetWorkspaceBillingStatus`, 
+        {
+          params: { workspaceId }  
+        }  );
       console.log("response::",response);
       console.log("Raw Response:", response);
       console.log("Data inside Response:", response.data);
@@ -754,19 +754,19 @@ const handlePageChange = (newPage: number) => {
   };
 
   const handleCreateCampaign = () => {
-    // console.log("BillingS:" , billingStatus);
-    //  if (WorkspaceCount === 1) {
-    //    dispatch(setCreateBreadCrumb(true));
-    //    navigate("/navbar/createcampaign");
-    //  } else if (billingStatus.toLowerCase() === "paired") {
+     console.log("BillingS:" , billingStatus);
+      if (WorkspaceCount === 1) {
+        dispatch(setCreateBreadCrumb(true));
+        navigate("/navbar/createcampaign", { state: { campaignNames } }); 
+      } else if (billingStatus.toLowerCase() === "paired") {
        dispatch(setCreateBreadCrumb(true));
-      navigate("/navbar/createcampaign");
-    //  } else {
-    //    toast.toast({
-    //      title: "Warning",
-    //      description: "Your workspace is not paired. You cannot create a campaign.",
-    //    });
-    //  }
+      navigate("/navbar/createcampaign", { state: { campaignNames } });
+      } else {
+        toast.toast({
+          title: "Warning",
+          description: "Your workspace is not paired. You cannot create a campaign.",
+        });
+      }
   };
   
 

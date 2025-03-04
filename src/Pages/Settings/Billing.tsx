@@ -129,11 +129,14 @@ const Billing: FC = () => {
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [apiUrlAdvAcc, setApiUrlAdvAcc] = useState("");
   const [workspaceslist, setWorkspaceslist] = useState<Workspaces[]>([]);
+  const [billingCountryCurrency , setBillingCountryCurrency] = useState("");
+  const [billingCountryCurrencySymbol , setBillingCountryCurrencySymbol] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionList, setTransactionList] = useState<Transactions[]>([]);
   const [debitList, setdebitList] = useState<Debitdetials[]>([]);
+
   const [transactionSortOrder, setTransactionSortOrder] = useState("asc");
   const mailId = useSelector((state:RootState)=>state.authentication.userEmail);
   const [isSorted, setIsSorted] = useState(false);
@@ -174,9 +177,6 @@ const Billing: FC = () => {
       } catch (error) {
         console.error("Error loading config:", error);
       }
-      finally {
-        setIsLoading(false);
-      };
     };
 
     fetchConfig();
@@ -186,18 +186,31 @@ const Billing: FC = () => {
 
   useEffect(() => {
     if (apiUrlAdvAcc) {
-      fetchBillingDetails();
-      workspaceslists();
-      usertransactionlist();
-      userdebitlist();
-      handleGetWalletAmount();
+      APICALLS();
     }
   }, [apiUrlAdvAcc]);
+
+
+  const APICALLS = async()=> {
+    try{
+      await fetchBillingDetails();
+      await workspaceslists();
+      await usertransactionlist();
+      await userdebitlist();
+      await handleGetWalletAmount();
+      await billingcountrycurrencyandsymbol();
+    }catch{
+      console.log("API Execution Failed")
+    }finally{
+      setIsLoading(false);
+    }
+  }
 
 
 
   console.log("id :" + workspaceId);
   const fetchBillingDetails = async () => {
+    setIsLoading(true);
     try {
       const response = await axios.get(`${apiUrlAdvAcc}/GetbillingDetails?workspaceid=${workspaceId}`);
       console.log("Response : ", response.data.billingDetails);
@@ -217,6 +230,7 @@ const Billing: FC = () => {
 
 
   const handleGetWalletAmount = async () => {
+    setIsLoading(true);
     debugger;
     try {
       const response = await axios.get(`${apiUrlAdvAcc}/GetWalletAmountByWorkspaceId?workspaceId=${workspaceId}`);
@@ -234,11 +248,27 @@ const Billing: FC = () => {
 
   };
 
+  const billingcountrycurrencyandsymbol = async () => {
+    setIsLoading(true);
+    try{
+      const response = await axios.get(`${apiUrlAdvAcc}/GetBillingCountryandSymbol?accountid=${accountId}`);
+      if(response.data.status === "Success"){
+           setBillingCountryCurrency(response.data.billingInfo.currencyName);
+           setBillingCountryCurrencySymbol(response.data.billingInfo.currencySymbol);
+           console.log("Currency",response.data.billingInfo.currencyName);
+        }else{
+        console.error("Error fetching workspace details : response - ", response );
+      }
+    } catch (error){
+      console.error("Error fetching BillingCountry Currency and symbol:", error);
+    }
+  }
+
   
   const workspaceslists = async () => { 
+    setIsLoading(true);
     try {
       debugger;
-      // const id = localStorage.getItem("userid");
       const response = await axios.get(`${apiUrlAdvAcc}/GetBillingWorkspaceDetailsByAccountId?accountid=${accountId}`);
       console.log("Response : ", response.data.workspacelist);
       if (response.data.status == "Success") {
@@ -346,7 +376,7 @@ const Billing: FC = () => {
 
 
   const usertransactionlist = async () => {
-
+    setIsLoading(true);
     try {
       debugger;
       const response = await axios.get(`${apiUrlAdvAcc}/GetuserTransaction?accountid=${accountId}`);
@@ -373,7 +403,6 @@ const Billing: FC = () => {
 
     try {
       debugger;
-      //const id = localStorage.getItem("userid");
       const response = await axios.get(`${apiUrlAdvAcc}/Getdebitdetails?emailid=${mailId}`);
       console.log("Response : ", response.data.user_transaction);
       setdebitList(response.data.user_transaction)
@@ -643,9 +672,7 @@ const creditMessageCount = Array.isArray(transactionList)
             <div>
             <p className="text-sm text-gray-600 text-left">
               Total funds  
-              {billingDetails.length > 0 
-                ? ` (${billingDetails[0].currency}) ` 
-                : "(AED)"}  
+                {` (${billingCountryCurrency}) `}
               and remaining messages in your wallet
             </p>
             </div>
@@ -665,7 +692,8 @@ const creditMessageCount = Array.isArray(transactionList)
 
           <div className="flex items-center mt-2">
           <span className="text-3xl font-bold text-gray-900 ml-1">
-            {billingDetails.length > 0 ? billingDetails[0].symbol : "د.إ"}
+            {/* {billingDetails.length > 0 ? billingDetails[0].symbol : "د.إ"} */}
+            {billingCountryCurrencySymbol}
           </span>
 
             <span className="text-3xl font-bold text-gray-900 ml-1">

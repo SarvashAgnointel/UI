@@ -9,7 +9,7 @@ import React, {
 import "./CSS/LoginPage.css";
 import Logo from "../Assets/Logo.svg";
 import LoginImage from "./../Assets/LoginBackground.png";
-import loginVideo from "../Assets/loginVideo.mp4";
+import loginVideoUrls from "../Assets/LogInVideos.json"
 import { useLocation, useNavigate } from "react-router-dom";
 import { Container, Typography, Box, CircularProgress } from "@mui/material";
 import { Input } from "../Components/ui/input";
@@ -997,6 +997,7 @@ export const CustomWorkspaceControl: FC<CustomWorkspaceControlProps> = ({
 };
 
 const Workspace: FC = () => {
+  const loginVideo = loginVideoUrls.LogInVideoUrl;
   return (
     <div className="login-page" style={{ display: "flex", height: "100vh" }}>
       <div

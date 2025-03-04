@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import "./CSS/LoginPage.css";
 import LoginImage from "./../Assets/LoginBackground.png";
-import loginVideo from "../Assets/loginVideo.mp4";
+import loginVideoUrls from "../Assets/LogInVideos.json"
 import Logo from "../Assets/Logo.svg";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Container, Typography, Box, CircularProgress  } from "@mui/material";
@@ -599,6 +599,8 @@ const PersonalInfo: FC<{
   setAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
 }> = ({ setAuthenticated }) => {
   const [next, setNext] = React.useState<boolean>(false);
+  const loginVideo = loginVideoUrls.LogInVideoUrl;
+
 
   return (
     <div

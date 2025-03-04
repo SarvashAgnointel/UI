@@ -103,7 +103,9 @@ const Whatsapp: FC = () => {
       ) {
         return;
       }
+      debugger
       try {
+        debugger
         const data = JSON.parse(event.data);
         if (data.type === "WA_EMBEDDED_SIGNUP") {
           // if user finishes the Embedded Signup flow
@@ -111,6 +113,8 @@ const Whatsapp: FC = () => {
             const { phone_number_id, waba_id } = data.data;
             setWabaId(waba_id);
             setPhoneId(phone_number_id);
+            console.log(`waba_id: ${waba_id}, phone_id: ${phone_number_id}`);
+            InsertWabaDetails(wabaId,phoneId);
           }
         }
       } catch {
@@ -346,7 +350,7 @@ const Whatsapp: FC = () => {
   useEffect(()=>{
     if(wabaId!=="" && phoneId!=="" && Id!=0){
       console.log("phId: "+phoneId+" wabaID: "+wabaId+ "Id: "+Id);
-      InsertWabaDetails(wabaId,phoneId);
+      // InsertWabaDetails(wabaId,phoneId);
 
     }
   },[wabaId,phoneId])

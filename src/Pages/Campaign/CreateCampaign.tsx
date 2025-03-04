@@ -118,6 +118,7 @@ interface BillingCountry {
   country_id: number;
   country_name: string;
   currency_name: string;
+  symbol: string;
 }
 
 interface PhNoList {
@@ -396,9 +397,8 @@ const percentage =
   };
   
   const handleMultiSelectClose = async () => {
-    if (isCardLoading) return; // Prevent multiple clicks
+    if (isCardLoading) return; 
   
-    // ✅ Check if Russia/Kazakhstan is selected
     const hasRussiaOrKazakhstan = tempSelectedCountries.some((id) =>
       ["Russia", "Kazakhstan"].includes(
         targetCountryList.find((c) => c.country_id.toString() === id)
@@ -624,10 +624,7 @@ const percentage =
   
   const handleCampaignNameChange = (value: string) => {
     setCampaignName(value);
-    
-    // ✅ Immediately validate for duplicates while typing
     validateCampaignName(value);
-
   };
  
   const handleChannelChange = (value: string) => {
@@ -685,12 +682,14 @@ const percentage =
   
   const handleReachPeopleInChange = (values: string[]) => {
     setReachPeopleIn(values);
+    console.log("RechPeopleIn:" , values);
+    console.log("RechPeopleIn"  , JSON.stringify(values));
     validateInCountry(values);
   
     if (values.length > 0) {
-      setAudience(0); // Set "None" if a country is selected
+      setAudience(0); 
     } else if (reachPeopleFrom.length === 0) {
-      setAudience(0); // Re-enable "Predefined Audience" if both fields are empty
+      setAudience(0); 
     }
   };
 
@@ -892,7 +891,7 @@ const percentage =
   const validateCampaignName = (name: string): boolean => {
    
     const trimmedName = name.trim();
-
+    console.log("trimmedName:",trimmedName);
     if (!trimmedName) {
       setCampaignNameError("Campaign name is required");
       return false;
@@ -905,9 +904,21 @@ const percentage =
       return false;
     }
 
+    const minLength = 3;
+  const maxLength = 30;
+
+  if (trimmedName.length < minLength) {
+    setCampaignNameError(`Campaign name must be at least ${minLength} characters long.`);
+    return false;
+  }
+
+  if (trimmedName.length > maxLength) {
+    setCampaignNameError(`Campaign name must not exceed ${maxLength} characters.`);
+    return false;
+  }
+
     const specialCharAtEdgesPattern = /^[^a-zA-Z0-9].*|.*[^a-zA-Z0-9]$/;
 
-    // Test if the trimmed name starts or ends with a special character
     if (specialCharAtEdgesPattern.test(trimmedName)) {
       setCampaignNameError("Campaign name should not start or end with a special character.");
       return false;
@@ -1645,7 +1656,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
     
     try {
     //  const response = await axios.get(`${apiUrlAdvAcc}/GetSmsPhoneNumbers`);
-      const response = await axios.get( `${apiUrlAdvAcc}/GetSmsPhoneNumbers?workspace_id=` + workspaceId );
+      const response = await axios.get(`${apiUrlAdvAcc}/GetSmsPhoneNumbers?workspace_id=` + workspaceId );
       if (response.data && response.data.phoneNumberList) {
         setPhoneNumberList(response.data.phoneNumberList);  // Use correct key
         console.log("Phone List:", response.data.phoneNumberList);
@@ -1659,31 +1670,15 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
       console.error("Error fetching PhoneList:", error);
     } 
   };
-
-
-  useEffect(() => {
-    if (workspaceId) {
-      GetSMSPhoneNUmbers();
-    }
-  }, [workspaceId]);
-
-  // useEffect(() => {
-  //   if (targetCountryList.length > 0) {
-  //     loadCampaignList(campaignId); // Call only if the list is available
-  //   }
-  // }, [targetCountryList, campaignId]);
-  
   const extractTime = (dateTime: string) => {
     return dateTime ? dateTime.split("T")[1].slice(0, 5) : ""; // Extract HH:MM
   }
   const loadCampaignList = async (id: any) => {
     setLoading(true);
 
-    try {
-  
+    try {  
       const response = await axios.get(
-        `${apiUrlAdvAcc}/GetCampaignDetailsById?CampaignId=` + id
-      );
+        `${apiUrlAdvAcc}/GetCampaignDetailsById?CampaignId=` + id );
 
       if (response.data && response.data.campaignDetails) {
         const campaignDetailslocal = response.data.campaignDetails[0];
@@ -1761,15 +1756,14 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
     }
   };
 
-        // Split country names into an array
         const countryNamesArray = updateCountry
         ? updateCountry.split(",").map((name: string) => name.trim())
         : [];
 
         // console.log("Processed Country Names Array:", countryNamesArray);
         // console.log("Available Target Country List:", targetCountryList);
-
         // Convert country names to country IDs
+        
         const countryIds = countryNamesArray.map((countryName: string) => {
        // console.log("Searching for Country Name:", countryName);
         const selectedCountry = targetCountryList.find(
@@ -1900,6 +1894,15 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
       
     
       console.log("Submitting campaign data:", data);
+      console.log("API Request Payload:", {
+      campaignId: campaignId,
+      countryIds: reachPeopleFrom.map(Number),
+      toCountryNames: reachPeopleIn.map((id) => {
+        const country = roamingCountryList.find(c => c.country_id.toString() === id);
+        return country ? country.country_name : id;
+      }),
+    });
+
 
       const response = await axios.post(`${apiUrlAdvAcc}/CreateCampaign`, data);
   
@@ -1916,18 +1919,23 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
             );
           } else if (reachPeopleFrom.length > 0 || reachPeopleIn.length > 0) {
             // If reach people from/to is selected, call GetOperatorsAndInsertCampaignContacts
-            response2 = await axios.get(
-              `${apiUrlAdvAcc}/GetOperatorsAndInsertCampaignContacts`,
-              {
-                params: {
-                  CountryJson: JSON.stringify(reachPeopleFrom),
-                  ToCountryJson: JSON.stringify(reachPeopleIn),
-                  CampaignId: campaignId,
-                },
-              }
-            );
-          }
-  
+        response2 = await axios.post(
+  `${apiUrlAdvAcc}/GetOperatorsByCountry`,  
+  { 
+    campaignId: campaignId ? Number(campaignId) : 0, 
+    countryIds: reachPeopleFrom.map(Number),  
+    toCountryNames: reachPeopleIn.map((id) => {
+      const country = roamingCountryList.find(c => c.country_id.toString() === id);
+      return country ? country.country_name : id;
+    }), 
+  },
+  {
+    headers: { "Content-Type": "application/json" },
+  }
+);
+
+
+          } 
           if (response2?.data.status === "Success") {
             console.log("Campaign contacts loaded successfully.");
           } else {
@@ -1943,8 +1951,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
           toast.toast({
             title: "Success.",
             description: "Campaign Created Successfully.",
-          });
-  
+          });  
           setTimeout(() => {
             dispatch(setCreateBreadCrumb(false));
             dispatch(setCreateCampaign(true));
@@ -2289,18 +2296,6 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
     console.log("Filter list : " + templatefilterlist);
   };
 
-  // const getTemplateChannel = () => {
-  //   const findchannel = templateList.find(
-  //     (findtemplate) => findtemplate.template_id === parseInt(template)
-  //   );
-  //   const channelType = findchannel ? findchannel.channel_type : "";
-  //   setChannel(channelType);
-  // };
-
-  // useEffect(() => {
-  //   getTemplateChannel();
-  // }, [template]);
-
   const getCurrentDateTime = () => {
     const now = new Date();
     return format(now, "MMM dd, yyyy 'at' HH:mm"); // Example: Dec 30, 2024 at 07:55
@@ -2312,20 +2307,12 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
     <>
       <div className="overflow-y-auto ml-[-7px]">
         <Toaster />
-  
-        {/* {isLoading && (
-          <div className="flex flex-col items-center justify-center h-[500px]">
-            <CircularProgress color="primary" />
-          </div>
-        )} */}
-
 {isLoading ? (
       <div className="flex flex-col items-center justify-center h-[500px]">
         <CircularProgress color="primary" />
       </div>
     ) : (
       <>
-
         <div className="fixed flex justify-end gap-4 mr-[40px] items-end right-[0px] top-[-15px] z-20 ">
           
           <Button
@@ -2339,7 +2326,6 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
           >
             Discard
           </Button>
-          {/* Confirmation Dialog */}
       {showDialog && (
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent>
@@ -2446,7 +2432,6 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                   </SelectItem>
                 ))
             ) : (
-              // ✅ Fix: Correct JSX syntax for empty channel list
               <div className="p-2">
                 <button
                   className="text-blue-500 text-sm font-medium cursor-pointer w-full text-left"
@@ -2553,7 +2538,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
           />
         </SelectTrigger>
         <SelectContent>
-          {/* ✅ Show Templates if Available */}
+          {/* Show Templates if Available */}
           {templatefilterlist.length > 0 ? (
             templatefilterlist.map((template) => (
               <SelectItem
@@ -2565,7 +2550,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
               </SelectItem>
             ))
           ) : (
-            // ✅ Show "Create new template" only when no templates exist
+            // Show "Create new template" only when no templates exist
             <div className="p-2">
               <button
                 className="text-blue-500 text-sm font-medium cursor-pointer w-full text-left"
@@ -2592,7 +2577,6 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
         added.
       </p>
     </div>
-
 </div>
             </Card>  
 
@@ -2664,11 +2648,11 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     className="text-[#64748B] text-sm font-normal mt-1 cursor-pointer"
                     options={roamingCountryList.map((country) => ({
                       label: country.country_name,
-                      value: country.country_id.toString(), // Convert to string
+                      value: country.country_id.toString(), 
                     }))}
                     onValueChange={(values) => {
                       console.log("Selected Country IDs:", values);
-                      handleReachPeopleInChange(values); // Expecting values as string[]
+                      handleReachPeopleInChange(values); 
                     }}
                     value={reachPeopleFrom}
                     placeholder={
@@ -2677,7 +2661,6 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     maxCount={3}
                     variant="inverted"
                     disabled={audience !== 0}
-
                   />
                   { !isReachPeopleInDisabled && roamingCountryError && (
                     <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">
@@ -2716,20 +2699,33 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                     >
                       None
                     </SelectItem>
-                      {audienceList.map((audience) => (
-                        <>
-                          {/* {setChannel(template.channel_type)} */}
-                          <SelectItem
-                            className="text-[#64748B] text-sm font-normal cursor-pointer" 
-                            key={audience.list_id}
-                            value={audience.list_id.toString()}
-                          >
-                            {audience.listname}
-                          </SelectItem>
-                        </>
-                      )) }
-                    </SelectContent>
-                  </Select>
+                    {audienceList.length > 0 ? (
+        audienceList.map((audience) => (
+          <SelectItem
+            className="text-[#64748B] text-sm font-normal cursor-pointer" 
+            key={audience.list_id}
+            value={audience.list_id.toString()}
+          >
+            {audience.listname}
+          </SelectItem>
+        ))
+      ) : (
+        // Show "Create Audience" Button if No Audiences Exist
+        <div className="p-2">
+          <button
+            className="text-blue-500 text-sm font-medium cursor-pointer w-full text-left"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent dropdown from closing immediately
+              console.log("Navigating to /navbar/CreateAudience");
+             // navigate("/navbar/CreateAudience", { state: { route: "Audience" } });
+             navigate("/navbar/audiences",{state: { route:"Audiences" }});
+            }}>
+            + Create new audience
+          </button>
+        </div>
+      )}
+    </SelectContent>
+  </Select>
                   {!isAudienceDisabled && audience !== 0 && AudienceError && (
                     <p className="text-red-500 text-xs font-medium mt-1 font-sans italic ml-1 text-left">{AudienceError}</p>
                   )}
@@ -3106,7 +3102,12 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                   </Label>
                   <div className="relative mt-2">
                   <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring">
-                  <span className="flex items-center text-gray-500">$</span>
+                 {/* <span className="flex items-center text-gray-500">$</span>*/}
+                  <span className="flex items-center text-gray-500 mr-2">
+                      {currencyData.length > 0
+                        ? currencyData[0].symbol
+                        : ""}
+                    </span>
                     <input
                       id="campaignBudget"
                       type="number"
@@ -3155,7 +3156,6 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                             return;
                           }
 
-                          // Convert input to a Date object
                           const [day, month, year] = campaignStartDate.split("/").map(Number);
                           const dateValue = new Date(year, month - 1, day);
 
@@ -3171,9 +3171,7 @@ const isAudienceDisabled = reachPeopleFrom.length > 0 || reachPeopleIn.length > 
                         if (!campaignStartDate.trim()) {
                           setStartDateError("Start date is required"); // Reset error if field is empty
                           return;
-                        }
-                          
-
+                        }                         
                       }}
                       placeholder="dd/mm/yyyy"
                       style={{ fontSize: "14px" }}

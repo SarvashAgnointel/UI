@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import './CSS/LoginPage.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Container, Button, Typography, Box, CircularProgress } from '@mui/material';
-import loginVideo from "../Assets/loginVideo.mp4";
+import loginVideoUrls from "../Assets/LogInVideos.json"
 import LoginImage from "../Assets/LoginBackground.png";
 import Logo from '../Assets/Logo.svg';
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "../Components/ui/input-otp";
@@ -102,6 +102,8 @@ export default function EmailVerificationPage() {
     const token = useSelector((state: RootState) => state.authentication.inviteToken.token);
 
     const forgotPassword = useSelector((state:RootState)=>state.authentication.forgotPassword);
+    const loginVideo = loginVideoUrls.LogInVideoUrl;
+
 
     console.log("FP:" ,forgotPassword);
     

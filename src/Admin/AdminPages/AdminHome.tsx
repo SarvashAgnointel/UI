@@ -24,6 +24,8 @@ import { toast, useToast } from "../../Components/ui/use-toast";
 import { Toaster } from "../../Components/ui/toaster";
 import { Skeleton } from "../../Components/ui/skeleton";
 import { setAdminUrl } from "../../State/slices/AuthenticationSlice";
+import { Console } from "console";
+import CircularProgress from "@mui/material/CircularProgress";
 
 interface DatePickerWithRangeProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -38,7 +40,7 @@ interface DatePickerWithRangeProps
 export function DatePickerWithRange({
   className,
   setChartData,
-  fetchData,
+  // fetchData,
   setUserCount,
   setWorkspaceCount,
   setCampaignCount,
@@ -92,7 +94,6 @@ export function DatePickerWithRange({
   // }, []);
 
   useEffect(() => {
-    debugger;
     console.log("The date is", date);
     if (date && date.from && date.to) {
       const date_from = format(date.from, "yyyy-MM-dd"); // Split by space and take the first part
@@ -159,7 +160,7 @@ export function DatePickerWithRange({
             setChartData(response.data);
           } else {
             // setChartData(response.data);
-            fetchData();
+            // fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -175,6 +176,7 @@ export function DatePickerWithRange({
     } else {
       console.log("No date selected");
     }
+
   }, [date]);
 
   return (
@@ -251,22 +253,22 @@ const chartConfig = {
   visitors: {
     label: "Visitors",
   },
-  email: {
-    label: "Email",
-    color: "hsl(var(--chart-1))",
-  },
+  // email: {
+  //   label: "Email",
+  //   color: "hsl(var(--chart-1))",
+  // },
   sms: {
     label: "Sms",
     color: "hsl(var(--chart-2))",
   },
-  pushNotifications: {
-    label: "RCS Mesages",
-    color: "hsl(var(--chart-3))",
-  },
-  rcSmessages: {
-    label: "RCS Messages",
-    color: "hsl(var(--chart-4))",
-  },
+  // pushNotifications: {
+  //   label: "RCS Mesages",
+  //   color: "hsl(var(--chart-3))",
+  // },
+  // rcSmessages: {
+  //   label: "RCS Messages",
+  //   color: "hsl(var(--chart-4))",
+  // },
   whatsApp: {
     label: "Whatsapp",
     color: "hsl(var(--chart-5))",
@@ -357,10 +359,10 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
           <AreaChart data={filteredData}>
             <defs>
               {/* Email Gradient */}
-              <linearGradient id="fillEmail" x1="0" y1="0" x2="0" y2="1">
+              {/* <linearGradient id="fillEmail" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8} />
                 <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1} />
-              </linearGradient>
+              </linearGradient> */}
 
               {/* Sms Gradient */}
               <linearGradient id="fillSms" x1="0" y1="0" x2="0" y2="1">
@@ -369,16 +371,16 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
               </linearGradient>
 
               {/* Push Notifications Gradient */}
-              <linearGradient id="fillPushNotifications" x1="0" y1="0" x2="0" y2="1">
+              {/* <linearGradient id="fillPushNotifications" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.8} />
                 <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0.1} />
               </linearGradient>
 
               {/* RCS Messages Gradient */}
-              <linearGradient id="fillRcSmessages" x1="0" y1="0" x2="0" y2="1">
+              {/* <linearGradient id="fillRcSmessages" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.8} />
                 <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0.1} />
-              </linearGradient>
+              </linearGradient> */}
 
               {/* Whatsapp Gradient */}
               <linearGradient id="fillWhatsapp" x1="0" y1="0" x2="0" y2="1">
@@ -422,7 +424,7 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
               stroke="hsl(var(--chart-5))"
               stackId="a"
             />
-            <Area
+            {/* <Area
               dataKey="rcSmessages"
               type="natural"
               fill="url(#fillRcSmessages)"
@@ -435,7 +437,7 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
               fill="url(#fillPushNotifications)"
               stroke="hsl(var(--chart-3))"
               stackId="a"
-            />
+            /> */}
             <Area
               dataKey="sms"
               type="natural"
@@ -443,13 +445,13 @@ const SecondDashChart: FC<DashChartProps> = ({ Data, setTimeRange, timeRange, is
               stroke="hsl(var(--chart-2))"
               stackId="a"
             />
-            <Area
+            {/* <Area
               dataKey="email"
               type="natural"
               fill="url(#fillEmail)"
               stroke="hsl(var(--chart-1))"
               stackId="a"
-            />
+            /> */}
             <ChartLegend content={<ChartLegendContent />} />
           </AreaChart>
         </ChartContainer>
@@ -597,20 +599,108 @@ interface CardProps {
 }
 
 const CardComponent: FC<CardProps> = ({ title, value, change, icon }) => {
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
+  const [currencyList, setCurrencyList] = useState<{ currency_name: string; country_name: string }[]>([]);
+  const [amountSpent, setAmountSpent] = useState<number>(0);
+  const [isCountrySelected, setIsCountrySelected] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const apiUrlAdminAcc = useSelector((state: RootState) => state.authentication.adminUrl);
+
+  useEffect(() => {
+    const fetchCountryListWithCurrency = async () => {
+      try {
+        const response = await axios.get(`${apiUrlAdminAcc}/GetAllCountriesWithCurrencyName`);
+        if (response.data.status === "Success") {
+          console.log(response.data.countryList);
+          setCurrencyList(response.data.countryList ?? []);
+        } else {
+          console.error("Failed to fetch currency list:", response.data.status_Description);
+        }
+      } catch (error) {
+        console.error("Error fetching currency list:", error);
+      }
+    };
+
+    if (apiUrlAdminAcc) {
+      fetchCountryListWithCurrency();
+    }
+  }, [apiUrlAdminAcc]);
+
+  const fetchAmountSpent = async (currency: string) => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${apiUrlAdminAcc}/GetAmountSpentonAdCampaigns?currencyName=${currency}`);
+      if (response.data.status === "Success") {
+        console.log("Ad Spend Response:", response.data);
+        setAmountSpent(response.data.campaign_spending.total_amount_spent);
+      } else {
+        console.error("Failed to fetch ad spend:", response.data.status_Description);
+        setAmountSpent(0);
+      }
+    } catch (error) {
+      console.error("Error fetching ad spend data:", error);
+      setAmountSpent(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCurrencyChange = (value: string) => {
+    setSelectedCurrency(value);
+    setIsCountrySelected(true);
+    setAmountSpent(0);
+    const currencyName = value.split("-")[0]; // This will extract 'USD' from 'USD-Canada'
+  
+    fetchAmountSpent(currencyName); // Call the API with only the currency name
+  };
+
   return (
-    <Card className="w-full md:w-[200px] lg:w-[220px] xl:w-[240px] h-fit relative flex-grow border-[#E2E8F0]">
-      <div className="p-1 pl-0 pr-0">
-        {/* <DollarSign className='absolute top-7 right-6 text-gray-400'/> */}
+    <Card className="w-full md:w-[200px] lg:w-[220px] xl:w-[240px] h-[150px] relative flex-grow border-[#E2E8F0]">
+      <div className="p-1 pl-0 pr-0 h-full flex flex-col justify-between">
         {icon && (
           <div className="absolute top-7 right-6 text-gray-400">{icon}</div>
         )}
 
-        <CardHeader className="text-left pb-2">
-          <CardTitle className="text-[14px] text-[#020617] font-medium leading-[20px] text-left">{title}</CardTitle>
+        <CardHeader className="text-left">
+          <CardTitle className="text-[14px] text-[#020617] font-medium leading-[20px]">
+            {title}
+          </CardTitle>
+
+          {title === "Ad Spend" && (
+            <Select
+              value={selectedCurrency}
+              onValueChange={(value) => handleCurrencyChange(value)}
+            >
+              <SelectTrigger className="w-full mt-2 h-7 text-[#020617] border border-[#E2E8F0] rounded-md">
+                <SelectValue placeholder="Select Country" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[200px] overflow-y-auto">
+                {currencyList.length > 0 ? (
+                  currencyList.map((currency, index) => (
+                    <SelectItem className="cursor-pointer" key={index} value={`${currency.currency_name}-${currency.country_name}`}>
+                      {`${currency.currency_name} (${currency.country_name})`}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="No Currency" disabled>
+                    No Currency Found
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          )}
         </CardHeader>
 
-        <CardContent className="text-left text-[#020617] text-2xl font-bold leading-[24px] mt-1">
-          {value}
+        <CardContent className="text-left text-[#020617] text-2xl font-bold leading-[24px] mt-[-18px]">
+          {isCountrySelected ? (
+            isLoading ? (
+              <div className="text-[14px] text-[#64748B]">Loading...</div>
+            ) : (
+              `${selectedCurrency.split('-')[0]} ${amountSpent}`
+            )
+          ) : (
+            value
+          )}
           <div className="text-[12px] text-[#64748B] font-normal leading-[20px] mt-[2px]">
             {change}
           </div>
@@ -682,7 +772,7 @@ const AdminHome: FC = () => {
   const [last30DaysCampaigns, setLast30DaysCampaigns] = useState<number | 0>(0);
   const [before30DaysCampaigns, setBefore30DaysCampaigns] = useState<number | 0>(0);
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [date_Week, setDate_Week] = React.useState<DateRange | undefined>({
     from: subDays(new Date(), 7), // 7 days before the current date
@@ -781,7 +871,7 @@ const AdminHome: FC = () => {
             setChartData(response.data);
           } else {
             // setChartData(response.data);
-            fetchData();
+            // fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -865,7 +955,7 @@ const AdminHome: FC = () => {
             setChartData(response.data);
           } else {
             // setChartData(response.data);
-            fetchData();
+            // fetchData();
             console.error("chart details not found");
           }
         } catch (error) {
@@ -941,14 +1031,14 @@ const AdminHome: FC = () => {
   };
 
   // Call all APIs on component mount
-  useEffect(() => {
-    if (apiUrlAdminAcc) {
-      fetchData();
-      getUserCount();
-      getWorkspaceCount();
-      getCampaignsCount();
-    }
-  }, [apiUrlAdminAcc]);
+  // useEffect(() => {
+  //   if (apiUrlAdminAcc) {
+  //     // fetchData();
+  //     getUserCount();
+  //     getWorkspaceCount();
+  //     getCampaignsCount();
+  //   }
+  // }, [apiUrlAdminAcc]);
 
 
 
@@ -972,21 +1062,21 @@ const AdminHome: FC = () => {
   //   loadConfig();
   // }, [Workspace_Id]);
 
-  const fetchData = async () => {
-    if (apiUrlAdminAcc) {
-      // Ensure apiUrlAdminAcc is valid
-      try {
-        console.log("apiUrlAdminAcc", apiUrlAdminAcc); // For debugging
-        const response = await axios.get(
-          `${apiUrlAdminAcc}/GetAdminDashboardChartDetails`
-        );
-        console.log("API Response:", response.data); // Check the response
-        setChartData(response.data);
-      } catch (error) {
-        console.error("Error fetching the statistics:", error);
-      }
-    }
-  };
+  // const fetchData = async () => {
+  //   if (apiUrlAdminAcc) {
+  //     // Ensure apiUrlAdminAcc is valid
+  //     try {
+  //       console.log("apiUrlAdminAcc", apiUrlAdminAcc); // For debugging
+  //       const response = await axios.get(
+  //         `${apiUrlAdminAcc}/GetAdminDashboardChartDetails`
+  //       );
+  //       console.log("API Response:", response.data); // Check the response
+  //       setChartData(response.data);
+  //     } catch (error) {
+  //       console.error("Error fetching the statistics:", error);
+  //     }
+  //   }
+  // };
 
   const fetchPast7DaysData = async () => {
     const past_from = format(subDays(new Date(), 7), "yyyy-MM-dd");
@@ -1074,8 +1164,7 @@ const AdminHome: FC = () => {
     }
     if (!before || before === 0) return `+0% change from last ${type}`; // Avoid division by zero
     const change = (last / before) * 100;
-    
-    return `+${change.toFixed(1)}% change from last ${type}`;
+    return `${change > 0 ? "+" : ""}${change.toFixed(1)}% change from last ${type}`;
   };
 
   useEffect(() => {
@@ -1086,13 +1175,13 @@ const AdminHome: FC = () => {
   }, []);
   
   return chartData ? (
-    <div className="flex-col w-full h-screen overflow-y-auto no-scrollbar">
+    <div className="flex-col w-full overflow-y-auto">
       <div className="flex mt-[-15px] justify-end gap-2">
         <div>
           {/* <DatePickerWithRange /> */}
           <DatePickerWithRange
             setChartData={setChartData}
-            fetchData={fetchData}
+            fetchData={byMonthData}
             setUserCount={setUserCount}
             setCampaignCount={setCampaignsCount}
             setWorkspaceCount={setWorkspaceCount}
@@ -1118,7 +1207,7 @@ const AdminHome: FC = () => {
                 setIsWeek(false);
                 setIsMonth(false);
                 setTimeRange("90d");
-                fetchData();
+                // fetchData();
               }
             }}
           >
@@ -1138,40 +1227,19 @@ const AdminHome: FC = () => {
         <CardComponent title="Users" value={userCount} change={calculatePercentageChange(last30DaysUsers, before30DaysUsers, timeRange)} />
         <CardComponent title="Workspaces" value={workspaceCount} change={calculatePercentageChange(last30DaysWorkspaces, before30DaysWorkspaces, timeRange)} />
         <CardComponent title="Campaigns" value={campaignsCount} change={calculatePercentageChange(last30DaysCampaigns, before30DaysCampaigns, timeRange)} />
-        <CardComponent title="Ad Spend" value="AED 280,000" change="+201% from last week" />
+        <CardComponent title="Ad Spend" value=" " change=" " />
       </div>
       <DashChart data={fallbackData || []} setTimeRange={setTimeRange} timeRange={timeRange} isWeek={isWeek} />
       <SecondDashChart Data={chartData?.chartData || []} setTimeRange={setTimeRange} timeRange={timeRange} isWeek={isWeek} />
     </div>
   ) : (
-    <div className="flex-col w-full">
-      <div className="flex mt-[-15px] justify-end">
-        <div>
-          {/* <DatePickerWithRange /> */}
-          <DatePickerWithRange
-            setChartData={setChartData}
-            fetchData={fetchData}
-            setUserCount={setUserCount}
-            setCampaignCount={setCampaignsCount}
-            setWorkspaceCount={setWorkspaceCount}
-          />
-        </div>
-        <div>
-          <Button className="ml-2 w-fit font-normal" variant={"outline"}>
-            By Week
-          </Button>
-        </div>
+      <div>
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center h-[500px]">
+            <CircularProgress color="primary" />
+          </div>
+        )}
       </div>
-
-      <div className="flex flex-wrap gap-4 w-full justify-between">
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
-      </div>
-      <SkeletonChart />
-    </div>
-  );
-};
-
+    );
+  };
 export default AdminHome;

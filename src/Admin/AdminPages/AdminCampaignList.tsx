@@ -192,7 +192,7 @@ const DatePickerWithRange: React.FC<DatePickerWithRangeProps> = ({
           <Button
             variant="outline"
             className={cn(
-              "w-[254px] justify-start text-left font-normal mt-0",
+              "min-w-[150px] w-auto justify-start text-left font-normal mt-0",
               !date && "text-muted-foreground"
             )}
           >

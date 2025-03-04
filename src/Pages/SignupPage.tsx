@@ -8,7 +8,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Input } from "../Components/ui/input";
 import { Button } from "../Components/ui/button";
 import { Container, Typography, Box, CircularProgress } from "@mui/material";
-import loginVideo from "../Assets/loginVideo.mp4";
+import loginVideoUrls from "../Assets/LogInVideos.json"
 import axios from "axios";
 import config from '../config.json'
 import crypto from "crypto-js"; // For hashing passwords
@@ -414,6 +414,7 @@ const SignupPage: FC = () => {
   const inviteToken = useSelector((state:RootState) => state.authentication.inviteToken);
   //tamil
   const dispatch = useDispatch();
+  const loginVideo = loginVideoUrls.LogInVideoUrl;
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
