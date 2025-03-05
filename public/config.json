@@ -1,8 +1,8 @@
 {
-    "API_URL": "http://3.76.247.193:5000/Authentication/api",
-    "ApiUrlAdvAcc" : "http://3.76.247.193:5000/AdvertiserAccount/api",
-    "ApiUrlAdminAcc" :"http://3.76.247.193:5000/Admin/api",
-    "SmsUrlAdminAcc" : "http://3.76.247.193:5000/Sms/api",
-    "OperatorUrl" : "http://3.76.247.193:5000/Operator/api"
+    "API_URL": "https://alb-for-prvt-servers-168687123.eu-central-1.elb.amazonaws.com/Authentication/api",
+    "ApiUrlAdvAcc" : "https://alb-for-prvt-servers-168687123.eu-central-1.elb.amazonaws.com/AdvertiserAccount/api",
+    "ApiUrlAdminAcc" :"https://alb-for-prvt-servers-168687123.eu-central-1.elb.amazonaws.com/Admin/api",
+    "SmsUrlAdminAcc" : "https://alb-for-prvt-servers-168687123.eu-central-1.elb.amazonaws.com/Sms/api",
+    "OperatorUrl" : "https://alb-for-prvt-servers-168687123.eu-central-1.elb.amazonaws.com/Operator/api"
 }
 
